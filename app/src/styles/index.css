@@ -967,10 +967,36 @@ a { color: var(--accent); text-decoration: none; }
 }
 .feat-close:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.17); }
 
-/* ─────────────────────────── Desktop dev view ─────────────────────────── */
-
-@media (min-width: 900px) {
-  .app-shell { max-width: 520px; margin: 0 auto; border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline); }
+/* ──────────────────── Desktop dev view (browser only) ──────────────────── */
+/*
+ * A phone-width column with hairlines down both sides, so `npm run dev` in a
+ * desktop browser looks like the device instead of a stretched page. It is a
+ * DEVELOPMENT affordance and must never reach a shipped build.
+ *
+ * It reached one. The query was width-only, and an iPad in portrait is about
+ * 1032px wide, so every iPad got this: measured at 1032px, .app-shell came
+ * back 520px with a 1px border on each side — half the screen black, with
+ * visible hairlines framing it. The stage, the top bar, the movie title and
+ * the Play/AirPlay pills all sat inside that column.
+ *
+ * Two independent gates now keep it out, because one is not enough:
+ *   - hover/pointer — a real iPad reports (hover: none) and (pointer: coarse);
+ *     a desktop browser reports hover and a fine pointer. This also fixes the
+ *     browser preview on any touch device.
+ *   - html[data-native] — set in main.jsx for any Capacitor build, so the
+ *     shipped app is excluded even if iPadOS ever reports a fine pointer
+ *     (an attached trackpad, a future OS change). Belt and braces: this rule
+ *     is cosmetic, and the cost of it leaking again is an App Store screenshot
+ *     that makes the iPad build look broken.
+ *
+ * A Playwright capture at iPad width must pass hasTouch so it represents the
+ * device rather than this view — see scripts/capture-release-screenshots.mjs.
+ */
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  html:not([data-native]) .app-shell {
+    max-width: 520px; margin: 0 auto;
+    border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline);
+  }
 }
 
 /* ─────────────────────────── Reduced motion ─────────────────────────── */

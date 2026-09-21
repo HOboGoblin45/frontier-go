@@ -11,7 +11,16 @@ export async function captureReleaseScreenshots(kind = 'iphone') {
   await mkdir(out, {recursive:true});
   const browser = await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome'});
   try {
-    const context = await browser.newContext({viewport:ipad ? {width:1032,height:1376}:{width:440,height:956},deviceScaleFactor:ipad?2:3});
+    // hasTouch/isMobile are load-bearing, not decoration: without them
+    // Chromium reports (hover: hover) and (pointer: fine), the desktop dev
+    // view in styles/index.css applies at iPad width, and the 13-inch drafts
+    // come back as a 520px column with black either side.
+    const context = await browser.newContext({
+      viewport: ipad ? {width:1032,height:1376} : {width:440,height:956},
+      deviceScaleFactor: ipad ? 2 : 3,
+      hasTouch: true,
+      isMobile: true,
+    });
     const page = await context.newPage();
     await page.goto(url);
     await page.getByRole('button',{name:'Agree and continue'}).waitFor();
