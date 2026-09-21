@@ -65,7 +65,29 @@ jobs:
         working-directory: app
         run: npm ci
       - name: Verify production proxy and policy pages
+        id: production
+        # HARD GATE for a tagged release. ADVISORY for a TestFlight dispatch.
+        #
+        # The gate exists so a release never ships against a stale proxy. A
+        # dispatched TestFlight build is not a release, and most of what needs
+        # testing on a device - the consent sheet, iPad layout and rotation,
+        # player chrome, the swipe-down, saved movies, AirPlay - does not touch
+        # the proxy at all. Blocking all of that behind a deploy that needs an
+        # interactive browser login is the tail wagging the dog.
+        #
+        # It still runs and still shouts on failure, because the one thing it
+        # DOES predict is that trailers will not auto-advance, and nobody
+        # should test that against a stale page and conclude the build broke it.
+        continue-on-error: ${{ github.event_name == 'workflow_dispatch' }}
         run: node scripts/verify-production.mjs
+
+      - name: Warn that auto-advance cannot work in this build
+        if: ${{ github.event_name == 'workflow_dispatch' && steps.production.outcome == 'failure' }}
+        run: |
+          echo "::warning title=Stale proxy::Production is NOT current. This build is fine for consent, layout, iPad rotation, saved movies, filters and AirPlay. Trailers will NOT auto-advance (docs/bugs.md B4) until landing-page/ is deployed. Do not read a stall as a 3.5.0 regression."
+          echo "### Auto-advance will not work in this build" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "The Vercel proxy is still serving the v1.9.0 page, so no installed build can auto-advance (docs/bugs.md B4). Everything else in the device test is unaffected. Deploy \`landing-page/\` and this warning goes away." >> "$GITHUB_STEP_SUMMARY"
       - name: Verify app before signing
         working-directory: app
         run: |
@@ -115,14 +137,26 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" App/Info.plist
           echo "Set CFBundleVersion to $BUILD"
 
-      - name: Set marketing version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Set marketing version
         working-directory: app/ios/App
+        # A tag names the version. A dispatch has no tag, and this step used to
+        # be skipped entirely - which left Info.plist on $(MARKETING_VERSION),
+        # i.e. the 1.0 still sitting in project.pbxproj. Every manually
+        # dispatched TestFlight build was therefore labelled 1.0 regardless of
+        # what it contained. app/package.json is already the version of record
+        # (vite reads it for VITE_APP_VERSION), so use it.
         run: |
-          TAG="${GITHUB_REF##*/}"
-          VERSION="${TAG#v}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF##*/}"
+            VERSION="${TAG#v}"
+            SOURCE="tag $TAG"
+          else
+            VERSION=$(node -p "require('$GITHUB_WORKSPACE/app/package.json').version")
+            SOURCE="app/package.json"
+          fi
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" App/Info.plist
-          echo "Set CFBundleShortVersionString to $VERSION"
+          echo "Set CFBundleShortVersionString to $VERSION (from $SOURCE)"
+          echo "Build $VERSION (${{ github.event.inputs.build_number || github.run_number }}) from $SOURCE" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Import code-signing certificate
         env:
