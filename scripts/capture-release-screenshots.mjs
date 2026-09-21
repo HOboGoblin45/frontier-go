@@ -18,12 +18,16 @@ Captured from the actual web UI with live TMDB data, through a touch-emulating
 context, without injected movies or hidden controls. ${ipad ? READY_SIZES.ipad : READY_SIZES.iphone} PNG.
 Files 01 welcome, 02 filters, 03 modes, 04 movie details, 05 About.
 
-## Do not submit 03 and 04 as captured
+## YouTube is stubbed during capture, on purpose
 
-Both show YouTube's red play button blurred into the backdrop. The web preview
-mounts a YouTube iframe on the stage; the iOS build plays in a native modal and
-never shows this. Third-party branding in a store screenshot is its own metadata
-risk, separately from being inaccurate.
+The web preview mounts a YouTube iframe on the stage; the iOS build plays in a
+native modal and never shows it. Unstubbed, 03 and 04 came back with YouTube's
+red play button blurred into the artwork - inaccurate, and third-party branding
+inside a store screenshot besides. The capture context serves a transparent
+document for youtube.com and youtube-nocookie.com so the TMDB backdrop shows
+through, which is what the device puts there. Aborting those requests instead
+was tried and is worse: a blocked iframe renders the browser's opaque error
+document and the stage becomes a flat grey slab.
 
 ## What a browser capture cannot show at all
 
@@ -60,6 +64,31 @@ export async function captureReleaseScreenshots(kind = 'iphone') {
       hasTouch: true,
       isMobile: true,
     });
+    // The web preview mounts a YouTube iframe on the stage. iOS does not --
+    // Player.ios.jsx hands playback to the native modal, so the stage keeps
+    // the TMDB backdrop and the trailer is never inline. Left alone, the
+    // drafts for 03 and 04 came back with YouTube's red play button blurred
+    // into the artwork: inaccurate, and third-party branding inside a store
+    // screenshot besides.
+    //
+    // Stubbed, not aborted. Aborting was tried first and is worse: a blocked
+    // iframe renders the browser's own error document, which is opaque white,
+    // so the stage became a flat grey slab with the backdrop hidden behind it.
+    // A transparent stub document lets tr-backdrop show through, which is what
+    // the device puts there. Same technique release-smoke.mjs uses on the same
+    // hosts; it stubs a third-party service rather than hiding app UI.
+    const TRANSPARENT_STUB = '<!doctype html><html><head><meta charset="utf-8">'
+      + '<style>html,body{margin:0;height:100%;background:transparent}</style>'
+      + '</head><body></body></html>';
+    await context.route('**://*.youtube-nocookie.com/**', (route) => route.fulfill({
+      status: 200, contentType: 'text/html; charset=utf-8', body: TRANSPARENT_STUB,
+    }));
+    await context.route('**://*.youtube.com/**', (route) => route.fulfill({
+      status: 200, contentType: 'text/html; charset=utf-8', body: TRANSPARENT_STUB,
+    }));
+    await context.route('**://*.ytimg.com/**', (route) => route.abort());
+    await context.route('**://*.ggpht.com/**', (route) => route.abort());
+
     const page = await context.newPage();
     await page.goto(url);
     await page.getByRole('button',{name:'Agree and continue'}).waitFor();

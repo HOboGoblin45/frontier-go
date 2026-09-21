@@ -4,12 +4,16 @@ Captured from the actual web UI with live TMDB data, through a touch-emulating
 context, without injected movies or hidden controls. 2064 x 2752 PNG.
 Files 01 welcome, 02 filters, 03 modes, 04 movie details, 05 About.
 
-## Do not submit 03 and 04 as captured
+## YouTube is stubbed during capture, on purpose
 
-Both show YouTube's red play button blurred into the backdrop. The web preview
-mounts a YouTube iframe on the stage; the iOS build plays in a native modal and
-never shows this. Third-party branding in a store screenshot is its own metadata
-risk, separately from being inaccurate.
+The web preview mounts a YouTube iframe on the stage; the iOS build plays in a
+native modal and never shows it. Unstubbed, 03 and 04 came back with YouTube's
+red play button blurred into the artwork - inaccurate, and third-party branding
+inside a store screenshot besides. The capture context serves a transparent
+document for youtube.com and youtube-nocookie.com so the TMDB backdrop shows
+through, which is what the device puts there. Aborting those requests instead
+was tried and is worse: a blocked iframe renders the browser's opaque error
+document and the stage becomes a flat grey slab.
 
 ## What a browser capture cannot show at all
 
