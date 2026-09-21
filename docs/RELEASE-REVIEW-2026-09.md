@@ -27,7 +27,7 @@ unverified, whatever else in the repo may imply.
 
 | Gate | Result | How |
 | --- | --- | --- |
-| Unit tests | **225 passing, 12 files** | `npm test` in `app/`, Windows node v24.14.0 |
+| Unit tests | **230 passing, 12 files** | `npm test` in `app/`, Windows node v24.14.0 |
 | Lint | **exit 0** | `npm run lint` (`eslint . --max-warnings 0`) |
 | Web build | **exit 0** | `npm run build` (vite 5.4.21) |
 | iOS compile | **green** | GitHub Actions "iOS simulator compile", unsigned, on `6222870` |
@@ -37,6 +37,8 @@ unverified, whatever else in the repo may imply.
 | iPad fix holds on iPadOS, not just in Chromium | **confirmed** | The 13-inch native capture fills the screen: no phone-width column, no hairline borders. B7's browser measurement was evidence about the CSS; this is evidence about the device. |
 | The deploy gate can actually pass | **proven** | `landing-page/api/embed.js` renders deterministically: the same URL hashed 1.1s apart is byte-identical, and the cache-buster is not embedded in the HTML. Its `Date.now()` calls are inside the client script string, evaluated in the browser, not at render. So `verify-production.mjs`'s hash comparison will match once the current page is deployed, rather than blocking the release forever. |
 | Browser smoke | **48 assertions, 4 viewports** | `node scripts/release-smoke.mjs` against a dev server. First run outside its author. |
+| Fun-modes smoke | **6 modes, 0 errors** | `node scripts/smoke-fun-modes.mjs`. It had been seeding a retired storage key and was landing on a sheet it could not dismiss; fixed and run. |
+| The new tests fail on revert | **mutation-checked** | Reverting the player gate, the consent timeout, the `?? null` and the native-shell gate each produce a failing test. Checked one at a time in this session. |
 | First-run consent path | **exercised in a browser** | The screenshot capture waits for "Agree and continue", clicks it, waits for the dialog to be hidden, then drives filters, modes, movie details and About. It completed for both device sizes after the consent change. |
 
 `scripts/release-smoke.mjs` had never been run by anyone but its author and was
@@ -168,11 +170,28 @@ was serving the v1.9.0 proxy at review time, so no installed build can
 auto-advance until this lands (`docs/bugs.md` B4), and the consent sheet in the
 shipped binary links to two pages that do not yet exist.
 
+**Either at the machine:**
+
 ```powershell
 cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette\landing-page"
 vercel login
 vercel --prod
 ```
+
+**Or from a phone, one time**, because `vercel login` is the only part of this
+release that needs a browser and a keyboard:
+
+1. `vercel.com/account/tokens` — create a token scoped to the
+   **trailer-roulette** project and copy it.
+2. Repo → **Settings → Secrets and variables → Actions → New repository
+   secret**, name `VERCEL_TOKEN`, paste.
+3. **Actions → Deploy landing page → Run workflow.**
+
+`VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` are already set as repository
+variables. The workflow refuses to start without the token, deploys
+`landing-page/` to production, and then runs the verification below up to five
+times — a green deploy step is not evidence the live page changed, so it proves
+it or fails.
 
 ### Step 2 — prove the deploy took
 

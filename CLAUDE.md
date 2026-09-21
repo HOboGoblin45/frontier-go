@@ -129,7 +129,7 @@ ship without App Review. New message kinds are an enhancement, never the fix its
 
 ## Verification status of the current tree (2026-09-21)
 
-**225 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
+**230 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
 CI's unsigned **iOS simulator compile green on `release/public-3.5`**, and
 `ios-screenshots.yml` green — the only gate here that RUNS the app rather than
 compiling it, which is what confirmed it renders on iOS and that the iPad fix holds

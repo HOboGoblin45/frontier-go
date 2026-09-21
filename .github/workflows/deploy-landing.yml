@@ -1,0 +1,69 @@
+name: Deploy landing page
+
+# The one release step that had no path off a keyboard.
+#
+# `vercel --prod` locally needs an interactive `vercel login`, so the deploy
+# that fixes the live app - the embed proxy every installed build depends on,
+# plus /privacy, /terms and /support - was stuck behind sitting at the machine.
+# This does the same deploy with a token, from a button, and then PROVES it
+# took rather than reporting a green tick for a no-op.
+#
+# ONE-TIME SETUP, doable from a phone:
+#   1. https://vercel.com/account/tokens -> Create Token, scope it to the
+#      trailer-roulette project, copy it.
+#   2. Repo -> Settings -> Secrets and variables -> Actions -> New repository
+#      secret, name VERCEL_TOKEN, paste.
+#   3. Actions -> Deploy landing page -> Run workflow.
+# VERCEL_ORG_ID and VERCEL_PROJECT_ID are already set as repository variables;
+# they are identifiers, not credentials, and are useless without the token.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check the token is present before touching anything
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::error::VERCEL_TOKEN is not set. See the setup steps at the top of .github/workflows/deploy-landing.yml"
+            exit 1
+          fi
+          echo "Token present."
+
+      - name: Deploy landing-page to production
+        working-directory: landing-page
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Prove the deploy took
+        # A green deploy step is not evidence the live page changed. This is the
+        # same gate ios-release.yml runs before signing: it diffs live /embed
+        # against this checkout's handler and checks all three policy pages.
+        # Vercel's edge takes a moment to propagate, hence the retries.
+        run: |
+          for attempt in 1 2 3 4 5; do
+            echo "--- verification attempt $attempt ---"
+            if node scripts/verify-production.mjs; then
+              echo "Production matches this checkout."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::The deploy reported success but production still does not match this checkout."
+          exit 1

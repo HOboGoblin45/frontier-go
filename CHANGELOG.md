@@ -97,7 +97,7 @@ an iPad. Branch `release/public-3.5`, PR #1.
   are paste-ready copy rather than notes.
 
 ### Verification
-225 vitest across 12 files (193 before this release; +10 consent, +17 policy
+230 vitest across 12 files (193 before this release; +15 consent, +17 policy
 pages, +5 dev view), `eslint --max-warnings 0` clean, `vite build` green, CI's
 unsigned iOS simulator compile green on the branch, `scripts/release-smoke.mjs`
 green (48 browser assertions across four viewport sizes, its first run outside
