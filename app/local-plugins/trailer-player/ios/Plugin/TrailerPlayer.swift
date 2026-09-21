@@ -403,6 +403,9 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
 
     // The next trailer to chain to in place. Updated by JS via enqueueNext.
     private var nextVideoId: String?
+    /// Set while Skip is waiting for JS to hand over a trailer to swap to.
+    private var awaitingSkipTarget = false
+    private var skipWaitTimer: Timer?
     private var nextVideoTitle: String = ""
 
     private var webView: WKWebView!
@@ -610,7 +613,17 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         self.nextVideoId = videoId
         self.nextVideoTitle = title
         DispatchQueue.main.async { [weak self] in
-            self?.refreshSkipAffordance()
+            guard let self = self else { return }
+            self.refreshSkipAffordance()
+            // A Skip is waiting on this. Spend it immediately rather than
+            // priming the chain: the user asked for a different trailer
+            // several seconds ago and is watching a spinner.
+            if self.awaitingSkipTarget, videoId != nil {
+                self.awaitingSkipTarget = false
+                self.skipWaitTimer?.invalidate()
+                self.skipWaitTimer = nil
+                self.advanceInPlace(reason: "skipped", cause: "user")
+            }
         }
     }
 
@@ -768,7 +781,23 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
 
     private func setupWebView() {
         let config = WKWebViewConfiguration()
-        config.allowsInlineMediaPlayback = true
+        // AIRPLAY. Verified on a device 2026-09-21: selecting an Apple TV from
+        // the app's AirPlay pill moved the AUDIO and left the picture on the
+        // phone. The pill presents AVRoutePickerView, which switches the audio
+        // session route; iOS can only route the PICTURE for media it presents
+        // itself. An inline, cross-origin YouTube iframe with YouTube's own
+        // controls hidden is not that, so there was nothing for it to route and
+        // nothing for the user to tap either — YouTube's own AirPlay button
+        // lives in the controls this app sets controls=0 to hide.
+        //
+        // false, not true, hands playback to iOS's native full-screen player,
+        // which owns the video and carries a working AirPlay control. The cost
+        // is real and deliberate: while a trailer plays, Apple's player chrome
+        // replaces the glass header, the progress line and Done.
+        //
+        // If this has to be reverted, this line and `fs` in loadVideo are the
+        // whole change. See docs/bugs.md B10 for what to watch on a device.
+        config.allowsInlineMediaPlayback = false
         config.allowsAirPlayForMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.allowsPictureInPictureMediaPlayback = true
@@ -1278,7 +1307,13 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
             URLQueryItem(name: "v", value: videoId),
             URLQueryItem(name: "controls", value: "0"),
             URLQueryItem(name: "iv_load_policy", value: "3"),
-            URLQueryItem(name: "fs", value: "0"),
+            // fs=1 pairs with allowsInlineMediaPlayback = false: the player is
+            // allowed to go full-screen, which is where AirPlay video lives.
+            URLQueryItem(name: "fs", value: "1"),
+            // Requested for after the proxy is redeployed; today's deployed
+            // page hard-codes playsinline=1 and ignores this. The native flag
+            // above is what actually forces full-screen in the meantime.
+            URLQueryItem(name: "playsinline", value: "0"),
             URLQueryItem(name: "e", value: String(epochToken)),
         ]
         if isMuted { items.append(URLQueryItem(name: "mute", value: "1")) }
@@ -1718,6 +1753,12 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         finish(reason: reason)
     }
 
+    /// How long Skip waits for JS to produce something before giving up and
+    /// falling back to the old exit-and-reopen behaviour. TMDB normally answers
+    /// in well under a second; this only has to stop the control becoming a
+    /// dead end on a bad network.
+    private static let skipRequestTimeout: TimeInterval = 6
+
     @objc private func skipTapped() {
         // v3.2.2: a crisp .light tap acknowledges the press itself, distinct in
         // character from the duller .soft thud that marks the advance a beat
@@ -1727,9 +1768,33 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         scheduleChromeAutoHide()
         if nextVideoId != nil {
             advanceInPlace(reason: "skipped", cause: "user")
-        } else {
-            // Nothing primed — exit and let JS advance + reopen.
-            finish(reason: "skip")
+            return
+        }
+        // NOTHING PRIMED. This used to call finish(reason: "skip") — the modal
+        // closed, JS advanced the queue and reopened. Functionally a skip;
+        // from the user's seat, being thrown out of the player. And it hit
+        // exactly when it was least forgivable: on the FIRST trailer, where
+        // queue[1] does not exist yet, which is the one time a new user is
+        // most likely to want a different film.
+        //
+        // Now the player stays up and asks for one. JS answers through the
+        // enqueueNext it already uses to prime the chain, setNext() sees that
+        // a skip is waiting and swaps in place, and the whole thing looks like
+        // any other advance. The timer below is the floor: if JS never
+        // answers, fall back to the old behaviour rather than leave Skip
+        // looking broken.
+        if awaitingSkipTarget { return }   // already asked; ignore a double tap
+        awaitingSkipTarget = true
+        loadingIndicator?.startAnimating()
+        showChrome(restartIdleTimer: false)
+        onEvent("trailerEvent", ["event": "needNext", "cause": "user"])
+        skipWaitTimer?.invalidate()
+        skipWaitTimer = Timer.scheduledTimer(withTimeInterval: Self.skipRequestTimeout,
+                                             repeats: false) { [weak self] _ in
+            guard let self = self, self.awaitingSkipTarget else { return }
+            self.awaitingSkipTarget = false
+            self.skipWaitTimer = nil
+            self.finish(reason: "skip")
         }
     }
 
@@ -1738,6 +1803,8 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         didFinish = true
         watchdogTimer?.invalidate(); watchdogTimer = nil
         endConfirmTimer?.invalidate(); endConfirmTimer = nil
+        skipWaitTimer?.invalidate(); skipWaitTimer = nil
+        awaitingSkipTarget = false
         // v3.2.2: the chrome idle timer retains self until it fires, and the
         // backdrop download would otherwise keep running for a player that no
         // longer exists.

@@ -113,6 +113,11 @@ export default async function handler(request) {
   const controls = url.searchParams.get('controls') === '0' ? '0' : '1';
   const ivLoadPolicy = url.searchParams.get('iv_load_policy') === '3' ? '3' : '1';
   const fs = url.searchParams.get('fs') === '0' ? '0' : '1';
+  // Defaults to 1, which is what every deployed build has always requested.
+  // The iOS player asks for 0 so the video is handed to iOS's own full-screen
+  // player, which is the only presentation iOS will route to an AirPlay video
+  // device - see the AIRPLAY note in TrailerPlayer.swift and docs/bugs.md B10.
+  const playsinline = url.searchParams.get('playsinline') === '0' ? '0' : '1';
   // Epoch token (v3.2.0): native hands us its per-load token; we echo it on
   // every message so native can drop stale messages that cross a load/swap
   // boundary. Absent (older native builds) = 0, harmless.
@@ -138,7 +143,7 @@ export default async function handler(request) {
     `&controls=${controls}` +
     `&iv_load_policy=${ivLoadPolicy}` +
     `&fs=${fs}` +
-    `&playsinline=1` +
+    `&playsinline=${playsinline}` +
     `&rel=0` +
     `&modestbranding=1` +
     `&enablejsapi=1` +

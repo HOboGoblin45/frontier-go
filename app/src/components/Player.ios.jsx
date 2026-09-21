@@ -112,6 +112,24 @@ export default function PlayerIOS({
             onAdvanceRef.current?.('seen');
           } else if (event === 'skipped') {
             onAdvanceRef.current?.('skip');
+          } else if (event === 'needNext') {
+            // The user pressed Skip with nothing primed - on the first trailer
+            // queue[1] does not exist yet. Native is holding the player open
+            // on a spinner rather than throwing the user back to the stage, so
+            // answer with whatever we have; setNext() spends it immediately.
+            //
+            // Usually there is nothing to send yet, and that is fine: the
+            // parent's top-up is already in flight, and the enqueue effect
+            // below fires the moment queue[1] appears. This branch only closes
+            // the race where a next arrived between the effect and the tap.
+            // Native's own timeout is the floor if neither happens.
+            const pending = nextTrailerRef.current;
+            if (pending?.youtubeKey) {
+              TrailerPlayer.enqueueNext({
+                youtubeKey: pending.youtubeKey,
+                title: pending.title || '',
+              }).catch(() => {});
+            }
           } else if (event === 'muteChanged') {
             onMuteChangedRef.current?.(!!evt?.muted);
           }
@@ -128,6 +146,11 @@ export default function PlayerIOS({
   useEffect(() => {
     if (!openingRef.current) return;
     if (!nextTrailer?.youtubeKey) return;
+    // This is also what answers a waiting Skip: native holds the player on a
+    // spinner until a next arrives, and setNext() swaps to it in place instead
+    // of priming the chain. So this effect firing late is not just an
+    // optimisation any more - someone may be looking at a spinner because of
+    // it.
     TrailerPlayer.enqueueNext({
       youtubeKey: nextTrailer.youtubeKey,
       title: nextTrailer.title || '',
@@ -152,6 +175,8 @@ export default function PlayerIOS({
   }, [muted]);
 
   // Latest-value refs, so the safety net below never calls a stale closure.
+  const nextTrailerRef = useRef(nextTrailer);
+  useEffect(() => { nextTrailerRef.current = nextTrailer; }, [nextTrailer]);
   const trailerRef = useRef(trailer);
   const openTrailerRef = useRef(null);
   useEffect(() => { trailerRef.current = trailer; }, [trailer]);

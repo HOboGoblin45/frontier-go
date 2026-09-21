@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
 import handler from '../../../../landing-page/api/embed.js';
 
 /**
@@ -368,5 +369,87 @@ describe('embed proxy — the no-playback cap is narrow', () => {
     h.state(1); // YouTube says it is playing; infoDelivery never arrives
     h.advance(90000);
     expect(h.of('error')).toHaveLength(0);
+  });
+});
+
+describe('embed proxy — the AirPlay presentation contract (3.5.0)', () => {
+  /** The iframe src the page would actually request. */
+  async function iframeSrc(query) {
+    const res = await handler(new Request(`https://trailer-roulette.vercel.app/embed?${query}`));
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    const m = html.match(/<iframe[^>]*\ssrc="([^"]+)"/);
+    expect(m, 'proxy page must contain an iframe with a src').toBeTruthy();
+    return m[1].replace(/&amp;/g, '&');
+  }
+
+  it('still plays inline by default, which is what every shipped build asks for', async () => {
+    // Every installed build requests the page without this parameter. Changing
+    // the default would change playback on every phone the moment the proxy is
+    // deployed, with no App Review and no way back except another deploy.
+    expect(await iframeSrc('v=abc123XYZ')).toContain('playsinline=1');
+  });
+
+  it('hands the video to the native player when the app asks for it', async () => {
+    // Device-verified 2026-09-21: an AirPlay route moved the audio and left the
+    // picture on the phone, because an inline cross-origin iframe is not a
+    // presentation iOS can route video from. playsinline=0 lets iOS present its
+    // own full-screen player, which owns the video and can route it.
+    expect(await iframeSrc('v=abc123XYZ&playsinline=0')).toContain('playsinline=0');
+  });
+
+  it('treats anything but an explicit 0 as inline', async () => {
+    for (const value of ['1', '', 'yes', 'false', 'null']) {
+      expect(await iframeSrc(`v=abc123XYZ&playsinline=${encodeURIComponent(value)}`))
+        .toContain('playsinline=1');
+    }
+  });
+
+  it('lets the player go full-screen when the app allows it', async () => {
+    // fs=0 would leave iOS no full-screen path to route from.
+    expect(await iframeSrc('v=abc123XYZ&fs=1')).toContain('fs=1');
+    expect(await iframeSrc('v=abc123XYZ&fs=0')).toContain('fs=0');
+  });
+
+  it('keeps the JS API and the origin check intact under all of it', async () => {
+    // The whole bridge depends on these two. A presentation change must not
+    // cost the event channel that auto-advance is built on.
+    const src = await iframeSrc('v=abc123XYZ&playsinline=0&fs=1&controls=0');
+    expect(src).toContain('enablejsapi=1');
+    expect(src).toContain('origin=https%3A%2F%2Ftrailer-roulette.vercel.app');
+  });
+});
+
+describe('the native player asks for the presentation it needs', () => {
+  /**
+   * Source assertions. The Swift cannot be typechecked off a Mac, and these
+   * three lines are the entire AirPlay fix - easy to revert by accident while
+   * tidying, and the symptom (audio on the TV, picture on the phone) only
+   * shows up on a device with an Apple TV in the room.
+   */
+  const swift = readFileSync(
+    new URL('../../../local-plugins/trailer-player/ios/Plugin/TrailerPlayer.swift', import.meta.url),
+    'utf8',
+  );
+
+  it('does not allow inline playback, so iOS presents the video itself', () => {
+    expect(swift).toContain('config.allowsInlineMediaPlayback = false');
+    expect(swift).toContain('config.allowsAirPlayForMediaPlayback = true');
+  });
+
+  it('asks the proxy for a full-screen-capable, non-inline player', () => {
+    expect(swift).toContain('URLQueryItem(name: "fs", value: "1")');
+    expect(swift).toContain('URLQueryItem(name: "playsinline", value: "0")');
+  });
+
+  it('never turns Skip back into an exit', () => {
+    // Skip with nothing primed used to call finish(), which closed the player
+    // and made a skip feel like being thrown out - worst on the first trailer,
+    // where nothing is ever primed yet.
+    expect(swift).toContain('"event": "needNext"');
+    expect(swift).toContain('awaitingSkipTarget');
+    // The fallback must survive: a Skip that gets no answer still has to do
+    // something rather than spin forever.
+    expect(swift).toContain('skipRequestTimeout');
   });
 });
