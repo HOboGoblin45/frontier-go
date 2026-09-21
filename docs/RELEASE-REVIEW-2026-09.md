@@ -33,7 +33,19 @@ unverified, whatever else in the repo may imply.
 | iOS compile | **green** | GitHub Actions "iOS simulator compile", unsigned, on `6222870` |
 | CI lint/test/build | **green** | GitHub Actions "CI (lint + test + web build)" |
 | iPad layout fix | **measured** | Chromium at 1032x1376: `.app-shell` 520 -> 1032, `max-width` 520px -> none, `border-left` 1px -> 0px |
+| Browser smoke | **48 assertions, 4 viewports** | `node scripts/release-smoke.mjs` against a dev server. First run outside its author. |
 | First-run consent path | **exercised in a browser** | The screenshot capture waits for "Agree and continue", clicks it, waits for the dialog to be hidden, then drives filters, modes, movie details and About. It completed for both device sizes after the consent change. |
+
+`scripts/release-smoke.mjs` had never been run by anyone but its author and was
+referenced nowhere. It is real coverage and it passes: 390x844, 844x390,
+1032x1376 and 1376x1032, with TMDB stubbed deterministically and YouTube and
+Alamo aborted, asserting the consent sheet cannot be escaped and all three of
+its links resolve, that no theater request is made even with a theater source
+stored in localStorage, that About hides plugin diagnostics until asked, that a
+late filter response cannot replace a newer selection, that an empty filter
+result falls back with a banner, and that an offline reload recovers on
+**Try again** with no page errors. Run it before every release; it is step 0 in
+section 6.
 
 Test count moved 193 -> 224: +9 consent gate, +17 policy pages, +5 desktop dev
 view. Two of those files are gates that did not exist before and would have
@@ -119,6 +131,32 @@ decision above, so the file stands, but the sentence predated the decision.
 
 PowerShell 5.1. One command per line. No `&&`, no `??`. Use `curl.exe`, not
 `curl`.
+
+### Step 0 — local gates
+
+```powershell
+cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette\app"
+npm test
+npm run lint
+npm run build
+```
+
+Then the browser smoke, which needs a dev server. Two terminals: start the
+server in the first, leave it running, and run the smoke in the second.
+
+```powershell
+cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette\app"
+npm run dev
+```
+
+```powershell
+cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette"
+node scripts/release-smoke.mjs
+```
+
+Expect `PASS 48 browser assertions across four viewport sizes`. It needs real
+Chrome; set `PLAYWRIGHT_CHANNEL` if yours is not the default channel. Close the
+dev server afterwards.
 
 ### Step 1 — deploy the landing page. Do this first.
 

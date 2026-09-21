@@ -130,7 +130,14 @@ ship without App Review. New message kinds are an enhancement, never the fix its
 ## Verification status of the current tree (2026-09-21)
 
 **224 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
-and CI's unsigned **iOS simulator compile green on `release/public-3.5`**. Two gates
+and CI's unsigned **iOS simulator compile green on `release/public-3.5`**. Plus
+`scripts/release-smoke.mjs` — **48 browser assertions across four viewport sizes**,
+against a dev server with TMDB stubbed and YouTube and Alamo aborted: the consent
+sheet cannot be escaped and its three links resolve, no theater request is made even
+with a theater source in localStorage, About hides diagnostics until asked, a late
+filter response cannot replace a newer selection, an empty filter result falls back
+with a banner, and an offline reload recovers on Try again with no page errors. Run it
+before every release; it is step 0 in `docs/RELEASE-REVIEW-2026-09.md`. Two gates
 added in 3.5.0 are worth knowing about: `policyPages.test.js` asserts that every link
 `lib/release.js` ships inside the binary resolves to a file that exists and that the
 pages carry the required YouTube and third-party disclosures — the gate whose absence
