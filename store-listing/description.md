@@ -1,53 +1,24 @@
-# App Store description — v2.9.0 (immersive all-eras channel)
+Press Play. See what comes next.
 
-Mirrors what is live in App Store Connect. Positioning: a dead-simple random
-trailer roulette — press Play for a random trailer, AirPlay it to your TV.
+Trailer Roulette turns movie discovery into a lean-back trailer channel for iPhone and iPad. Explore cinema across the decades, find a forgotten favorite, or stumble onto something new.
 
----
+MAKE IT YOUR MOVIE NIGHT
+Choose genres and decades, or leave the channel on Everything. Genre choices work as alternatives; multiple decades cover the range between the oldest and newest you select. If nothing matches, the app tells you when it switches to Everything.
 
-## App name (≤30 chars)
-```
-Trailer Roulette
-```
-(16 chars.)
+SIX WAYS TO PLAY
+Spin the Roulette Wheel, take a Blind Date with a movie, Guess the Year, explore the Time Machine, play Trope Bingo, or settle into Cinema Mode.
 
-## Subtitle (≤30 chars)
-```
-Discover your next movie.
-```
-(25 chars.)
+GO BEYOND THE TRAILER
+Open About this movie for facts, cast and where-to-watch information. Save a movie, return to Saved movies using the bookmark button, or share it with a friend. Your saved list stays on your device.
 
-## Description (≤4000 chars)
+BRING IT TO THE TV
+Use AirPlay with a compatible receiver and enjoy the trailer channel together.
 
-```
-Trailer Roulette is the fun way to discover your next movie. Press Play and a random trailer comes up — any genre, any decade, from timeless classics to brand-new releases. Press again to spin a fresh one.
+NO ACCOUNT NEEDED
+No accounts, no analytics SDKs, and no ads sold by Trailer Roulette. YouTube may show its own ads inside the player. An internet connection is required; video and service availability can vary by region.
 
-WHAT YOU GET
+Movie data comes from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB. Where-to-watch data is provided by JustWatch through TMDB. Trailers use YouTube's official embedded player.
 
-• Two buttons, that's it. Play spins a random trailer; AirPlay throws it on your TV. No filters, no accounts, no algorithm.
-
-• Every era of cinema. The 1970s through today, drawn from thousands of films. The next trailer is always a surprise.
-
-• Lean back. Trailers roll one into the next, so it doubles as a hands-free channel you can leave running.
-
-• No accounts. No tracking. No ads. Nothing leaves your phone.
-
-ABOUT TRAILERS
-
-Trailers play via YouTube's official embedded player. Trailer Roulette doesn't host, copy, or modify trailers.
-
-Movie data from TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.
-
-Questions or feedback: crescicharles@gmail.com
-```
-
-(~1500 chars.)
-
-## Required disclosures
-- *This product uses the TMDB API but is not endorsed or certified by TMDB.* — keep in any revision.
-- *Streaming availability provided by JustWatch.* — required attribution for the "Where to watch" feature (TMDB sources watch-provider data from JustWatch). Also shown on the in-app About screen.
-
-## Words/phrases to keep avoiding
-- "free trailers" / "watch free movies" — 5.2 trigger
-- "powered by YouTube" — implies an official partnership we don't have
-- Do NOT claim the app itself streams or plays full movies. "Where to watch" only points users to third-party services; "streaming services carry each movie" is accurate framing and is tied to the real JustWatch-backed feature.
+Privacy: https://trailer-roulette.vercel.app/privacy
+Terms: https://trailer-roulette.vercel.app/terms
+Support: https://trailer-roulette.vercel.app/support

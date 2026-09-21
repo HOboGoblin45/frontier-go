@@ -64,6 +64,13 @@ jobs:
       - name: npm install
         working-directory: app
         run: npm ci
+      - name: Verify production proxy and policy pages
+        run: node scripts/verify-production.mjs
+      - name: Verify app before signing
+        working-directory: app
+        run: |
+          npm run lint
+          npm test
       - name: Verify build secrets are present
         env:
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
