@@ -27,7 +27,15 @@ an iPad. Branch `release/public-3.5`, PR #1.
   three policy pages are live and current. Wired into `ios-release.yml` ahead of
   signing, alongside lint and tests.
 - **`scripts/capture-release-screenshots.mjs`** — one capture path for both
-  device sizes, through a touch-emulating context.
+  device sizes, through a touch-emulating context, with YouTube served a
+  transparent stub so the drafts show the backdrop the device shows rather than
+  YouTube's play button.
+- **`.github/workflows/ios-screenshots.yml`** — native captures from a macOS
+  runner at 1320x2868 and 2064x2752, asserted. There is no Mac on this project,
+  so this is the only gate that *runs* the app rather than compiling it. It is
+  what confirmed the app renders on iOS and that the iPad fix holds on iPadOS.
+- **`.gitattributes`** — pins LF. 23 tracked files had been rewritten CRLF
+  during this release with no content change and a diff of about 38,000 lines.
 - App-level `PrivacyInfo.xcprivacy` (UserDefaults, reason CA92.1), added to the
   App target's resources.
 - `store-listing/review-notes.md`, `subtitle.md`, `whats-new-v3.5.0.md`;
@@ -89,10 +97,12 @@ an iPad. Branch `release/public-3.5`, PR #1.
   are paste-ready copy rather than notes.
 
 ### Verification
-224 vitest across 12 files (193 before this release; +9 consent, +17 policy
-pages, +5 dev view), `eslint --max-warnings 0` clean, `vite build` green, and
-CI's unsigned iOS simulator compile green on the branch. **Not verified on a
-device.** No physical-device test has been run against this build; the player
+225 vitest across 12 files (193 before this release; +10 consent, +17 policy
+pages, +5 dev view), `eslint --max-warnings 0` clean, `vite build` green, CI's
+unsigned iOS simulator compile green on the branch, `scripts/release-smoke.mjs`
+green (48 browser assertions across four viewport sizes, its first run outside
+its author), and native simulator captures confirming the app launches and
+renders on iOS. **Not verified on a device.** No physical-device test has been run against this build; the player
 layout, iPad rotation, AirPlay, unattended auto-advance and the `.fullScreen`
 trade are all reasoned, not seen. `docs/RELEASE-REVIEW-2026-09.md` has the
 script and the definition of done.

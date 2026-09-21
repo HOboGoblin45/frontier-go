@@ -129,8 +129,11 @@ ship without App Review. New message kinds are an enhancement, never the fix its
 
 ## Verification status of the current tree (2026-09-21)
 
-**224 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
-and CI's unsigned **iOS simulator compile green on `release/public-3.5`**. Plus
+**225 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
+CI's unsigned **iOS simulator compile green on `release/public-3.5`**, and
+`ios-screenshots.yml` green — the only gate here that RUNS the app rather than
+compiling it, which is what confirmed it renders on iOS and that the iPad fix holds
+on iPadOS rather than only in Chromium. Plus
 `scripts/release-smoke.mjs` — **48 browser assertions across four viewport sizes**,
 against a dev server with TMDB stubbed and YouTube and Alamo aborted: the consent
 sheet cannot be escaped and its three links resolve, no theater request is made even

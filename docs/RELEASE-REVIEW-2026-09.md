@@ -27,13 +27,14 @@ unverified, whatever else in the repo may imply.
 
 | Gate | Result | How |
 | --- | --- | --- |
-| Unit tests | **224 passing, 12 files** | `npm test` in `app/`, Windows node v24.14.0 |
+| Unit tests | **225 passing, 12 files** | `npm test` in `app/`, Windows node v24.14.0 |
 | Lint | **exit 0** | `npm run lint` (`eslint . --max-warnings 0`) |
 | Web build | **exit 0** | `npm run build` (vite 5.4.21) |
 | iOS compile | **green** | GitHub Actions "iOS simulator compile", unsigned, on `6222870` |
 | CI lint/test/build | **green** | GitHub Actions "CI (lint + test + web build)" |
 | iPad layout fix | **measured** | Chromium at 1032x1376: `.app-shell` 520 -> 1032, `max-width` 520px -> none, `border-left` 1px -> 0px |
-| App launches on iOS | see `ios-screenshots.yml` | The only gate that runs the app rather than compiling it. Boots a simulator, installs, launches and captures at native resolution. |
+| App launches and renders on iOS | **confirmed** | `ios-screenshots.yml` on a macOS runner. The only gate that runs the app rather than compiling it. Both jobs green; captures at 1320x2868 and 2064x2752, asserted. |
+| iPad fix holds on iPadOS, not just in Chromium | **confirmed** | The 13-inch native capture fills the screen: no phone-width column, no hairline borders. B7's browser measurement was evidence about the CSS; this is evidence about the device. |
 | The deploy gate can actually pass | **proven** | `landing-page/api/embed.js` renders deterministically: the same URL hashed 1.1s apart is byte-identical, and the cache-buster is not embedded in the HTML. Its `Date.now()` calls are inside the client script string, evaluated in the browser, not at render. So `verify-production.mjs`'s hash comparison will match once the current page is deployed, rather than blocking the release forever. |
 | Browser smoke | **48 assertions, 4 viewports** | `node scripts/release-smoke.mjs` against a dev server. First run outside its author. |
 | First-run consent path | **exercised in a browser** | The screenshot capture waits for "Agree and continue", clicks it, waits for the dialog to be hidden, then drives filters, modes, movie details and About. It completed for both device sizes after the consent change. |
@@ -210,12 +211,22 @@ gh run list --workflow "iOS simulator screenshots" --limit 3
 gh run download <run-id> --dir screenshots-native
 ```
 
-`01-first-launch` is the consent sheet on a fresh container and is submittable.
-`02-after-consent` has acceptance preseeded, so the app arms autoplay and hands
-off to the native player; treat it as evidence that the app launches and
-renders on iOS rather than as a store asset, since whatever YouTube is showing
-lands in the frame. Everything past those two still needs the device test
-below, because nothing here can tap a button.
+`01-first-launch` is the consent sheet on a fresh container, and it is
+submittable. That is all this produces, and the limit is real: nothing here taps
+a button, and preseeding the consent acceptance so the app would boot past it
+was tried twice and abandoned — `simctl spawn defaults write` targets the
+simulator's own defaults domain, and a direct write to the container plist is
+not what the app sees on next launch, because the simulator runs its own
+`cfprefsd`. Do not try a third variation; getting further needs an XCUITest
+target or `idb`. Everything past the first screen is the device test below.
+
+### Step 2c — screenshots to upload
+
+Combine two sources. From CI: `01-first-launch` per size, native and
+submittable. From the device test: everything else, captured on hardware. The
+browser drafts in `assets/screenshots/release-3.5.0/6.9-inch` and `13-inch` are
+reference for layout and copy at the right pixel sizes; they are not the
+submitted set.
 
 ### Step 3 — device test
 
