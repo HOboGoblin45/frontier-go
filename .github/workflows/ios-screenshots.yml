@@ -7,6 +7,17 @@ name: iOS simulator screenshots
 on:
   push:
     branches: ['release/**']
+    # A macOS runner costs ten times a Linux one per minute and this job takes
+    # seven of them twice over. A push that only moves prose cannot change what
+    # the simulator renders, so it does not need to. Changing this workflow or
+    # its script is not ignored, on purpose.
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'store-listing/**'
+      - 'assets/screenshots/**'
+      - 'research/**'
+      - 'decisions/**'
   workflow_dispatch:
 
 permissions:
