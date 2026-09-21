@@ -247,6 +247,44 @@ browser drafts in `assets/screenshots/release-3.5.0/6.9-inch` and `13-inch` are
 reference for layout and copy at the right pixel sizes; they are not the
 submitted set.
 
+### Step 2d — get it onto TestFlight without waiting for the deploy
+
+Most of the device test does not touch the proxy, so it does not have to wait
+for it. `ios-release.yml` takes a `workflow_dispatch` with a build number and
+needs neither a tag nor a merge to `main`:
+
+```powershell
+cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette"
+gh workflow run ios-release.yml --ref release/public-3.5 -f build_number=<n>
+gh run list --workflow ios-release.yml --limit 3
+```
+
+Or from a phone: **Actions → iOS Release → Run workflow**, pick the branch, type
+a build number.
+
+Two things about this path were broken until 2026-09-21 and are worth knowing:
+
+- The production check ran as a hard gate on every trigger, so a dispatch died
+  before it reached Xcode. It is **advisory on dispatch, hard on a tag** now. A
+  release must never ship against a stale proxy; a TestFlight build testing the
+  consent sheet and the iPad layout is a different thing. When it fails on a
+  dispatch the run carries a warning and a job summary saying auto-advance
+  cannot work in that build.
+- The marketing version was only set for tags, so every dispatched build was
+  uploaded as **1.0** — the value still sitting in `project.pbxproj` — whatever
+  it actually contained. It falls back to `app/package.json` now.
+
+**First build on this path: 3.5.0 (61), uploaded 2026-09-21.** Log evidence:
+`Set CFBundleVersion to 61`, `Set CFBundleShortVersionString to 3.5.0 (from
+app/package.json)`, and both `Build archive` and `Upload to App Store Connect`
+green by name, which is the bar CLAUDE.md sets for calling an upload real.
+
+**What that build can and cannot tell you.** It covers the consent sheet
+appearing once and never flashing, iPad filling the screen, rotation, the
+swipe-down on the header, saved movies, filters, modes and AirPlay. It cannot
+cover unattended auto-advance (`docs/bugs.md` B4 and B8) — that needs the proxy
+deployed, so run P2 only after step 1.
+
 ### Step 3 — device test
 
 See section 7. Record the results in `store-listing/review-notes.md` before

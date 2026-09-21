@@ -30,6 +30,12 @@ Ship **v3.5.0**, the first build meant for the public App Store, on branch
 `release/public-3.5` (PR #1). Nothing before this was ever public. Full review
 record, device test script and definition of done: `docs/RELEASE-REVIEW-2026-09.md`.
 
+**A TestFlight build does not have to wait for any of this.** `ios-release.yml`
+takes a `workflow_dispatch` with a build number, off any branch, no tag and no
+merge; the production check is advisory on that path. 3.5.0 (61) went up that
+way on 2026-09-21. It covers everything in the device test except unattended
+auto-advance, which needs step 1 first.
+
 **Release-blocking, in order. The first step is the one that fixes the live app.**
 
 1. **Deploy `landing-page/` to Vercel.** One deploy ships three things at once: the
