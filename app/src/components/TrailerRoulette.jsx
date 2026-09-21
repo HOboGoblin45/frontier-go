@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import Player from './Player.jsx';
 import PolicyLinks from './PolicyLinks.jsx';
-import { THEATER_MODE_ENABLED, POLICY_VERSION } from '../lib/release.js';
+import { THEATER_MODE_ENABLED, POLICY_VERSION, consentGate } from '../lib/release.js';
 import AboutScreen from './AboutScreen.jsx';
 import TheaterSheet from './TheaterSheet.jsx';
 import FiltersSheet from './FiltersSheet.jsx';
@@ -162,7 +162,10 @@ export default function TrailerRoulette() {
   const [savedOpen, setSavedOpen] = useState(false);
   const [savedMovie, setSavedMovie] = useState(null);
   const [muted, setMuted] = useState(false); // restored from storage on boot
-  const [hintOpen, setHintOpen] = useState(true); // block playback until policy acceptance is restored
+  // Tri-state, deliberately not a boolean: null until the stored acceptance
+  // has been read, then false (accepted) or true (show the sheet). See
+  // consentGate in lib/release.js for why the unknown state has to exist.
+  const [hintOpen, setHintOpen] = useState(consentGate(undefined));
   // Filters (v3.4.3): { decades: number[], genres: number[] }, both empty =
   // Everything. Lives here (not in a mode) because it shapes the core feed.
   const [filters, setFilters] = useState({ decades: [], genres: [] });
@@ -309,14 +312,17 @@ export default function TrailerRoulette() {
       } catch { /* default unmuted */ }
 
       // First launch shows the hint and lets its dismissal start playback;
-      // every launch after that arms autoplay immediately. A failed read
-      // counts as "already seen" — skipping the hint once is far better than
-      // showing it on every launch of a device where persistence is broken.
-      let seenHint = false;
+      // every launch after that arms autoplay immediately. Until this read
+      // lands the gate holds null and NEITHER the sheet nor the player
+      // renders — that unknown window is what stops the sheet from flashing
+      // on a returning user's cold launch. A failed read falls through to
+      // null, which the gate treats as "not accepted": consent is what is
+      // being recorded, so broken persistence asks again rather than assumes.
+      let accepted;
       try {
-        seenHint = (await storage.get(storage.KEYS.POLICY_ACCEPTED)) === POLICY_VERSION;
-      } catch { seenHint = false; }
-      setHintOpen(!seenHint);
+        accepted = await storage.get(storage.KEYS.POLICY_ACCEPTED);
+      } catch { accepted = null; }
+      setHintOpen(consentGate(accepted));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -578,7 +584,7 @@ export default function TrailerRoulette() {
         <div className="tr-next" aria-hidden="true" style={{ backgroundImage: `url("${nextArt}")` }} />
       )}
 
-      {!activeFeature && !hintOpen && (
+      {!activeFeature && hintOpen === false && (
         <div className="player-wrap">
           {/* ONE Play affordance on this screen: the bottom pill below.
               The player used to render its own 88px on-stage Play as well —
@@ -787,7 +793,7 @@ export default function TrailerRoulette() {
       {ActiveComp && <ActiveComp onClose={() => setActiveFeature(null)} />}
 
       {/* Last in the tree so it sits above the stage chrome it points at. */}
-      <FirstRunHint open={hintOpen} onClose={onDismissHint} />
+      <FirstRunHint open={hintOpen === true} onClose={onDismissHint} />
     </div>
   );
 }
