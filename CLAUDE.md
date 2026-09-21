@@ -9,10 +9,14 @@ road. Deep detail lives in `docs/PROJECT-PROMPT.md`; session-learned history liv
 
 **Trailer Roulette** — an iOS app (Capacitor 7 + React 18 + Vite 5) that shuffles movie
 trailers like a TV channel. Two buttons: **Play** (spin a random trailer) and **AirPlay**
-(throw it on the TV). Trailers auto-advance forever. No accounts, no filters, no algorithm.
-Six optional "fun modes" live behind the top-right **Modes** pill. As of v3.2.0 there is a
-second channel type: **Theater Mode** — tune the roulette to a real independent theater
-(Alamo Drafthouse's 23 markets) and it spins only what that theater is showing this month.
+(throw it on the TV). Trailers auto-advance forever. No accounts, no algorithm — and
+**optional filters** by decade and genre (v3.4.3; the "no filters" thesis was retired by
+owner decision, so do not reinstate that line in product copy). Six optional "fun modes"
+live behind the top-right **Modes** pill. **Saved movies** (v3.5.0) has its own screen
+behind the bookmark button. **Theater Mode** (v3.2.0) tunes the roulette to one real
+cinema's monthly programme via Alamo Drafthouse's public JSON API — it is **hidden in
+public builds** behind `VITE_ENABLE_THEATER_MODE` as of v3.5.0, pending verified
+permission for that data, and development builds set the flag to see it.
 
 - Bundle ID `app.trailerroulette.ios` · Apple ID 6764209094 · repo `github.com/HOboGoblin45/trailer-roulette-ios`
 - v1.0 (build 2.11.0) was submitted to App Review 2026-07-03 (manual release). Latest
@@ -20,47 +24,39 @@ second channel type: **Theater Mode** — tune the roulette to a real independen
   unregistered native plugins (`CAPBridgedPlugin`); v3.4.2 fixes the proxy's missing
   player-event subscription and disables the v3.4.0 playlist handoff. See CHANGELOG.
 
-## Current objective (as of 2026-08-16)
+## Current objective (as of 2026-09-21)
 
-Ship **v3.4.2** and confirm it on a device. Two parts (full detail:
-`docs/bugs.md` B4, `docs/HANDOFF.md` §6–7):
+Ship **v3.5.0**, the first build meant for the public App Store, on branch
+`release/public-3.5` (PR #1). Nothing before this was ever public. Full review
+record, device test script and definition of done: `docs/RELEASE-REVIEW-2026-09.md`.
 
-1. **The missing event — the actual root cause of "trailer never auto-advances".**
-   Proven live against real YouTube (2026-08-16): the proxy page
-   (`landing-page/api/embed.js`) only ever sent the IFrame API's
-   `{ event:'listening' }` message, which arms the player but never subscribes to
-   its state. `onStateChange`/`onError` are delivered only after an explicit
-   `addEventListener` command; without it the widget's state channel is silent
-   for the whole clip (while `infoDelivery` keeps streaming, so every liveness
-   timer believed the page was healthy) and the `ENDED` every end-detection
-   mirror waits on never arrives. B1–B3 all tuned consumers of that absent
-   event. The proxy now sends `addEventListener('onStateChange')` +
-   `addEventListener('onError')` on load with one 2.5s retry; the subscription
-   is player-level and survives `trLoad` swaps (no double-subscribe).
-2. **Native playlist handoff disabled** (`TrailerPlayer.swift`). v3.4.0 handed
-   the queue to YouTube via `loadPlaylist`; live observation showed the widget
-   advances items itself but fires **no ENDED between items** (`-1 → 3 → 1`), so
-   `playlistDidAdvance()` could never run and the queue/chrome desyncs. Gated
-   off (call site documented); the proven end-detection → `advanceInPlace`
-   (`trLoad`) path now has its input event.
+**Release-blocking, in order. The first step is the one that fixes the live app.**
 
-**To ship (Charlie must do; AI has no push creds / no Mac here):**
-1. **Redeploy the Vercel proxy FIRST — this is the step that fixes the live
-   app**, with no App Review round trip: `cd landing-page` then `npx vercel
-   --prod` (interactive browser login). The currently deployed page is v1.9.0
-   (verified byte-identical 2026-08-16) and has never subscribed to player
-   events, so NO installed build can auto-advance until this lands. It also
-   fixes the v3.4.1 build already in TestFlight.
-2. `git add -A; git commit -m "release: v3.4.2 - ..."; git tag v3.4.2; git push origin main; git push origin v3.4.2`
-   (paste as separate lines — his PowerShell is 5.1, don't use `&&` chains).
-3. The tag push triggers `.github/workflows/ios-release.yml` → TestFlight.
-4. On device: About screen must show `Native player: active · AirPlay: active`
-   (P0), then Play and watch three trailers auto-advance with zero taps (P1).
+1. **Deploy `landing-page/` to Vercel.** One deploy ships three things at once: the
+   embed proxy that every installed build depends on, and the `/privacy`, `/terms`
+   and `/support` pages the shipped binary already links to. Production was still
+   serving the **v1.9.0** proxy page at review time — no `announcePlaying`, no
+   `subscribeToPlayerEvents`, no `youtubeEventsSeen` — so **no installed build can
+   auto-advance until this lands** (bugs.md B4), and `/terms` and `/support` were
+   404 while the consent sheet linked to them. Then run
+   `node scripts/verify-production.mjs`, which diffs live `/embed` against this
+   checkout and checks all three pages. `ios-release.yml` runs it before signing.
+2. **Device test.** Nothing in 3.5.0 has been run on hardware. The script is in the
+   release review doc; the two that can change code are the unattended
+   eight-trailer auto-advance run (bugs.md B8) and iPad rotation.
+3. **Native screenshots.** The captured sets are browser drafts at the right pixel
+   sizes and are labelled as such. Two of them show YouTube's play button through
+   the web preview's iframe, which the iOS build never shows.
+4. **App Privacy and age rating**, re-answered against the final build rather than
+   carried over. `docs/PRIVACY-NUTRITION-LABEL.md` has the open questions.
+5. Merge, tag `v3.5.0`, push the tag. The tag triggers `ios-release.yml`.
 
-**Ordering rule for this class of bug:** the proxy is the only layer that reaches
-already-installed builds. Any playback fix must be expressible in the message vocabulary
-those builds already understand (`stateChange`, `error`), or it cannot ship without App
-Review. New message kinds are an enhancement, never the fix itself.
+**Build 2.11.0 (60), submitted 2026-07-03, must never be released.**
+
+**Ordering rule for playback bugs:** the proxy is the only layer that reaches
+already-installed builds. Any playback fix must be expressible in the message
+vocabulary those builds already understand (`stateChange`, `error`), or it cannot
+ship without App Review. New message kinds are an enhancement, never the fix itself.
 
 ## Hard rules (never violate)
 
@@ -123,26 +119,36 @@ Review. New message kinds are an enhancement, never the fix itself.
 | Theater picker UI | `app/src/components/TheaterSheet.jsx` + `theater-sheet.css` |
 | TMDB wrapper | `app/src/lib/tmdb.js` (discoverRandomMix, searchMovie, getTrailer) |
 | Fun modes | `app/src/features/` (registry in `index.js`) |
-| Storage keys | `app/src/lib/storage.js` (`KEYS.SOURCE` = active channel) |
+| Storage keys | `app/src/lib/storage.js` (`KEYS.SOURCE` = active channel, `KEYS.POLICY_ACCEPTED` = consent) |
+| Release gates (flags, policy links, consent) | `app/src/lib/release.js` — `THEATER_MODE_ENABLED`, `POLICY_VERSION`, `LINKS`, `consentGate` |
+| Saved movies screen | `app/src/components/SavedMovies.jsx` |
+| Public policy pages | `landing-page/privacy.html`, `terms.html`, `support.html` + `vercel.json` |
+| Deploy gate / screenshots | `scripts/verify-production.mjs`, `scripts/capture-release-screenshots.mjs` |
 | Bug history | `docs/bugs.md` (B1 ~15s ad ENDED, B2 ~13s watchdog, B3 the actual cure) |
 | AI session memory (hardwired) | `docs/ai-memory/` |
 
-## Verification status of the current tree (2026-08-14)
+## Verification status of the current tree (2026-09-21)
 
-95/95 vitest (22 endDetection, 17 embedProxy, 17 theaters), eslint clean, `vite build`
-green. The v3.2.2 UI work is verified by those same gates plus a re-run of the native
-logic harness; it is NOT verified visually — no simulator here, so every layout value
-is reasoned, not seen. Check the six fun modes and the player chrome on a device. `app/src/lib/__tests__/embedProxy.test.js` renders the real Edge Function, lifts its
-`<script>` out verbatim and drives it through a fake DOM + virtual clock, so the deployed
-artefact is what gets asserted; all seven B3 defects reproduce as failures against the
-v3.2.0 page. The native end-detection logic was extracted verbatim (a script diffs the copy
-back against `TrailerPlayer.swift`) and compiled and run under Linux Swift 5.10 — 6 checks
-fail on v3.2.0's logic, all pass on v3.2.1; the full plugin is syntax-checked only, since
-UIKit/WebKit cannot be typechecked off a Mac. **Not verified on a device or against live
-YouTube** — the sandbox has no route to youtube.com or the Vercel host, so ad behaviour
-(does `infoDelivery` stream during a pre-roll? does `initialDelivery` carry the content
-duration?) is inferred from this repo's own recorded observations, not re-measured. First
-thing to confirm on the phone after the proxy redeploy.
+**224 vitest across 12 files**, `eslint . --max-warnings 0` clean, `vite build` green,
+and CI's unsigned **iOS simulator compile green on `release/public-3.5`**. Two gates
+added in 3.5.0 are worth knowing about: `policyPages.test.js` asserts that every link
+`lib/release.js` ships inside the binary resolves to a file that exists and that the
+pages carry the required YouTube and third-party disclosures — the gate whose absence
+let `/terms` and `/support` 404 through every green build; and `desktopDevView.test.js`
+keeps the browser-only layout rule out of shipped builds.
+
+`embedProxy.test.js` renders the real Edge Function, lifts its `<script>` out verbatim
+and drives it through a fake DOM and a virtual clock, so the deployed artefact is what
+gets asserted. The native end-detection logic was extracted verbatim (a script diffs the
+copy back against `TrailerPlayer.swift`) and compiled and run under Linux Swift 5.10;
+the full plugin is typechecked only by the CI macOS runner.
+
+**NOT verified on a device, and not verified against live YouTube.** No physical-device
+test has been run against 3.5.0 at all. Every layout value, the player chrome, iPad
+rotation, AirPlay, the swipe-down gesture (bugs.md B6) and the `.fullScreen` trade
+(bugs.md B8) are reasoned, not seen. Ad behaviour is inferred from this repo's recorded
+observations, not re-measured. The iPad layout fix (bugs.md B7) is measured in Chromium
+at iPad width, which is evidence about the CSS, not about iPadOS.
 
 Earlier, still current: live-verified Alamo markets feed (23), Austin July lineup (63
 films), TMDB matching 17/17 real programme titles including remake disambiguation
@@ -150,21 +156,19 @@ films), TMDB matching 17/17 real programme titles including remake disambiguatio
 
 ## Open threads / next steps
 
-1. Redeploy the proxy, then verify on-device that trailers play past 13s on the build
-   already installed. Then ship v3.2.1 (steps above). If skipping persists after the
-   redeploy, capture what the page actually receives before changing more code: open
-   `https://trailer-roulette.vercel.app/embed?v=<id>` in desktop Chrome with a console
-   listener on `message` and log every `initialDelivery`/`infoDelivery`/`onStateChange`
-   through a real pre-roll. Two assumptions in this fix are inferred from this repo's
-   history, not measured: that `infoDelivery` streams during a pre-roll ad (the whole
-   synthetic-PLAYING path depends on it) and that `initialDelivery` carries the content
-   duration (the pin depends on it). If the first is false, an unpinned fallback is needed
-   for the watchdog; if the second is false, every trailer ends 5s late and the pin needs
-   a different source.
-2. Charlie's own local indie theaters: his city is still unknown — ask, then add
-   adapters (Eventive / Agile / Veezi guide in `docs/THEATER-MODE.md`).
-3. Regenerate stale App Store screenshots; refresh `store-listing/description.md` to
-   mention Theater Mode before the next submission.
-4. App icon: 6 concepts were presented (2026-07-07); Charlie hasn't picked yet.
-5. Privacy nutrition label: add Location (App Functionality, not linked) for "Near me".
-6. Watch the first TestFlight build for `UIGlassEffect` (needs Xcode 26 on CI).
+1. **Deploy the proxy, then device-test.** See the current objective above. Until
+   `landing-page/` is deployed, B4 cannot be closed and no installed build advances.
+2. **B8** — does `.fullScreen` let iOS throttle the main web view's JavaScript and
+   stall queue feeding? Measure before changing the presentation style back;
+   `.overFullScreen` avoids the exposure but loses iPad rotation.
+3. **Alamo permission.** Theater Mode stays hidden until the grant is verified rather
+   than inferred from a public API. `research/youtube-tos-embedding.md` records that
+   drafthouse.com's terms could not be read by tooling. Re-enabling is one flag plus
+   the copy diffs listed in the release review doc.
+4. **Charlie's own local indie theaters**: his city is Bloomington-Normal, Illinois.
+   Adapters (Eventive / Agile / Veezi) are in `docs/THEATER-MODE.md`. Blocked behind
+   the same permission question.
+5. **App icon**: 6 concepts presented 2026-07-07; still not picked.
+6. **Monetization** deferred until after launch by owner decision; options and the
+   TMDB commercial-rights question are in `docs/MONETIZATION-2026-09.md`.
+7. Watch the first TestFlight build for `UIGlassEffect` (needs Xcode 26 on CI).
