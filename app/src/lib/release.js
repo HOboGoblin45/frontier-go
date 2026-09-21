@@ -28,6 +28,37 @@ export function consentGate(stored) {
   return stored !== POLICY_VERSION;
 }
 
+/**
+ * How long a consent read may take before it is treated as failed.
+ *
+ * The gate's unknown state renders neither the sheet nor the player, which is
+ * correct for the moment before the read lands and catastrophic if that moment
+ * never ends. `catch` does not cover a promise that simply never settles, and
+ * on native this read crosses the Capacitor bridge. Three seconds is long
+ * enough that a slow-but-working bridge is not cut off, and short enough that
+ * nobody sits in front of a black stage wondering whether the app is dead.
+ */
+export const POLICY_READ_TIMEOUT_MS = 3000;
+
+/**
+ * `promise`, but rejected if it has not settled within `ms`.
+ *
+ * Deliberately rejects rather than resolving to a default: the caller already
+ * has a catch that fails closed, and routing a timeout through the same path
+ * as a thrown read keeps one answer to "we could not establish consent" rather
+ * than two. The timer is always cleared, so a promise that settles late cannot
+ * leave a pending timeout behind.
+ */
+export function withTimeout(promise, ms = POLICY_READ_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+    Promise.resolve(promise).then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
 export const LINKS = Object.freeze({
   privacy: 'https://trailer-roulette.vercel.app/privacy',
   terms: 'https://trailer-roulette.vercel.app/terms',

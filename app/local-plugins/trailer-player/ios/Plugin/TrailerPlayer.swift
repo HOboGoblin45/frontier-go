@@ -1200,9 +1200,20 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     // MARK: - UIGestureRecognizerDelegate
 
     public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Player touches belong exclusively to YouTube: never start a drag
-        // inside the embedded player's rectangle.
-        if let player = webView, player.frame.contains(gestureRecognizer.location(in: view)) {
+        // Player touches belong exclusively to YouTube for a DRAG. Scoped to
+        // the pan on purpose: this used to reject EVERY recognizer inside the
+        // player's rectangle, including the tap whose only job is
+        // showChrome() — which is the third leg of the SAFETY RULE at the top
+        // of this file, "a blind tap restores the chrome instead of landing on
+        // Done". Dormant while chromeMayAutoHide() returns false, but the web
+        // view now spans from the header's bottom edge to the progress track,
+        // so whoever flips that one line would inherit a player whose controls
+        // can be hidden and cannot be brought back from the surface the user is
+        // looking at. cancelsTouchesInView is false on both recognizers, so
+        // letting the tap begin here takes nothing away from the player.
+        if gestureRecognizer is UIPanGestureRecognizer,
+           let player = webView,
+           player.frame.contains(gestureRecognizer.location(in: view)) {
             return false
         }
         // 3.5.0: the drag starts on the glass header's BACKGROUND, not on its

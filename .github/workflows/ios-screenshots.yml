@@ -65,20 +65,12 @@ jobs:
             -configuration Debug -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/ios-shots CODE_SIGNING_ALLOWED=NO build
-      - name: Read POLICY_VERSION from the source of truth
-        id: policy
-        run: |
-          v=$(node -e "import('./app/src/lib/release.js').then(m=>console.log(m.POLICY_VERSION))" 2>/dev/null \
-            || grep -oE "POLICY_VERSION = '[^']+'" app/src/lib/release.js | grep -oE "[0-9]{4}-[0-9]{2}-[0-9]{2}")
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-          echo "POLICY_VERSION=$v"
       - name: Boot, launch and capture
         run: |
           bash scripts/ci-simulator-screenshots.sh \
             "${{ matrix.devices }}" \
             "screenshots-native/${{ matrix.label }}" \
             "build/ios-shots/Build/Products/Debug-iphonesimulator/App.app" \
-            "${{ steps.policy.outputs.version }}" \
             "${{ matrix.expect }}"
       - uses: actions/upload-artifact@v4
         with:

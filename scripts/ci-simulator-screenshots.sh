@@ -26,16 +26,14 @@
 # Everything past first launch is covered by the device test in
 # docs/RELEASE-REVIEW-2026-09.md.
 #
-# Usage: ci-simulator-screenshots.sh "<device candidates>" <out-dir> <App.app> <policy-version> <WxH>
-#        Candidates are comma-separated and tried in order. policy-version is
-#        accepted and unused; see above.
+# Usage: ci-simulator-screenshots.sh "<device candidates>" <out-dir> <App.app> <WxH>
+#        Candidates are comma-separated and tried in order.
 set -euo pipefail
 
 CANDIDATES="$1"
 OUT_DIR="$2"
 APP_PATH="$3"
-POLICY_VERSION="$4"
-EXPECT_SIZE="$5"
+EXPECT_SIZE="$4"
 BUNDLE_ID="app.trailerroulette.ios"
 
 mkdir -p "$OUT_DIR"

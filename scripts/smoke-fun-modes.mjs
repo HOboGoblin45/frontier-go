@@ -1,9 +1,29 @@
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 const URL = process.argv[2] || 'http://127.0.0.1:4174/';
+// 3.5.0 replaced the ONBOARDED flag with a consent record checked against
+// POLICY_VERSION, and made the first-run sheet dismissible ONLY by its button:
+// no backdrop tap, no Escape. Seeding the old key left this script staring at
+// that sheet with every later interaction failing. Read the version rather than
+// pasting it, so a bump does not quietly break this again.
+// globalThis.URL, not URL: this module declares `const URL` for its target
+// page two lines up, which shadows the global for the whole module scope.
+const POLICY_VERSION = readFileSync(new globalThis.URL('../app/src/lib/release.js', import.meta.url), 'utf8')
+  .match(/POLICY_VERSION\s*=\s*'(\d{4}-\d{2}-\d{2})'/)?.[1];
+if (!POLICY_VERSION) throw new Error('Could not read POLICY_VERSION from app/src/lib/release.js');
 const OUT = process.argv[3];
-const b = await chromium.launch({ headless: true, args: ['--no-sandbox','--disable-dev-shm-usage','--mute-audio'] });
+// Installed Chrome, like release-smoke.mjs and capture-release-screenshots.mjs.
+// The bundled Chromium is not downloaded on this machine, so without a channel
+// this script fails before it reaches the app at all.
+const b = await chromium.launch({
+  headless: true,
+  channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome',
+  args: ['--no-sandbox','--disable-dev-shm-usage','--mute-audio'],
+});
 const ctx = await b.newContext({ viewport: { width: 1024, height: 1366 }, deviceScaleFactor: 1 });
-await ctx.addInitScript(() => { try { localStorage.setItem('trailer-roulette.onboarded','true'); } catch {} });
+await ctx.addInitScript((version) => {
+  try { localStorage.setItem('trailer-roulette.policy-accepted', JSON.stringify(version)); } catch {}
+}, POLICY_VERSION);
 const page = await ctx.newPage();
   await page.route(/youtube\.com|youtube-nocookie\.com|ytimg\.com|googlevideo\.com/, r=>r.abort());
 const errors = [];

@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import Player from './Player.jsx';
 import PolicyLinks from './PolicyLinks.jsx';
-import { THEATER_MODE_ENABLED, POLICY_VERSION, consentGate } from '../lib/release.js';
+import {
+  THEATER_MODE_ENABLED, POLICY_VERSION, consentGate, withTimeout,
+} from '../lib/release.js';
 import AboutScreen from './AboutScreen.jsx';
 import TheaterSheet from './TheaterSheet.jsx';
 import FiltersSheet from './FiltersSheet.jsx';
@@ -282,6 +284,25 @@ export default function TrailerRoulette() {
   // — straight into a trailer, or on the one-time hint.
   useEffect(() => {
     (async () => {
+      // CONSENT FIRST, AND ON A CLOCK. Everything below is a preference; this
+      // one decides whether any surface renders at all, because the gate
+      // starts unknown and unknown renders neither the sheet nor the player.
+      //
+      // It used to be read last, behind three other Preferences round-trips
+      // and loadQueue(). A single bridge call that never settled — plugin not
+      // yet registered, web view resumed from a background snapshot — left the
+      // app on a black stage forever, and `catch` does not cover a promise
+      // that never settles. The old boolean could not fail this way because it
+      // mounted the player on frame one; the tri-state can, so the read moves
+      // to the front and gets a timeout. Both paths fail CLOSED: consent is
+      // what is being recorded, so anything short of a confirmed acceptance
+      // asks again rather than assuming.
+      let accepted = null;
+      try {
+        accepted = (await withTimeout(storage.get(storage.KEYS.POLICY_ACCEPTED))) ?? null;
+      } catch { accepted = null; }
+      setHintOpen(consentGate(accepted));
+
       try {
         const saved = await storage.get(storage.KEYS.SOURCE);
         if (THEATER_MODE_ENABLED && saved?.marketSlug) {
@@ -311,24 +332,6 @@ export default function TrailerRoulette() {
         setMuted((await storage.get(storage.KEYS.MUTED)) === true);
       } catch { /* default unmuted */ }
 
-      // First launch shows the hint and lets its dismissal start playback;
-      // every launch after that arms autoplay immediately. Until this read
-      // lands the gate holds null and NEITHER the sheet nor the player
-      // renders — that unknown window is what stops the sheet from flashing
-      // on a returning user's cold launch. A failed read falls through to
-      // null, which the gate treats as "not accepted": consent is what is
-      // being recorded, so broken persistence asks again rather than assumes.
-      // `?? null` is load-bearing. storage.get() resolves to null for a
-      // missing key today, but undefined is the gate's "not read yet" value:
-      // if a future change ever let it through, hintOpen would stay null and
-      // the app would render neither the sheet nor the player, forever. Coerce
-      // it here so the only way to reach the unknown state is not having run
-      // this effect yet.
-      let accepted = null;
-      try {
-        accepted = (await storage.get(storage.KEYS.POLICY_ACCEPTED)) ?? null;
-      } catch { accepted = null; }
-      setHintOpen(consentGate(accepted));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

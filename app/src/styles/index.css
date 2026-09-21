@@ -1032,7 +1032,18 @@ a { color: var(--accent); text-decoration: none; }
 .saved-row { display: flex; align-items: center; gap: 12px; border-top: 1px solid #414753; padding: 12px 0; }
 .saved-title { flex: 1; text-align: left; background: transparent; color: inherit; border: 0; min-height: 44px; font: inherit; }
 .tr-hint-policy { font-size: 13px; line-height: 1.5; color: #c5cbd5; }
-.tr-hint { max-height: calc(100dvh - 32px); overflow-y: auto; }
+/* `.tr-hint { max-height: calc(100dvh - 32px) }` used to sit here and is gone
+   on purpose. .tr-hint-backdrop is a centred flex box padded by
+   safe-area-inset + 24px on top and bottom, so the space available inside it
+   is 100dvh minus both insets minus 48px — smaller than that cap allowed. A
+   centred flex item that overflows its line box splits the overflow above and
+   below, and the backdrop is fixed with nothing to scroll. On a notched phone
+   that put roughly 50px past the bottom edge, and what lives at the bottom of
+   this panel is "Agree and continue" — which 3.5.0 also made the ONLY exit, by
+   removing the backdrop tap and passing dismissible: false. One more list item
+   or one longer translation and first launch would have had no way out. The
+   rule at .tr-hint above already declares max-height: 100%, which is correct
+   and bounded by the actual container, so this added nothing but the hazard. */
 .diagnostics-toggle { background: transparent; color: inherit; border: 1px solid #737b89; border-radius: 8px; min-height: 44px; padding: 8px 12px; }
 
 @media (prefers-reduced-motion: reduce) {

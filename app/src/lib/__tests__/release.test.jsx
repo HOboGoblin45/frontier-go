@@ -2,7 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { readFileSync } from 'node:fs';
 import AboutScreen from '../../components/AboutScreen.jsx';
 import { FirstRunHint } from '../../components/TrailerRoulette.jsx';
-import { LINKS, THEATER_MODE_ENABLED, POLICY_VERSION, consentGate } from '../release.js';
+import {
+  LINKS, THEATER_MODE_ENABLED, POLICY_VERSION, consentGate,
+  withTimeout, POLICY_READ_TIMEOUT_MS,
+} from '../release.js';
 
 describe('public release surfaces', () => {
   it.each([
@@ -65,32 +68,90 @@ describe('first-run consent gate', () => {
     expect(consentGate(stored)).toBe(true);
   });
 
-  it('cannot reach the unknown state from a resolved read', () => {
-    // The unknown state renders NOTHING - not the sheet, not the player. It is
-    // correct for the moment before the read lands and catastrophic if it can
-    // be reached afterwards, so the boot effect coerces undefined to null
-    // before the gate sees it.
-    const asBootEffectPassesIt = (resolved) => consentGate(resolved ?? null);
-    expect(asBootEffectPassesIt(undefined)).toBe(true);
-    expect(asBootEffectPassesIt(null)).toBe(true);
-    expect(asBootEffectPassesIt(POLICY_VERSION)).toBe(false);
+  it('rejects a read that never settles, rather than waiting on it', async () => {
+    // `catch` does not cover a promise that simply never resolves, and on
+    // native this read crosses the Capacitor bridge. Without a clock, one
+    // stalled call leaves the gate unknown and the app renders nothing at all.
+    const never = new Promise(() => {});
+    await expect(withTimeout(never, 10)).rejects.toThrow(/timed out/);
   });
 
-  it('fails closed: a read that throws must ask again', () => {
-    // The boot effect catches and passes null rather than letting an
-    // exception decide. Assuming acceptance on a broken device would record
-    // consent that was never given.
-    let accepted;
-    try { throw new Error('Preferences unavailable'); } catch { accepted = null; }
-    expect(consentGate(accepted)).toBe(true);
+  it('passes a value through and does not leave a timer behind', async () => {
+    await expect(withTimeout(Promise.resolve(POLICY_VERSION), 1000))
+      .resolves.toBe(POLICY_VERSION);
+    await expect(withTimeout(Promise.reject(new Error('bridge')), 1000))
+      .rejects.toThrow('bridge');
   });
 
-  it('gates playback on accepted, not on "not shown"', () => {
-    // The player-wrap condition is `hintOpen === false`. Under the old
-    // `!hintOpen` it would have mounted during the unknown window too.
-    for (const state of [consentGate(undefined), consentGate(null)]) {
-      expect(state === false).toBe(false);
+  it('allows a slow but working read to finish', () => {
+    // Short enough that nobody stares at a black stage, long enough that a
+    // cold Preferences bridge is not cut off mid-answer.
+    expect(POLICY_READ_TIMEOUT_MS).toBeGreaterThanOrEqual(1500);
+    expect(POLICY_READ_TIMEOUT_MS).toBeLessThanOrEqual(5000);
+  });
+});
+
+/**
+ * Source assertions, not behaviour.
+ *
+ * The three hand-edits that make the consent fix work live inside
+ * TrailerRoulette.jsx, and rendering that component needs a DOM, a Capacitor
+ * bridge and a TMDB key - none of which exist in this environment. Earlier
+ * versions of these tests re-implemented the conditions locally and would have
+ * passed against the reverted code, which is worse than no test. These read the
+ * real file. Brittle to refactors, on purpose: each one names the regression it
+ * exists to catch.
+ */
+/** The body of the boot effect, with line comments removed. */
+function bootEffectBody(source) {
+  const at = source.indexOf('// Boot: restore the saved source');
+  if (at === -1) return '';
+  const end = source.indexOf('}, []);', at);
+  if (end === -1) return '';
+  return source.slice(at, end).replace(/^\s*\/\/.*$/gm, '');
+}
+
+describe('the consent fix is actually wired into the component', () => {
+  const source = readFileSync(new URL('../../components/TrailerRoulette.jsx', import.meta.url), 'utf8');
+
+  it('starts the gate unknown rather than at a boolean guess', () => {
+    expect(source).toContain('useState(consentGate(undefined))');
+    expect(source).not.toContain('useState(true); // block playback');
+  });
+
+  it('gates the player on accepted, not on "sheet not shown"', () => {
+    // `!hintOpen` is true while the gate is null, so the old condition would
+    // mount the player during the unknown window.
+    expect(source).toContain('hintOpen === false && (');
+    expect(source).not.toMatch(/\{!activeFeature && !hintOpen &&/);
+  });
+
+  it('opens the sheet only on a definite "not accepted"', () => {
+    expect(source).toContain('<FirstRunHint open={hintOpen === true}');
+  });
+
+  it('reads consent before any other stored preference', () => {
+    // The gate's unknown state renders nothing, so this read cannot sit behind
+    // unrelated bridge round-trips that might never answer.
+    //
+    // Scoped to the boot effect and stripped of comments, because every one of
+    // these keys is also written elsewhere in the file - and because the first
+    // version of this test matched the word loadQueue() inside the comment
+    // that explains the fix, which is exactly the kind of false signal a
+    // source assertion has to be built against.
+    const effect = bootEffectBody(source);
+    expect(effect).not.toBe('');
+    const consentAt = effect.indexOf('storage.KEYS.POLICY_ACCEPTED');
+    expect(consentAt).toBeGreaterThan(-1);
+    for (const later of [
+      'storage.KEYS.SOURCE', 'storage.KEYS.FILTERS', 'storage.KEYS.MUTED', 'loadQueue()',
+    ]) {
+      expect(effect.indexOf(later)).toBeGreaterThan(consentAt);
     }
-    expect(consentGate(POLICY_VERSION) === false).toBe(true);
+  });
+
+  it('puts a clock on that read and coerces undefined away', () => {
+    expect(source).toContain('withTimeout(storage.get(storage.KEYS.POLICY_ACCEPTED))');
+    expect(source).toMatch(/\)\) \?\? null;/);
   });
 });
