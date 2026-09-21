@@ -33,6 +33,7 @@ unverified, whatever else in the repo may imply.
 | iOS compile | **green** | GitHub Actions "iOS simulator compile", unsigned, on `6222870` |
 | CI lint/test/build | **green** | GitHub Actions "CI (lint + test + web build)" |
 | iPad layout fix | **measured** | Chromium at 1032x1376: `.app-shell` 520 -> 1032, `max-width` 520px -> none, `border-left` 1px -> 0px |
+| App launches on iOS | see `ios-screenshots.yml` | The only gate that runs the app rather than compiling it. Boots a simulator, installs, launches and captures at native resolution. |
 | Browser smoke | **48 assertions, 4 viewports** | `node scripts/release-smoke.mjs` against a dev server. First run outside its author. |
 | First-run consent path | **exercised in a browser** | The screenshot capture waits for "Agree and continue", clicks it, waits for the dialog to be hidden, then drives filters, modes, movie details and About. It completed for both device sizes after the consent change. |
 
@@ -195,6 +196,26 @@ curl.exe -s -o NUL -w "%{http_code}`n" "https://trailer-roulette.vercel.app/priv
 Three `200`s and one match. If `/terms` returns 404, the deploy did not include
 the new files.
 
+### Step 2b — native screenshots from CI
+
+`ios-screenshots.yml` runs on any push to `release/**` and on demand. It boots
+an iPhone 16 Pro Max and an iPad Pro 13-inch, installs the build, launches it
+and captures at native resolution — 1320 x 2868 and 2064 x 2752, the exact
+sizes App Store Connect wants. Download both artifacts from the run:
+
+```powershell
+cd "C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette"
+gh run list --workflow "iOS simulator screenshots" --limit 3
+gh run download <run-id> --dir screenshots-native
+```
+
+`01-first-launch` is the consent sheet on a fresh container and is submittable.
+`02-after-consent` has acceptance preseeded, so the app arms autoplay and hands
+off to the native player; treat it as evidence that the app launches and
+renders on iOS rather than as a store asset, since whatever YouTube is showing
+lands in the frame. Everything past those two still needs the device test
+below, because nothing here can tap a button.
+
 ### Step 3 — device test
 
 See section 7. Record the results in `store-listing/review-notes.md` before
@@ -228,13 +249,16 @@ then allow 5 to 15 minutes for processing.
 3. **Screenshots**: 6.9-inch iPhone and 13-inch iPad, from the device capture.
 4. **Description / Promotional Text / Keywords / Subtitle**: paste from
    `store-listing/`. What's New: `store-listing/whats-new-v3.5.0.md`.
-5. **App Privacy**: re-answer against the final build. Do not carry over "Data
-   Not Collected" by default. Open questions in
-   `docs/PRIVACY-NUTRITION-LABEL.md`. Do **not** declare location: the public
-   build makes no location request.
+5. **App Privacy**: **Data Not Collected**, and do **not** declare location or
+   tracking. `docs/PRIVACY-NUTRITION-LABEL.md` has the decided answers, the
+   evidence behind each, and the fallback if a reviewer challenges the
+   web-view position. It is answers to paste, not questions to resolve.
 6. **Privacy Policy URL**: `https://trailer-roulette.vercel.app/privacy`.
-7. **Age rating**: re-answer. Trailers carry violence, language and mature
-   themes that the app does not control.
+7. **Age rating**: answer as decided in `docs/PRIVACY-NUTRITION-LABEL.md`.
+   Expect **16+ or 18+** — that is the honest rating for an unfiltered trailer
+   channel, and under-rating is a removal cause. Advertising is **Yes**
+   (YouTube's own ads); Unrestricted Web Access is **No**; every chance-based
+   question is **No**.
 8. **App Review Information**: paste `store-listing/review-notes.md` after
    adding the tested device models, iOS versions and the exact build number.
 9. **Release option**: manual.
