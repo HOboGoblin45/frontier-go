@@ -9,19 +9,26 @@
 # iPad layout fix (docs/bugs.md B7) holds on iPadOS rather than only in
 # Chromium at iPad width.
 #
-# Captures, per device size:
-#   01-first-launch        fresh container, so the consent sheet is up.
-#                          Submittable.
-#   02-after-consent-NNs   acceptance preseeded, so the app arms autoplay. A
-#                          burst rather than one guess: the stage is visible
-#                          for a moment before the native player takes the
-#                          window, and how long depends on how fast TMDB
-#                          answers on the runner. Keep whichever lands well.
-#                          Anything showing the player has YouTube's frame in
-#                          it, so treat those as evidence, not store assets.
+# Captures one file per device size: 01-first-launch, a fresh container with
+# the consent sheet up, at the exact pixel size App Store Connect wants.
+#
+# PRESEEDING CONSENT DOES NOT WORK FROM HERE. Do not try it again without a
+# different mechanism entirely. Two attempts, both of which ran green and both
+# of which silently produced another first-launch frame:
+#   1. `xcrun simctl spawn <udid> defaults write <bundle-id> <key> <value>`.
+#      That writes the simulator's own defaults domain, not the app sandbox.
+#   2. `defaults write "<data-container>/Library/Preferences/<bundle-id>.plist"`,
+#      resolved with `simctl get_app_container`, with the value read back and
+#      printed. The read-back is not proof: the simulator runs its own cfprefsd,
+#      and a plist written from the host is not what the app sees on next launch.
+# Getting past the first screen needs something that drives the UI - an XCUITest
+# target, or idb - which is a different piece of work and is not this script.
+# Everything past first launch is covered by the device test in
+# docs/RELEASE-REVIEW-2026-09.md.
 #
 # Usage: ci-simulator-screenshots.sh "<device candidates>" <out-dir> <App.app> <policy-version> <WxH>
-#        Candidates are comma-separated and tried in order.
+#        Candidates are comma-separated and tried in order. policy-version is
+#        accepted and unused; see above.
 set -euo pipefail
 
 CANDIDATES="$1"
@@ -86,29 +93,6 @@ PY
 echo "--- 01: first launch, nothing accepted ---"
 xcrun simctl launch "$udid" "$BUNDLE_ID"
 shoot "01-first-launch" 15
-
-echo "--- preseeding consent ---"
-xcrun simctl terminate "$udid" "$BUNDLE_ID" || true
-sleep 2
-# Capacitor Preferences (group 'NSUserDefaults') writes to UserDefaults.standard,
-# which for a sandboxed app is a plist inside the app's DATA container - not the
-# simulator's own defaults domain. `simctl spawn defaults write <bundle-id>` was
-# tried first and silently did nothing: the capture still showed the consent
-# sheet. Writing the container plist by path is what actually lands. The stored
-# value is JSON, so the string is quoted.
-container=$(xcrun simctl get_app_container "$udid" "$BUNDLE_ID" data)
-plist="$container/Library/Preferences/$BUNDLE_ID.plist"
-mkdir -p "$(dirname "$plist")"
-defaults write "$plist" "trailer-roulette.policy-accepted" -string "\"$POLICY_VERSION\""
-echo "  read back: $(defaults read "$plist" "trailer-roulette.policy-accepted" 2>&1 || echo 'NOT SET')"
-
-echo "--- 02: consent on file, autoplay armed ---"
-xcrun simctl launch "$udid" "$BUNDLE_ID"
-# Cumulative waits: 4s, 8s, 14s, 22s after launch.
-shoot "02-after-consent-04s" 4
-shoot "02-after-consent-08s" 4
-shoot "02-after-consent-14s" 6
-shoot "02-after-consent-22s" 8
 
 echo "--- app log, last 40s ---"
 xcrun simctl spawn "$udid" log show --last 40s --style compact \
