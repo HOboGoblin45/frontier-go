@@ -458,6 +458,8 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     private var watchdogStartedAt = Date()
     private var receivedAnyMessage = false // any proxy message since (re)load
     private var sawYtSignal = false        // the YT iframe itself has spoken
+    /// True while the current video arrived by trLoad rather than a page load.
+    private var warmSwap = false
 
     // Epoch token (v3.2.0): each load/swap increments this and hands it to the
     // proxy (?e= on cold loads, trLoad's 2nd arg on swaps); a v3.2.0+ proxy
@@ -529,6 +531,14 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     /// How long playback must have been frozen for the hard cap to count the
     /// video as dead rather than simply long.
     private static let watchdogStaleProgressSeconds: TimeInterval = 20.0
+    /// How long a WARM swap may produce no movement at all before we give up
+    /// on it. See the note in swapVideo: after a swap both liveness checks are
+    /// disabled, so this is the only thing standing between a stuck video and
+    /// the 75-second hard cap. Deliberately tested against PROGRESS, not
+    /// against reaching content: a pre-roll ad moves the clock, so this cannot
+    /// cut an ad short, which would breach YouTube's developer policies as
+    /// well as being wrong.
+    private static let watchdogSwapStallSeconds: TimeInterval = 12.0
 
     // v3.2.2 presentation constants.
     /// Idle time before the glass chrome fades off the video.
@@ -1324,6 +1334,7 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         }
 
         sawPlaying = false
+        warmSwap = false           // cold navigation, not a trLoad swap
         receivedAnyMessage = false // cold navigation: the page must prove it's alive
         sawYtSignal = false
         resetContentProgress()
@@ -1367,6 +1378,12 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
             let dead =
                 (elapsed >= Self.watchdogDeadPageSeconds && !self.receivedAnyMessage) ||
                 (elapsed >= Self.watchdogSilentPlayerSeconds && !self.sawYtSignal) ||
+                // A warm swap that has produced NO movement at all. Without
+                // this a skip that lands on a video which buffers forever sat
+                // on a spinner for the full 75 seconds, because swapVideo
+                // disables both checks above. Gated on warmSwap because a cold
+                // page load legitimately takes longer to show its first frame.
+                (elapsed >= Self.watchdogSwapStallSeconds && self.warmSwap && playbackIsStale) ||
                 (elapsed >= Self.watchdogHardCapSeconds && playbackIsStale)
             guard dead else { return }
             self.watchdogTimer?.invalidate(); self.watchdogTimer = nil
@@ -1664,8 +1681,22 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
             guard let self = self else { return }
             if (result as? String) == "ok" {
                 // Gapless swap: the SAME page just answered us, so its
-                // liveness is already proven — only the hard cap and the
-                // error path apply until the new video reaches PLAYING.
+                // liveness is already proven. Both flags below are true of the
+                // PAGE and say nothing about the new VIDEO, which is why the
+                // 12s dead-page and 20s silent-player checks are switched off
+                // here — and why, before watchdogSwapStallSeconds existed, a
+                // skip that landed on a video which buffered forever sat on a
+                // spinner for the full 75-second hard cap.
+                //
+                // Resetting sawYtSignal instead would not help: the proxy's own
+                // `sawYt` is a page-level flag it never clears, so its 1s
+                // heartbeat re-asserts yt:true within a second of any swap
+                // whatever the new video is doing. (trLoad clears it as of
+                // 3.5.0, but that only helps once the proxy is redeployed, and
+                // this has to work on the builds already installed.) Progress
+                // is the honest signal, and it is the one the swap stall check
+                // uses.
+                self.warmSwap = true
                 self.receivedAnyMessage = true
                 self.sawYtSignal = true
                 self.startWatchdog() // await the new video's PLAYING event

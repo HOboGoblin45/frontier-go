@@ -326,6 +326,13 @@ export default async function handler(request) {
     try {
       if (typeof e === 'number' && isFinite(e)) trEpoch = e; // new epoch (v3.2.0 native)
       resetProgress(); // new video — forget the previous clip's progress/pin
+      // The new video has not spoken yet, whatever the old one did. Leaving
+      // this set meant the 1s heartbeat reported yt:true within a second of
+      // every swap, which switched off native's 20s silent-player check for
+      // the incoming video and left only the 75s hard cap between a skip and
+      // a stuck spinner. Native carries its own progress-based guard for the
+      // builds already installed; this is the same fix at the source.
+      sawYt = false;
       iframe.contentWindow.postMessage(
         JSON.stringify({ event: 'command', func: 'loadVideoById', args: [String(id)] }),
         'https://www.youtube-nocookie.com'

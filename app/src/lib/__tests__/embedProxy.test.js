@@ -453,3 +453,57 @@ describe('the native player asks for the presentation it needs', () => {
     expect(swift).toContain('skipRequestTimeout');
   });
 });
+
+describe('embed proxy — a swap must not inherit the previous video\'s liveness', () => {
+  it('clears sawYt on trLoad, so the heartbeat speaks for the NEW video', async () => {
+    const h = await boot();
+    // First video gets going: YouTube speaks, so the page reports yt:true.
+    h.state(1);
+    h.advance(1100);
+    expect(h.of('hb').pop()?.yt).toBe(true);
+
+    // Skip. The incoming video has said nothing yet, so neither should we.
+    expect(h.win.trLoad('ZZZaaa111bb', 9)).toBe(true);
+    const mark = h.of('hb').length;
+    h.advance(1100);
+    const after = h.of('hb').slice(mark).pop();
+    expect(after, 'the heartbeat must keep running across a swap').toBeTruthy();
+    expect(after.yt, 'yt:true here disables native silent-player check').toBe(false);
+
+    // And it comes back the moment the new video actually speaks.
+    h.state(3);
+    h.advance(1100);
+    expect(h.of('hb').pop().yt).toBe(true);
+  });
+});
+
+describe('the native player does not wait 75s on a stalled skip', () => {
+  const swift = readFileSync(
+    new URL('../../../local-plugins/trailer-player/ios/Plugin/TrailerPlayer.swift', import.meta.url),
+    'utf8',
+  );
+
+  it('has a warm-swap stall window far shorter than the hard cap', () => {
+    const swap = Number(swift.match(/watchdogSwapStallSeconds:\s*TimeInterval\s*=\s*([\d.]+)/)?.[1]);
+    const cap = Number(swift.match(/watchdogHardCapSeconds:\s*TimeInterval\s*=\s*([\d.]+)/)?.[1]);
+    expect(swap).toBeGreaterThan(5);      // a warm swap still needs room to start
+    expect(swap).toBeLessThan(cap / 3);   // but nothing like the 75s backstop
+  });
+
+  it('tests that window against progress, not against reaching content', () => {
+    // An ad moves the clock, so a progress test cannot cut one short.
+    // A "hasn't reached the trailer yet" test would, which is both wrong and a
+    // breach of YouTube's developer policies. See docs/bugs.md B1 and B2 for
+    // the two releases that learned this the hard way.
+    const cond = swift.match(/watchdogSwapStallSeconds\s*&&[^)]*\)/)?.[0] || '';
+    expect(cond).toContain('warmSwap');
+    expect(cond).toContain('playbackIsStale');
+    expect(cond).not.toContain('sawPlaying');
+    expect(cond).not.toContain('contentConfirmed');
+  });
+
+  it('only arms it for a swap, never for a cold page load', () => {
+    expect(swift).toContain('warmSwap = false           // cold navigation');
+    expect(swift).toContain('self.warmSwap = true');
+  });
+});
