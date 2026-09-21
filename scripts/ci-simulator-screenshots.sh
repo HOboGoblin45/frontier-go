@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 #
-# Native iOS captures from a CI macOS runner, because there is no Mac here and
-# the only other screenshots this project has are browser drafts.
+# Native iOS captures from a CI macOS runner, because there is no Mac on this
+# project and every other screenshot it has is a browser draft.
 #
-# Two shots per device size:
-#   01-first-launch   fresh container, so the first-run consent sheet is up.
-#                     This one is submittable.
-#   02-after-consent  acceptance preseeded into NSUserDefaults, so the app
-#                     arms autoplay and hands off to the native player. This
-#                     one is EVIDENCE - it proves the app launches, renders and
-#                     opens its player on iOS - and is usually not submittable,
-#                     because whatever YouTube is showing lands in the frame.
+# It is a gate before it is a capture. The compile check proves the app builds;
+# this is the only thing in the repo that RUNS it. The first run of it proved
+# two things nothing else could: the app launches and renders on iOS, and the
+# iPad layout fix (docs/bugs.md B7) holds on iPadOS rather than only in
+# Chromium at iPad width.
 #
-# It is also the only gate in this repo that runs the app at all. The compile
-# check proves it builds; this proves it does not die on launch.
+# Captures, per device size:
+#   01-first-launch        fresh container, so the consent sheet is up.
+#                          Submittable.
+#   02-after-consent-NNs   acceptance preseeded, so the app arms autoplay. A
+#                          burst rather than one guess: the stage is visible
+#                          for a moment before the native player takes the
+#                          window, and how long depends on how fast TMDB
+#                          answers on the runner. Keep whichever lands well.
+#                          Anything showing the player has YouTube's frame in
+#                          it, so treat those as evidence, not store assets.
 #
-# Usage: ci-simulator-screenshots.sh "<device name candidates>" <out-dir> <App.app> <policy-version>
+# Usage: ci-simulator-screenshots.sh "<device candidates>" <out-dir> <App.app> <policy-version> <WxH>
 #        Candidates are comma-separated and tried in order.
 set -euo pipefail
 
@@ -23,6 +28,7 @@ CANDIDATES="$1"
 OUT_DIR="$2"
 APP_PATH="$3"
 POLICY_VERSION="$4"
+EXPECT_SIZE="$5"
 BUNDLE_ID="app.trailerroulette.ios"
 
 mkdir -p "$OUT_DIR"
@@ -52,25 +58,28 @@ if [ -z "$udid" ]; then
   exit 1
 fi
 
-echo "Using $device ($udid)"
+echo "Using $device ($udid), expecting $EXPECT_SIZE"
 xcrun simctl boot "$udid"
 xcrun simctl bootstatus "$udid" -b
 xcrun simctl install "$udid" "$APP_PATH"
 
 # simctl captures at the device's native resolution, which is exactly what App
-# Store Connect wants: 1320x2868 for 6.9-inch, 2064x2752 for 13-inch. Printing
-# it means a wrong simulator is caught here rather than at upload.
+# Store Connect wants. Asserting it here means a renamed or resized simulator
+# in a future Xcode is caught in CI rather than at upload.
 shoot() {
   local name="$1" wait_s="$2"
   sleep "$wait_s"
   xcrun simctl io "$udid" screenshot "$OUT_DIR/$name.png"
-  python3 - "$OUT_DIR/$name.png" <<'PY'
+  python3 - "$OUT_DIR/$name.png" "$EXPECT_SIZE" <<'PY'
 import struct, sys
-path = sys.argv[1]
+path, expect = sys.argv[1], sys.argv[2]
 with open(path, 'rb') as f:
     head = f.read(24)
 w, h = struct.unpack('>II', head[16:24])
-print(f"  {path}: {w} x {h}")
+got = f"{w}x{h}"
+print(f"  {path}: {got}")
+if got != expect:
+    sys.exit(f"  WRONG SIZE: expected {expect}, got {got}")
 PY
 }
 
@@ -78,15 +87,28 @@ echo "--- 01: first launch, nothing accepted ---"
 xcrun simctl launch "$udid" "$BUNDLE_ID"
 shoot "01-first-launch" 15
 
-echo "--- 02: consent preseeded, autoplay armed ---"
+echo "--- preseeding consent ---"
 xcrun simctl terminate "$udid" "$BUNDLE_ID" || true
-# Capacitor Preferences stores JSON in NSUserDefaults, so the value on disk is
-# a quoted string. Best-effort: if this does not take, 02 simply shows the
-# consent sheet again, which the artifact makes obvious.
-xcrun simctl spawn "$udid" defaults write "$BUNDLE_ID" \
-  "trailer-roulette.policy-accepted" -string "\"$POLICY_VERSION\"" || true
+sleep 2
+# Capacitor Preferences (group 'NSUserDefaults') writes to UserDefaults.standard,
+# which for a sandboxed app is a plist inside the app's DATA container - not the
+# simulator's own defaults domain. `simctl spawn defaults write <bundle-id>` was
+# tried first and silently did nothing: the capture still showed the consent
+# sheet. Writing the container plist by path is what actually lands. The stored
+# value is JSON, so the string is quoted.
+container=$(xcrun simctl get_app_container "$udid" "$BUNDLE_ID" data)
+plist="$container/Library/Preferences/$BUNDLE_ID.plist"
+mkdir -p "$(dirname "$plist")"
+defaults write "$plist" "trailer-roulette.policy-accepted" -string "\"$POLICY_VERSION\""
+echo "  read back: $(defaults read "$plist" "trailer-roulette.policy-accepted" 2>&1 || echo 'NOT SET')"
+
+echo "--- 02: consent on file, autoplay armed ---"
 xcrun simctl launch "$udid" "$BUNDLE_ID"
-shoot "02-after-consent" 20
+# Cumulative waits: 4s, 8s, 14s, 22s after launch.
+shoot "02-after-consent-04s" 4
+shoot "02-after-consent-08s" 4
+shoot "02-after-consent-14s" 6
+shoot "02-after-consent-22s" 8
 
 echo "--- app log, last 40s ---"
 xcrun simctl spawn "$udid" log show --last 40s --style compact \

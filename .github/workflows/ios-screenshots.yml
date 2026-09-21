@@ -22,8 +22,10 @@ jobs:
         include:
           - label: 6.9-inch
             devices: 'iPhone 16 Pro Max,iPhone 17 Pro Max,iPhone 16 Plus'
+            expect: 1320x2868
           - label: 13-inch
-            devices: 'iPad Pro 13-inch (M4),iPad Pro 13-inch (M5),iPad Pro (12.9-inch) (6th generation)'
+            devices: 'iPad Pro 13-inch (M4),iPad Pro 13-inch (M5)'
+            expect: 2064x2752
     steps:
       - uses: actions/checkout@v4
       - uses: maxim-lobanov/setup-xcode@v1
@@ -65,7 +67,8 @@ jobs:
             "${{ matrix.devices }}" \
             "screenshots-native/${{ matrix.label }}" \
             "build/ios-shots/Build/Products/Debug-iphonesimulator/App.app" \
-            "${{ steps.policy.outputs.version }}"
+            "${{ steps.policy.outputs.version }}" \
+            "${{ matrix.expect }}"
       - uses: actions/upload-artifact@v4
         with:
           name: native-screenshots-${{ matrix.label }}

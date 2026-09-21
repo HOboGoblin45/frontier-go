@@ -34,6 +34,7 @@ unverified, whatever else in the repo may imply.
 | CI lint/test/build | **green** | GitHub Actions "CI (lint + test + web build)" |
 | iPad layout fix | **measured** | Chromium at 1032x1376: `.app-shell` 520 -> 1032, `max-width` 520px -> none, `border-left` 1px -> 0px |
 | App launches on iOS | see `ios-screenshots.yml` | The only gate that runs the app rather than compiling it. Boots a simulator, installs, launches and captures at native resolution. |
+| The deploy gate can actually pass | **proven** | `landing-page/api/embed.js` renders deterministically: the same URL hashed 1.1s apart is byte-identical, and the cache-buster is not embedded in the HTML. Its `Date.now()` calls are inside the client script string, evaluated in the browser, not at render. So `verify-production.mjs`'s hash comparison will match once the current page is deployed, rather than blocking the release forever. |
 | Browser smoke | **48 assertions, 4 viewports** | `node scripts/release-smoke.mjs` against a dev server. First run outside its author. |
 | First-run consent path | **exercised in a browser** | The screenshot capture waits for "Agree and continue", clicks it, waits for the dialog to be hidden, then drives filters, modes, movie details and About. It completed for both device sizes after the consent change. |
 
