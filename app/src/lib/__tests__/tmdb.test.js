@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   pickDiscoverPage, TMDB_MAX_DISCOVER_PAGE, discoverMovies,
-  discoverRandomMix, eraStrata, CATALOG_START_YEAR, filtersQuery, catalogDecades,
+  discoverRandomMix, eraStrata, CATALOG_START_YEAR, CATALOG_VOTE_FLOOR,
+  filtersQuery, catalogDecades,
   discoverFilteredMix,
 } from '../tmdb.js';
 
@@ -103,20 +104,43 @@ describe('eraStrata', () => {
     }
   });
 
-  it('relaxes the vote floor for older bands (fewer ratings exist)', () => {
+  it('applies one floor to every decade', () => {
+    // The floors used to rise from 40 to 180 across the bands, on the theory
+    // that older films have fewer ratings so should be asked for fewer. The
+    // effect was that the newest decades - where most of the catalog lives -
+    // were the most aggressively filtered toward blockbusters. An old film
+    // having fewer ratings is not a reason to demand a bigger share of them.
     const bands = eraStrata(2026);
-    expect(bands[0].voteFloor).toBeLessThan(bands[bands.length - 1].voteFloor);
+    for (const b of bands) expect(b.voteFloor).toBe(CATALOG_VOTE_FLOOR);
+  });
+
+  it('keeps the floor at the measured knee of the playability curve', () => {
+    // Measured against live TMDB, 2026-09-21, 90 samples per setting:
+    //   floor 30 -> 90% of picks have a YouTube video, avg 190 votes
+    //   floor 10 -> 52%,  avg 112 votes
+    //   floor  0 ->  4%,  avg   1 vote   (DVD extras, shorts, fragments)
+    // Below ~30 the feed stops being obscure films and starts being debris,
+    // and the queue churns through candidates that can never play.
+    expect(CATALOG_VOTE_FLOOR).toBeGreaterThanOrEqual(20);
+    expect(CATALOG_VOTE_FLOOR).toBeLessThanOrEqual(60);
   });
 });
 
 describe('catalogDecades — the filter sheet decade options', () => {
   it('offers every decade from the catalog start through the current year', () => {
-    expect(catalogDecades(2026)).toEqual([1970, 1980, 1990, 2000, 2010, 2020]);
+    expect(catalogDecades(2026)).toEqual([1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]);
   });
 
   it('starts at the catalog start year even for a partial current decade', () => {
-    expect(catalogDecades(1970)).toEqual([1970]);
-    expect(catalogDecades(1975)).toEqual([1970]);
+    expect(catalogDecades(1950)).toEqual([1950]);
+    expect(catalogDecades(1955)).toEqual([1950]);
+  });
+
+  it('reaches back to 1950, so noir and the New Wave can appear at all', () => {
+    // Owner decision 2026-09-21. Before this the catalog began at 1970 and
+    // nothing older could ever be drawn, filtered or not.
+    expect(CATALOG_START_YEAR).toBe(1950);
+    expect(catalogDecades(2026)[0]).toBe(1950);
   });
 });
 
@@ -133,19 +157,40 @@ describe('discoverRandomMix — era-diverse sampling', () => {
   });
   afterEach(() => { vi.restoreAllMocks(); });
 
-  it('queries one random year per era band and pins each to a year (not a date cap)', async () => {
-    const bands = eraStrata(2026);
+  it('pins every band to a year rather than a date cap', async () => {
     await discoverRandomMix();
-    expect(calls.length).toBe(bands.length);
-    calls.forEach((p, i) => {
+    for (const p of calls) {
       expect(p.get('sort_by')).toBe('popularity.desc');
-      const year = Number(p.get('primary_release_year'));
-      expect(year).toBeGreaterThanOrEqual(bands[i].lo);
-      expect(year).toBeLessThanOrEqual(bands[i].hi);
-      const page = Number(p.get('page'));
-      expect(page).toBeGreaterThanOrEqual(1);
-      expect(page).toBeLessThanOrEqual(bands[i].maxPage);
-    });
+      expect(p.get('primary_release_year')).toBeTruthy();
+      expect(p.get('primary_release_date.lte')).toBeNull();
+      expect(Number(p.get('vote_count.gte'))).toBe(CATALOG_VOTE_FLOOR);
+    }
+  });
+
+  it('samples a year from every decade, covering the whole catalog in one batch', async () => {
+    const bands = eraStrata(2026);
+    await discoverRandomMix({ strata: bands });
+    const years = calls.map((p) => Number(p.get('primary_release_year')));
+    for (const b of bands) {
+      expect(years.some((y) => y >= b.lo && y <= b.hi)).toBe(true);
+    }
+  });
+
+  it('samples the WHOLE depth of a year, not just its best-known films', async () => {
+    // This is the fix. The old sampler capped the page at 2-5, so the feed
+    // could only ever see the top 40-100 films of a year - a blockbuster list.
+    // It now learns the year's real page count (50 in this harness) and
+    // samples across all of it. Run it enough times that a cap of 5 could not
+    // plausibly hide: 200 batches is thousands of draws.
+    const pages = new Set();
+    for (let i = 0; i < 200; i += 1) {
+      calls.length = 0;
+      await discoverRandomMix();
+      for (const p of calls) pages.add(Number(p.get('page')));
+    }
+    expect(Math.max(...pages)).toBeGreaterThan(5);
+    // And it must stay inside what TMDB will actually paginate.
+    expect(Math.max(...pages)).toBeLessThanOrEqual(50);
   });
 
   it('merges all bands and de-dupes by id', async () => {
@@ -287,16 +332,20 @@ describe('discoverMovies filter params (v3.4.3)', () => {
     expect(params().get('primary_release_date.lte')).toBe('1989-12-31');
   });
 
-  it('lowers the vote floor when a filter is applied (niche is thinner)', async () => {
+  it('lowers the vote floor further when a filter is applied (niche is thinner)', async () => {
     await discoverMovies({ genres: [27], decades: [1970] });
-    expect(params().get('vote_count.gte')).toBe('50');
+    expect(Number(params().get('vote_count.gte'))).toBeLessThan(CATALOG_VOTE_FLOOR);
   });
 
-  it('keeps the unfiltered vote floors unchanged', async () => {
+  it('uses one catalog floor unfiltered, whatever the era', async () => {
+    // These were 200 and 100, which is what kept the unfiltered feed on
+    // famous films no matter how the pages were sampled.
     await discoverMovies({});
-    expect(params().get('vote_count.gte')).toBe('200');
+    expect(params().get('vote_count.gte')).toBe(String(CATALOG_VOTE_FLOOR));
     await discoverMovies({ era: 'modern' });
-    expect(params().get('vote_count.gte')).toBe('100');
+    expect(params().get('vote_count.gte')).toBe(String(CATALOG_VOTE_FLOOR));
+    await discoverMovies({ era: 'classic' });
+    expect(params().get('vote_count.gte')).toBe(String(CATALOG_VOTE_FLOOR));
   });
 
   it('prefers an explicit single decade over a decade array', async () => {

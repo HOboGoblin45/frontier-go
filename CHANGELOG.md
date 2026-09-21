@@ -81,6 +81,18 @@ an iPad. Branch `release/public-3.5`, PR #1.
   `support.html` get permanent redirects from their `.html` spellings.
 
 ### Changed
+- **The feed actually draws from the whole catalogue.** `eraStrata` capped each
+  decade at `maxPage` 2-5, so with `sort_by=popularity.desc` the roulette could
+  only ever see the top 40-100 most popular films of a year; graded vote floors
+  of 40-180 filtered the same axis again. Measured against live TMDB, that feed
+  averaged **4,631 votes** per pick — Alien, Pulp Fiction, Shawshank, Godzilla
+  vs. Kong. It now learns each year's real page count and samples anywhere in
+  it, against one floor of 30, with the catalogue starting at **1950** instead
+  of 1970. Measured on the shipped path: **82% of picks still have a trailer,
+  average 572 votes, all eight decades represented** — The Night Porter, Donkey
+  Skin, Dead Ringers, Too Late Blues, Kaagaz Ke Phool. Lower floors were
+  measured and rejected: at 10 only 52% have a trailer, at 0 only 4%, because
+  the bottom of TMDB is DVD extras and fragments, not obscure films. (B12)
 - **Theater Mode is hidden**, behind `VITE_ENABLE_THEATER_MODE` (off unless set
   to `true`; the release workflow does not set it). Owner decision, 2026-09-21:
   hold it until permission for Alamo Drafthouse programming data is verified
