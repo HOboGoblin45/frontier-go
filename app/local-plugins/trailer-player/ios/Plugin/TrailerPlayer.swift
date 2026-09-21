@@ -301,7 +301,7 @@ public class TrailerPlayer: CAPPlugin, CAPBridgedPlugin {
         // The player's own root view and webView are opaque near-black, so
         // nothing shows through at rest; the stage is revealed only by the
         // drag's translation and alpha.
-        vc.modalPresentationStyle = .overFullScreen
+        vc.modalPresentationStyle = .fullScreen
         // v3.2.2: dissolve, not a sheet sliding up. The screen behind this is
         // the roulette stage showing THIS movie's artwork full-bleed, and the
         // player's own loading stage is now that same artwork (A1) — a
@@ -601,14 +601,10 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         // through any transparency here. The only thing allowed to make this
         // player see-through is the swipe-down drag's own alpha.
         view.backgroundColor = Self.stageColor
-        // Order is load-bearing, and it is the OPPOSITE of what it looks like:
-        // the backdrop is added AFTER the webView so it sits ABOVE it, and
-        // BEFORE the chrome so it sits below that. It has to cover the webView,
-        // because the thing we are hiding is the proxy page's own opaque black
-        // body. See setupBackdrop().
+        // The player has its own unobscured rectangle; artwork stays in the header.
         setupWebView()
-        setupBackdrop()
         setupGlassChrome()
+        setupBackdrop()
         setupStageGestures()
         // Warm the taptic engine now; the first advance can be seconds away but
         // an unprepared generator fires late enough to feel disconnected.
@@ -634,34 +630,12 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     override var prefersStatusBarHidden: Bool { true }
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        [.portrait, .landscapeLeft, .landscapeRight]
+        UIDevice.current.userInterfaceIdiom == .pad ? .all : [.portrait, .landscapeLeft, .landscapeRight]
     }
 
     // MARK: - v3.2.2 A1: poster backdrop instead of a black stage
 
-    /// The loading stage the modal dissolves onto, and off.
-    ///
-    /// Symptom this fixes: the player presented onto pure black with a lone
-    /// UIActivityIndicatorView for the 2-3s the Vercel proxy page needs to
-    /// load — immediately after the user had been looking at this exact
-    /// movie's TMDB artwork full-bleed on the roulette stage. Throwing that
-    /// away and showing black reads as the app crashing, not as loading.
-    ///
-    /// The group is image -> 45% black dim -> blur, so the blur samples the
-    /// already-dimmed art and the result reads as an out-of-focus backdrop
-    /// rather than a stretched still competing with the video.
-    ///
-    /// Z-ORDER: ABOVE the webView, below the glass chrome. This is deliberate
-    /// and it was wrong the other way round in the first cut of v3.2.2. Putting
-    /// it below the webView achieves nothing, because the thing that makes the
-    /// stage black is not an empty WKWebView — it is the proxy page's own
-    /// `html, body { background:#000 }` (landing-page/api/embed.js), and behind
-    /// that the YouTube iframe is opaque too. Making the proxy transparent
-    /// would not help for the same reason. The only way to replace that black
-    /// with artwork is to cover it and then dissolve away.
-    ///
-    /// Because it now genuinely covers the player, WHEN it goes is a
-    /// correctness question, not a taste one — see markStageLive().
+    /// Header artwork never covers the embedded player, even before playback.
     private func setupBackdrop() {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
@@ -669,7 +643,8 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         // intercept a touch meant for the video or for the swipe-down gesture.
         container.isUserInteractionEnabled = false
         container.backgroundColor = Self.stageColor
-        view.addSubview(container)
+        view.insertSubview(container, belowSubview: chromeEffectView)
+        container.clipsToBounds = true
         self.backdropContainer = container
 
         let image = UIImageView()
@@ -695,7 +670,7 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
             container.topAnchor.constraint(equalTo: view.topAnchor),
             container.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             container.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            container.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            container.bottomAnchor.constraint(equalTo: chromeEffectView.bottomAnchor),
         ])
         for child in [image, dim, blur] as [UIView] {
             NSLayoutConstraint.activate([
@@ -734,38 +709,8 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         task.resume()
     }
 
-    /// Retire the poster stage the instant ANY playback is observed.
-    ///
-    /// ==== DO NOT MAKE THIS WAIT LONGER. READ THIS FIRST. ====
-    ///
-    /// The obvious "improvement" here is to hold the artwork until
-    /// contentConfirmedNow() is true, so the user never sees a pre-roll ad
-    /// behind a bare black frame. That would be a policy violation, not a
-    /// polish win. The backdrop is now ABOVE the webView, so it genuinely
-    /// covers the player, and a pre-roll ad IS playback. YouTube API Services
-    /// Developer Policies section III.I.5 forbids clients that "modify,
-    /// interfere with, replace, or block advertisements placed or served by
-    /// YouTube" — holding an opaque poster over a running ad is blocking it.
-    ///
-    /// So the trigger is the FIRST OBSERVED PLAYBACK OF ANY KIND, deliberately
-    /// the loosest signal available:
-    ///   - stateChange:1, real OR the proxy's synthesised one (v3.2.1 `syn`), or
-    ///   - the first forward progress from any sample (noteProgressIfMoved).
-    /// The instant pixels move, the poster goes. Content confirmation is NOT
-    /// consulted anywhere in this path, and must not be.
-    ///
-    /// Also deliberately NOT hooked to webView(_:didFinish:) — that fires when
-    /// the proxy page merely exists, which is too EARLY: it would dump us back
-    /// onto the black page for the second or two of player bootstrap that
-    /// follows. Too early is a UX bug; too late is a policy breach; "when
-    /// something plays" is the one point that is neither.
-    ///
-    /// backdropSafetyTimer is the backstop for the case where no playback
-    /// signal ever arrives (an old proxy with no heartbeat serving an ad
-    /// variant that never reports PLAYING). It drops the poster on a timer so
-    /// the policy holds even when we are blind. See startBackdropSafetyTimer().
-    ///
-    /// Idempotent; once retired it stays retired for the session.
+    /// Retire header artwork on the first playback, including ads. This remains
+    /// independent of content confirmation; no view obscures the video rectangle.
     private func markStageLive() {
         guard !stageIsLive else { return }
         stageIsLive = true
@@ -787,20 +732,7 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
                        })
     }
 
-    /// Hard ceiling on how long the poster may cover the player.
-    ///
-    /// markStageLive() needs a playback signal, and there is one configuration
-    /// that never sends us one: a pre-v3.2.0 proxy (no 'hb' heartbeat, so no
-    /// progress samples) serving one of the ad variants that keeps the content
-    /// player UNSTARTED for the whole ad — the exact case the v3.2.0 watchdog
-    /// work exists for. Blind, we would sit on an opaque poster over a running
-    /// ad, which is the section III.I.5 problem described in markStageLive().
-    ///
-    /// So the poster comes down on a timer regardless. Landing back on the
-    /// proxy page's black body after 6s is a cosmetic disappointment; covering
-    /// an ad is not, so the tie goes to dropping it. 6s comfortably clears the
-    /// 2-3s page load this feature exists for, and any healthy path retires the
-    /// poster on its own well before the timer fires.
+    /// Bound header artwork lifetime if playback events are unavailable.
     private func startBackdropSafetyTimer() {
         backdropSafetyTimer?.invalidate()
         backdropSafetyTimer = Timer.scheduledTimer(withTimeInterval: Self.backdropMaxSeconds,
@@ -841,16 +773,7 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         webView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(webView)
 
-        // v3.0.0: Full-bleed video — pin to view.topAnchor so the video
-        // extends behind the glass header. Previously pinned to
-        // safeAreaLayoutGuide.topAnchor + 48 (solid black header).
-        NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-
+        // Constraints are installed once header and progress track exist.
         self.webView = webView
     }
 
@@ -930,15 +853,15 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         chrome.addSubview(titleLabel)
         self.titleLabel = titleLabel
 
-        // Loading spinner — centered on the webView
-        let spinner = UIActivityIndicatorView(style: .large)
+        // Loading spinner in the reserved header, outside the player
+        let spinner = UIActivityIndicatorView(style: .medium)
         spinner.color = Self.accentColor
         spinner.translatesAutoresizingMaskIntoConstraints = false
         spinner.startAnimating()
         view.addSubview(spinner)
         self.loadingIndicator = spinner
 
-        // Gradient fade — 32pt strip below the glass header
+        // Gradient decoration inside the header
         let gradient = GradientFadeView()
         gradient.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(gradient)
@@ -1006,32 +929,36 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
             mute.widthAnchor.constraint(equalToConstant: Self.minimumTapTarget),
 
             // Title — centered between Done and Mute
-            titleLabel.leadingAnchor.constraint(equalTo: doneButton.trailingAnchor, constant: 8),
+            titleLabel.leadingAnchor.constraint(equalTo: doneButton.trailingAnchor, constant: 32),
             titleLabel.trailingAnchor.constraint(equalTo: mute.leadingAnchor, constant: -8),
             titleLabel.centerYAnchor.constraint(equalTo: doneButton.centerYAnchor),
 
-            // Spinner — centered on video
-            spinner.centerXAnchor.constraint(equalTo: webView.centerXAnchor),
-            spinner.centerYAnchor.constraint(equalTo: webView.centerYAnchor),
+            // Spinner — beside the title, outside video
+            spinner.centerXAnchor.constraint(equalTo: doneButton.trailingAnchor, constant: 16),
+            spinner.centerYAnchor.constraint(equalTo: doneButton.centerYAnchor),
 
-            // Gradient fade — 32pt strip directly below glass header
-            gradient.topAnchor.constraint(equalTo: effectView.bottomAnchor),
+            // Gradient decoration ends at the header boundary
+            gradient.bottomAnchor.constraint(equalTo: effectView.bottomAnchor),
             gradient.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             gradient.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            gradient.heightAnchor.constraint(equalToConstant: 32),
+            gradient.heightAnchor.constraint(equalToConstant: 8),
 
             // Progress line — flush with the bottom edge of the glass, full
             // width. It ends exactly where the gradient begins, so the two
             // never overlap regardless of z-order.
             track.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             track.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            track.bottomAnchor.constraint(equalTo: effectView.bottomAnchor),
+            track.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
             track.heightAnchor.constraint(equalToConstant: Self.progressBarHeight),
 
             fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
             fill.topAnchor.constraint(equalTo: track.topAnchor),
             fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
             fillWidth,
+            webView.topAnchor.constraint(equalTo: effectView.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: track.topAnchor),
         ])
 
         refreshMuteAffordance()
@@ -1102,14 +1029,8 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     /// chrome non-interactive — and in the swipe-down gesture, which works
     /// whether or not the chrome is visible.
     private func chromeMayAutoHide() -> Bool {
-        // v3.4.0: OFF. Hiding the chrome was a v3.2.2 idea that looked right on
-        // paper and was wrong on a device: at the end of a trailer the app's
-        // Done, Skip and mute had all faded out, so the only thing on screen
-        // was YouTube's end screen and its replay button. The app handed the
-        // display to YouTube at exactly the moment it needed to be in charge.
-        // Controls stay up. Everything that drives it is left intact so this is
-        // a one-line change to revisit, but not before it can be seen running.
-        return false
+        // Keep Done reachable without intercepting touches on the YouTube player.
+        false
     }
 
     private func showChrome(restartIdleTimer: Bool = true) {
@@ -1255,6 +1176,11 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     // MARK: - UIGestureRecognizerDelegate
 
     public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Player touches belong exclusively to YouTube. Swipe to dismiss from
+        // the space below the video; Done remains available in the header.
+        if let player = webView, player.frame.contains(gestureRecognizer.location(in: view)) {
+            return false
+        }
         // Never start on top of the glass chrome — Done / Mute / Skip have to
         // stay ordinary buttons, and a drag that starts on a control is a
         // mis-hit, not a dismissal. Only guarded while the chrome is actually
