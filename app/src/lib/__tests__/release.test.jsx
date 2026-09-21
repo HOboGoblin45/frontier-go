@@ -65,6 +65,17 @@ describe('first-run consent gate', () => {
     expect(consentGate(stored)).toBe(true);
   });
 
+  it('cannot reach the unknown state from a resolved read', () => {
+    // The unknown state renders NOTHING - not the sheet, not the player. It is
+    // correct for the moment before the read lands and catastrophic if it can
+    // be reached afterwards, so the boot effect coerces undefined to null
+    // before the gate sees it.
+    const asBootEffectPassesIt = (resolved) => consentGate(resolved ?? null);
+    expect(asBootEffectPassesIt(undefined)).toBe(true);
+    expect(asBootEffectPassesIt(null)).toBe(true);
+    expect(asBootEffectPassesIt(POLICY_VERSION)).toBe(false);
+  });
+
   it('fails closed: a read that throws must ask again', () => {
     // The boot effect catches and passes null rather than letting an
     // exception decide. Assuming acceptance on a broken device would record

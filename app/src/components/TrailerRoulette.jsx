@@ -318,9 +318,15 @@ export default function TrailerRoulette() {
       // on a returning user's cold launch. A failed read falls through to
       // null, which the gate treats as "not accepted": consent is what is
       // being recorded, so broken persistence asks again rather than assumes.
-      let accepted;
+      // `?? null` is load-bearing. storage.get() resolves to null for a
+      // missing key today, but undefined is the gate's "not read yet" value:
+      // if a future change ever let it through, hintOpen would stay null and
+      // the app would render neither the sheet nor the player, forever. Coerce
+      // it here so the only way to reach the unknown state is not having run
+      // this effect yet.
+      let accepted = null;
       try {
-        accepted = await storage.get(storage.KEYS.POLICY_ACCEPTED);
+        accepted = (await storage.get(storage.KEYS.POLICY_ACCEPTED)) ?? null;
       } catch { accepted = null; }
       setHintOpen(consentGate(accepted));
     })();
