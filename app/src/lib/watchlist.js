@@ -76,13 +76,7 @@ async function readList() {
 }
 
 async function writeList(list) {
-  try {
-    await storage.set(storage.KEYS.WATCHLIST, sanitize(list));
-  } catch {
-    // Storage is unavailable (private mode, quota). Losing a save is better
-    // than throwing out of a tap handler; the in-memory UI state still matches
-    // what the user asked for.
-  }
+  await storage.set(storage.KEYS.WATCHLIST, sanitize(list));
 }
 
 /** Drop unusable rows, de-duplicate by id (first wins, i.e. newest), cap. */

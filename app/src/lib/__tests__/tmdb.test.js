@@ -254,11 +254,9 @@ describe('discoverFilteredMix — samples within a small filtered corpus', () =>
   });
 
   it('degrades to page-1-only when an extra page fetch fails', async () => {
-    let n = 0;
     global.fetch = vi.fn(async (url) => {
       const p = Number(new URL(url).searchParams.get('page') || 1);
       calls.push(p);
-      n += 1;
       if (p !== 1) throw new Error('network');
       return { ok: true, json: async () => ({ results: [{ id: 9 }], total_pages: 4 }) };
     });

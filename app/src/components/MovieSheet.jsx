@@ -89,6 +89,8 @@ export default function MovieSheet({
   const [providers, setProviders] = useState({ status: 'loading', data: null });
   const [saved, setSaved] = useState(false);
   const [saveBusy, setSaveBusy] = useState(false);
+  const [saveError, setSaveError] = useState(false);
+  useEffect(() => { setSaveError(false); }, [open, movie?.id]);
   const [reloadToken, setReloadToken] = useState(0);
 
   const movieId = movie?.id;
@@ -156,11 +158,12 @@ export default function MovieSheet({
     if (!movie || saveBusy) return;
     haptics.medium();
     setSaveBusy(true);
+    setSaveError(false);
     try {
       const next = await toggleSaved(movie);
       setSaved(!!next);
     } catch {
-      /* best-effort; leave the shown state as it was */
+      setSaveError(true);
     } finally {
       setSaveBusy(false);
     }
@@ -262,6 +265,7 @@ export default function MovieSheet({
         )}
 
         <div className="ms-scroll">
+          {saveError && <p role="alert">Could not save this change on your device. Please try again.</p>}
           {(details.status === 'loading' || details.status === 'error' || factGroups.length > 0) && (
             <section className="ms-section" aria-busy={details.status === 'loading' || undefined}>
               <h3 className="ms-section-title">About this movie</h3>

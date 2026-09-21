@@ -66,7 +66,7 @@ function focusSafely(el) {
   }
 }
 
-export function useOverlay({ onClose, label, open = true }) {
+export function useOverlay({ onClose, label, open = true, dismissible = true }) {
   const { mounted, closing, close } = useDismissAnimation(open, onClose);
   const panelRef = useRef(null);
   const closeRef = useRef(close);
@@ -102,7 +102,7 @@ export function useOverlay({ onClose, label, open = true }) {
     if (!mounted || typeof document === 'undefined') return undefined;
     const onKeyDown = (event) => {
       if (event.defaultPrevented) return;
-      if (event.key === 'Escape' || event.key === 'Esc') {
+      if (dismissible && (event.key === 'Escape' || event.key === 'Esc')) {
         event.preventDefault();
         closeRef.current();
         return;
@@ -134,7 +134,7 @@ export function useOverlay({ onClose, label, open = true }) {
     };
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, [mounted]);
+  }, [mounted, dismissible]);
 
   return {
     mounted,
