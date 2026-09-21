@@ -1,8 +1,125 @@
 # Changelog
 
-All notable changes to Trailer Roulette. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
+All notable changes. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versioning: [SemVer](https://semver.org/).
+
+Versions 1.0 through 3.4.3 are **Trailer Roulette**, the product this app was
+before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
+
+## [4.0.0] — 2026-09-21
+
+### frontier go
+
+Trailer Roulette is now **frontier go**: a continuously playing window into
+extraordinary places on Earth and beyond. Deep-ocean ROV dives, hydrothermal
+vents, rocket engine tests, Earth from orbit, spacewalks, Apollo and Mars —
+from NOAA Ocean Exploration and NASA.
+
+The product idea that worked is unchanged: open it, something is playing, tap
+Shuffle, you are somewhere else, no decisions required. What changed is the
+foundation underneath it. The full audit, the migration classification and the
+decisions taken are in `docs/FRONTIER-GO-MIGRATION.md`.
+
+### Added
+
+- **Native AVFoundation playback** (`local-plugins/frontier-player`). An
+  `AVQueuePlayer` on an `AVPlayerLayer` hosted behind a transparent
+  `WKWebView`, so the React interface floats over the footage. Owns the queue,
+  buffering, errors, AirPlay, Picture in Picture, the audio session, Now Playing
+  and the remote command centre. Next = Shuffle on the lock screen.
+- **Instant Shuffle.** The next item is handed to the native queue the moment
+  the current one starts, so a tap is an advance onto an already-buffering
+  asset. Measured 85-112 ms perceived latency in the browser harness.
+- **Rights as first-class data.** Every item carries a classification, a
+  commercial-use flag, a credit line, the publisher's terms URL and the basis
+  for the decision. The gate fails closed: `unknown` is a rejection. It runs in
+  the pipeline and again on the client.
+- **Safety model.** Structured flags for graphic, disturbing, explicit,
+  military and identifiable-person content, plus uncertain rights. Any flag
+  excludes the item from the default feed.
+- **Honest geography.** Locations carry an accuracy (`exact`, `approximate`,
+  `region`, `mission`, `unknown`) and a stated `coordinateSource`. Region
+  reference points are labelled as such in the UI and never presented as
+  positions. Depth is parsed only where the provider wrote it down.
+- **The Frontier Globe.** A Three.js Earth drawn from Natural Earth 110m
+  coastlines (public domain, 55 KB, rasterised at runtime — no basemap to
+  license or download), with atmosphere, stars, inertial rotation, pinch zoom,
+  content markers, visited places, clustering by size, and a camera that flies
+  to a selection. Rendering pauses whenever the globe is off screen.
+- **Weighted shuffle engine.** Quality, freshness, novelty, session diversity,
+  geographic contrast and environment contrast, drawn without replacement, with
+  each pick becoming the reference point for the next — so a deck is a route
+  rather than a bag. No session repeats until the universe is exhausted.
+- **Keep Exploring Here / Go Anywhere.** A temporary narrowing to an
+  expedition, mission, region, radius, environment or tag. Two buttons, no
+  filter interface.
+- **Discovery Passport.** Places visited, saved discoveries, visit counts and
+  dates. No points, streaks or badges.
+- **Ambient mode.** Everything but the picture disappears and it keeps playing.
+  Built for a television.
+- **Catalog pipeline** (`npm run ingest`, weekly in GitHub Actions). Fetch,
+  normalise, rights-validate, safety-filter, quality-filter, deduplicate, HEAD
+  every stream, commit. Publishes `docs/CATALOG-REJECTIONS.md` on every run.
+  581 items at this release, from two providers.
+- **Shipped-catalog guard** (`shipped-catalog.test.ts`). Re-runs every gate
+  against the committed catalog in CI and in the ingest workflow before it
+  commits, so a regenerated file cannot smuggle anything through.
+- **TypeScript**, a `typecheck` gate in CI and in the release workflow, and
+  TypeScript-aware ESLint.
+- **Design system** from the approved board: seven colours as semantic tokens,
+  Playfair Display and Inter, and a motion vocabulary built around travel.
+- **New icon set and launch screen**, rendered from
+  `assets/icon-master-1024.svg`.
+- Deep links (`frontiergo://discovery/<id>`) and share payloads that carry
+  identity and provenance, never a copy of the media.
+
+### Removed
+
+- **YouTube, entirely.** The `trailer-player` plugin (2,013 lines of Swift
+  around a modal `WKWebView`), the `/embed` Vercel Edge Function, the
+  `endDetection` mirror, the ad watchdog and the heartbeat. `AVPlayerItemDid
+  PlayToEndTime` replaces all of it. With it go the pre-roll between every
+  shuffle, the unreliable AirPlay and the App Review wrapper risk.
+- TMDB, the movie metadata layer and `VITE_TMDB_API_KEY` — including the
+  secret check in `ios-release.yml`, which would otherwise have failed every
+  release for a key nothing reads.
+- Theater Mode and the Alamo Drafthouse adapter.
+- The six fun modes, the watchlist, the movie sheet and the filter sheet.
+- The `airplay-plugin` — AirPlay is part of the player now, not a bolt-on.
+
+### Preserved
+
+- The GitHub Actions release pipeline, unchanged in shape: tag push, macOS
+  runner, signed archive, TestFlight. Still no Mac required.
+- The bundle identifier `app.trailerroulette.ios`, deliberately. Changing it
+  would mean a new App Store record, new signing assets and a first review from
+  zero. See `docs/FRONTIER-GO-MIGRATION.md` §7.
+- The Capacitor shell, the committed Xcode project, the storage, haptics and
+  error-log abstractions, the safe-area CSS and the icon render pipeline.
+
+### Fixed during the build
+
+- **Globe canvas resize feedback loop.** Without an explicit CSS size the
+  canvas's backing store drove its layout box, which fired the ResizeObserver,
+  which resized the backing store. It reached 4,915,200 x 2,457,600 px in
+  headless testing.
+- **`crossOrigin="anonymous"` on the web `<video>`** turned a plain media fetch
+  into a CORS request; neither provider CDN sends `Access-Control-Allow-Origin`,
+  so every clip failed in the browser while working on device.
+- **Screens at `height: 100%`** pushed the tab bar past the bottom of the
+  viewport, where it was present and unreachable.
+- **Word-boundary matching in the gazetteer.** A Stennis engine test was filed
+  as "Low Earth Orbit" because `iss` is inside `mission`.
+- **Gazetteer ranking** now picks the entry whose *matching* token is longest,
+  not the entry whose longest declared token is longest — which had put
+  anything mentioning Mars into Earth orbit.
+- **NOAA pagination** stopped early on a short page; that endpoint returns 91
+  rows for `per_page=100`, and the early exit cost most of the catalog.
+- **NASA asset URLs** arrived as `http://` with raw spaces, which AVPlayer
+  rejects outright.
+- **Rights markers in NASA filenames.** `..._Music_Artemis logo_...` says the
+  piece carries licensed music and branding and appears in no metadata field.
 
 ## [3.4.3] — unreleased (held until P1 playback verification passes)
 

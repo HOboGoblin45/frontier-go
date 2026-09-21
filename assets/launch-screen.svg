@@ -1,55 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Launch screen — full-bleed centered logo + wordmark on dark navy.
-  Designed to be exported at iPhone 15 Pro logical size 393×852, scaled.
-  Use this as the source for an Xcode launch storyboard.
-
-  iOS will animate to the first React render; keep the launch as static and
-  visually identical to the home screen first state.
--->
-<svg xmlns="http://www.w3.org/2000/svg" width="1290" height="2796" viewBox="0 0 1290 2796" role="img" aria-label="Trailer Roulette launch screen">
+<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
+  <!-- Launch screen. Forest Black with the same mark, small. Nothing animates. -->
   <defs>
-    <radialGradient id="bgGrad" cx="50%" cy="40%" r="80%">
-      <stop offset="0%" stop-color="#1B2A4A"/>
-      <stop offset="100%" stop-color="#0E1726"/>
+    <radialGradient id="ground" cx="50%" cy="38%" r="72%">
+      <stop offset="0%" stop-color="#1B241D"/>
+      <stop offset="62%" stop-color="#101613"/>
+      <stop offset="100%" stop-color="#0B0F0E"/>
     </radialGradient>
-    <radialGradient id="goldGrad" cx="35%" cy="35%" r="80%">
-      <stop offset="0%" stop-color="#F1CB60"/>
-      <stop offset="55%" stop-color="#D4AF37"/>
-      <stop offset="100%" stop-color="#9A7B1F"/>
+    <radialGradient id="marker-halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#B0886B" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#B0886B" stop-opacity="0"/>
     </radialGradient>
   </defs>
-
-  <rect width="1290" height="2796" fill="url(#bgGrad)"/>
-
-  <!-- Reel, 600px diameter, vertically centered slightly above middle -->
-  <g transform="translate(645 1280)">
-    <circle r="300" fill="url(#goldGrad)"/>
-    <circle r="260" fill="none" stroke="#0E1726" stroke-width="6" opacity="0.5"/>
-    <g fill="#0E1726">
-      <circle cx="0"     cy="-188" r="50"/>
-      <circle cx="133"   cy="-133" r="50"/>
-      <circle cx="188"   cy="0" r="50"/>
-      <circle cx="133"   cy="133" r="50"/>
-      <circle cx="0"     cy="188" r="50"/>
-      <circle cx="-133"  cy="133" r="50"/>
-      <circle cx="-188"  cy="0" r="50"/>
-      <circle cx="-133"  cy="-133" r="50"/>
-    </g>
-    <circle r="60" fill="#0E1726"/>
-    <circle r="50" fill="url(#goldGrad)"/>
-    <circle r="16" fill="#0E1726"/>
-  </g>
-
-  <!-- Wordmark -->
-  <g text-anchor="middle">
-    <text x="645" y="1820" font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif"
-          font-size="100" font-weight="600" fill="#F4F4F2" letter-spacing="2">
-      Trailer
-    </text>
-    <text x="645" y="1940" font-family="'Playfair Display', Georgia, serif"
-          font-size="120" font-style="italic" font-weight="700" fill="#D4AF37" letter-spacing="2">
-      Roulette
-    </text>
+  <rect width="2732" height="2732" fill="url(#ground)"/>
+  <g transform="translate(1366 1366)">
+    <circle r="236" fill="none" stroke="#3F4A40" stroke-width="4"/>
+    <path d="M-236 0H236" stroke="#3F4A40" stroke-width="3" opacity="0.85"/>
+    <path d="M0 -236c61 69 92 147 92 236s-31 167-92 236c-61-69-92-147-92-236s31-167 92-236Z"
+          fill="none" stroke="#3F4A40" stroke-width="3" opacity="0.85"/>
+    <circle cx="139" cy="-139" r="104" fill="url(#marker-halo)"/>
+    <circle cx="139" cy="-139" r="31" fill="#B0886B"/>
   </g>
 </svg>

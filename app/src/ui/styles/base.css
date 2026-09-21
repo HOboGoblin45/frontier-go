@@ -1,0 +1,165 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/playfair-display/400.css';
+@import '@fontsource/playfair-display/500.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * The floor.
+ *
+ * In a browser the page needs an opaque dark base, or any gap between the
+ * stage and the interface shows the user agent's default canvas. On device it
+ * must be the opposite: the web view is transparent so the native
+ * AVPlayerLayer behind it can be seen, and an opaque root would cover the
+ * video completely. `main.tsx` sets the flag before first paint.
+ */
+html { background: var(--surface-primary); }
+html[data-native='true'] { background: transparent; }
+
+/*
+ * The app shell is a single flex column: one screen that takes whatever is
+ * left, and a tab bar that does not move. Giving the screens `height: 100%`
+ * instead pushed the tab bar past the bottom of the viewport, where it was
+ * technically present and practically unreachable.
+ *
+ * `100dvh` rather than `100vh` so the bar sits above the browser chrome on a
+ * phone rather than under it.
+ */
+#root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+/*
+ * The page is transparent on purpose.
+ *
+ * On iOS the native AVPlayerLayer sits BEHIND this web view, so any background
+ * colour here would paint over the footage. The web build draws its own video
+ * element into #frontier-stage instead, which occupies the same plane.
+ */
+body {
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#frontier-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: var(--surface-primary);
+}
+#frontier-stage video {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  /*
+    `contain`, not `cover`. Almost everything in this catalog is 16:9 and
+    almost every viewer is holding a phone upright: cropping to fill would
+    throw away two thirds of an ROV frame. The letterbox is filled by the
+    backdrop below instead.
+  */
+  object-fit: contain;
+  background: transparent;
+}
+
+/*
+  The letterbox backdrop: the item's own artwork, blurred and dimmed past the
+  point of being an image, so the bars read as the room the picture is in
+  rather than as dead space. The native player does the same thing behind its
+  AVPlayerLayer; this is the web half.
+*/
+#frontier-stage .stage-backdrop {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  filter: blur(42px) saturate(0.6) brightness(0.38);
+  opacity: 0;
+  transition: opacity 600ms var(--ease-standard);
+}
+#frontier-stage .stage-backdrop.is-visible { opacity: 1; }
+/* On iOS the stage is the native layer; nothing web-side should cover it. */
+body[data-native='true'] #frontier-stage { background: transparent; }
+
+button, input, select {
+  font: inherit;
+  color: inherit;
+}
+button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.16;
+}
+
+.eyebrow {
+  font-size: var(--step--2);
+  font-weight: 500;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.meta { font-size: var(--step--1); color: var(--text-secondary); }
+.muted { color: var(--text-muted); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.scroll-x {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scroll-x::-webkit-scrollbar, .scroll-y::-webkit-scrollbar { display: none; }

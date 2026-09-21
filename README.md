@@ -1,121 +1,122 @@
-# Trailer Roulette · iOS
+# frontier go
 
-<!-- Once you push, replace <your-handle> with your GitHub username; badges go live -->
-<!-- ![CI](https://github.com/<your-handle>/trailer-roulette-ios/actions/workflows/ci.yml/badge.svg) -->
-<!-- ![iOS Release](https://github.com/<your-handle>/trailer-roulette-ios/actions/workflows/ios-release.yml/badge.svg) -->
+**Go somewhere extraordinary.**
 
-End-to-end production workspace for taking Trailer Roulette to the iOS App Store **without owning a Mac**.
+A continuously playing window into extraordinary places on Earth and beyond.
+Open it and you are already somewhere — three kilometres down a Pacific
+seamount, on a rocket test stand in Mississippi, looking at a hurricane from
+orbit. Tap Shuffle and the globe carries you somewhere else.
 
-**Target ship**: 5–8 weeks from 2026-04-25.
-**Hard cost**: $99 (Apple Developer Program). Everything else is free.
+No account. No search. No decisions.
 
-## 🎯 If you're starting today
-Open [`docs/WHAT-TO-DO-NEXT.md`](docs/WHAT-TO-DO-NEXT.md) — it's the single ordered list of 7 actions, ~90 minutes of work, the rest is automated waiting.
+- **iOS**, Capacitor 7 + React 18 + TypeScript + Vite 5, native AVFoundation playback
+- Bundle id `app.trailerroulette.ios` (see [why](docs/FRONTIER-GO-MIGRATION.md#7-the-bundle-identifier)) - repo `github.com/HOboGoblin45/trailer-roulette-ios`
+- Built from Trailer Roulette. The audit and migration are in [`docs/FRONTIER-GO-MIGRATION.md`](docs/FRONTIER-GO-MIGRATION.md).
 
-Run `scripts/preflight.ps1` from PowerShell before your first push to catch any setup issues.
+---
 
-## What's true today
-- ✅ Apple Developer Program approved
-- 📦 Complete Capacitor + React scaffold delivered (`app/`)
-- 📦 GitHub Actions iOS build pipeline ready (`.github/workflows/`)
-- 📦 All App Store metadata, originality memo, rejection-response templates ready
-- 📋 4 walkthroughs ready for you to execute (App Store Connect, GitHub push, cert setup, Vercel deploy)
+## What it is
 
-## Workspace map
+Six interactions, and that is the whole product:
 
-```
-Trailer Roulette/
-├── README.md ……………………………………… you are here
-├── CONTRIBUTING.md, CODE_OF_CONDUCT.md, LICENSE
-├── docs/  (18 docs)
-│   ├── MASTER-CHECKLIST.md ………… single source of truth, top to bottom
-│   ├── PHASE-2-LAUNCH.md ………… Mac-free pipeline overview
-│   ├── APP-STORE-CONNECT-SETUP.md  Safari-only walkthrough
-│   ├── SCAFFOLD-TO-GITHUB.md ……… push from Windows
-│   ├── IOS-CERT-SETUP-WINDOWS.md   ⭐ generate signing certs without a Mac
-│   ├── ROADMAP.md, SETUP.md, PRIVACY-POLICY.md
-│   ├── PRIVACY-NUTRITION-LABEL.md, NATIVE-POLISH-CHECKLIST.md
-│   ├── BUG-BASH-CHECKLIST.md, TEST-PLAN.md, TESTFLIGHT-NOTES.md
-│   ├── SUBMISSION-CHECKLIST.md
-│   ├── REJECTION-RESPONSES.md ……… 6 paste-ready replies for likely rejections
-│   ├── V1.1-SPEC.md ……………………… Couple's Mode + Stats screen
-│   ├── POST-LAUNCH-30-DAYS.md ………… day-by-day playbook
-│   ├── INTEGRATION-GUIDE.md ……… (only if merging into existing repo)
-│   ├── CLOUD-MAC-SETUP.md ………… (fallback only — not the primary path)
-│   └── bugs.md ………………………………… active bug log starting Phase 5
-├── decisions/ ………………………………… 4 ADRs (stack, path, features, bundle ID)
-├── research/ ……………………………………… 5 docs (Apple 4.2/5.2, YouTube ToS, competitors, originality memo)
-├── app/ ……………………………………………… complete Capacitor + React + Vite scaffold
-│   ├── package.json, capacitor.config.ts, vite.config.js
-│   ├── eslint.config.js, vitest.config.js
-│   ├── src/ (App + components + lib + styles + __tests__)
-│   ├── local-plugins/airplay-plugin/ … custom Capacitor plugin (Swift+ObjC)
-│   └── ios-native/ ……………………… (deprecated; use local-plugins/ instead)
-├── assets/  (icon SVG, launch screen SVG, screenshot specs)
-├── store-listing/ ……………………… final App Store copy
-├── landing-page/ ……………………… single-folder Vercel-deployable site
-├── press-kit/ …………………………… PH, Reddit, X, friends-and-family launch text
-├── scripts/ ………………………………… build-ios.sh + screenshot.sh (run on Mac if you have one)
-└── .github/
-    ├── workflows/   ………… 3 GitHub Actions pipelines
-    ├── ISSUE_TEMPLATE/   … bug + feature request
-    └── PULL_REQUEST_TEMPLATE.md
-```
+**Watch** - the footage fills the screen. A title, a place, a depth or an
+altitude, and a Shuffle button. Controls fade after a few seconds.
 
-## The Mac-free pipeline
+**Shuffle** - the picture veils over, the destination is named, and the next
+place is already playing. It does not touch the network: the next asset was
+handed to the native queue the moment this one started.
+
+**Travel** - every jump is somewhere genuinely different. The shuffle engine
+scores geographic and environmental contrast explicitly, so the channel does not
+serve five jellyfish in a row.
+
+**Keep Exploring Here** - narrow the universe to this expedition, this mission
+or this region. **Go Anywhere** widens it again. Two buttons, no filter screen.
+
+**The Globe** - a Three.js Earth showing where there is something to watch,
+where you have been, and where you are now. It replaces the browse page.
+
+**The Discovery Passport** - a passive record of the places you have been. No
+points, no streaks, no badges.
+
+## Where the footage comes from
+
+| Provider | Content | Rights |
+| --- | --- | --- |
+| NOAA Ocean Exploration | ROV dives, vents, seamounts, shipwrecks, deep-ocean animals | U.S. Government work; [usage terms](https://oceanexplorer.noaa.gov/about/media-kit/) |
+| NASA | ISS Earth views, EVA, launches, engine tests, Mars and Apollo | U.S. Government work; [usage terms](https://www.nasa.gov/nasa-brand-center/images-and-media/) |
+
+Every item carries explicit rights metadata and the gate **fails closed**:
+unknown classification, no commercial-use permission, or a missing credit line
+all mean exclusion. There is no "probably public domain" path in this codebase.
+`docs/CATALOG-REJECTIONS.md` records what was excluded and why;
+`docs/RIGHTS-REVIEW.md` records what still needs human eyes.
+
+Nothing is fetched from a provider at runtime. A GitHub Actions workflow builds
+the catalog and commits it; the app ships with it and works on a plane.
+
+## Repository layout
 
 ```
-You (Windows) → push code → GitHub repo
-                                ↓
-                  GitHub Actions macOS runner (free)
-                       ↓        ↓        ↓
-                    cap sync   pod    archive + sign
-                       ↓
-                  upload to TestFlight via App Store Connect API
-                       ↓
-                  Apple emails you → install on iPhone via TestFlight
+app/
+  src/
+    core/          platform-agnostic: types, catalog, shuffle, history, analytics
+    providers/     NOAA and NASA adapters, gazetteer, rights rules
+    player/        Capacitor plugin wrapper + a real web implementation
+    state/         useFrontier: the one place the pieces meet
+    ui/            design system, screens, the globe
+  tools/ingest/    the catalog pipeline
+  public/catalog/  the generated catalog, committed
+  local-plugins/frontier-player/    Swift: AVQueuePlayer, AirPlay, PiP, Now Playing
+  ios/App/         the committed Xcode project
+assets/            icon master + rendered set, launch screen
+docs/              architecture, migration, rights review, rejections
+landing-page/      the marketing site (static; no server, no API)
 ```
 
-You never see Xcode. Apple's CI runs Xcode for you, ~15 minutes per build, free within GitHub's monthly limits (2,000 min/mo for private repos).
+## Working on it
 
-## Locked decisions
-| # | Decision | ADR |
-|---|----------|-----|
-| 1 | Stack: **Capacitor** (wrap React) | [decisions/0001-tech-stack.md](decisions/0001-tech-stack.md) |
-| 2 | Strategy: **Path C + Path A playback** | [decisions/0002-app-store-path.md](decisions/0002-app-store-path.md) |
-| 3 | v1 features: **Watchlist + Seen it/Skip it** | [decisions/0003-v1-feature-set.md](decisions/0003-v1-feature-set.md) |
-| 4 | Bundle ID: **`app.trailerroulette.ios`** | [decisions/0004-bundle-id.md](decisions/0004-bundle-id.md) |
-| 5 | Build path: **GitHub Actions macOS runners** (no Mac needed) | [docs/PHASE-2-LAUNCH.md](docs/PHASE-2-LAUNCH.md) |
-| 6 | Hosting: **Vercel default subdomain** for v1; custom domain post-launch | [landing-page/README.md](landing-page/README.md) |
+```bash
+cd app
+npm install
+npm run dev          # browser, real catalog, real streams
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+npm run ingest -- --limit 200        # rebuild the catalog from the providers
+npm run ingest -- --providers noaa   # one provider
+```
 
-## Where to start
+Native Swift cannot be typechecked off a Mac. What can be done locally:
 
-Walk these in order. Each one runs in your browser or PowerShell on Windows.
+```bash
+# syntax-check the whole plugin
+swiftc -frontend -parse app/local-plugins/frontier-player/ios/Plugin/FrontierPlayer.swift
 
-1. **[`docs/APP-STORE-CONNECT-SETUP.md`](docs/APP-STORE-CONNECT-SETUP.md)** (~20 min) — register App ID, create app record
-2. **[`docs/SCAFFOLD-TO-GITHUB.md`](docs/SCAFFOLD-TO-GITHUB.md)** (~10 min) — push the workspace to GitHub
-3. **[`landing-page/README.md`](landing-page/README.md)** (~5 min) — `vercel --prod` from Windows
-4. **[`docs/IOS-CERT-SETUP-WINDOWS.md`](docs/IOS-CERT-SETUP-WINDOWS.md)** (~30 min) — generate signing certs from Windows
-5. **GitHub → Actions → "iOS Bootstrap" → Run workflow** (~15 min, automated)
-6. **`git tag v1.0.0 && git push --tags`** (~20 min, automated) — first TestFlight build
+# compile and RUN the Foundation-only logic, verified against the source
+app/local-plugins/frontier-player/ios/Tests/extract-and-run.sh
+```
 
-Total time-to-first-build: ~100 minutes of your work + ~35 minutes of Apple/Vercel/GitHub Actions automation.
+## Shipping
 
-## What I cannot do for you
-- Pay Apple
-- Type your phone number for Apple's identity verification (already done ✅)
-- Decide what features ship in v1.1 (you have my recommendation in `docs/V1.1-SPEC.md`)
-- Hold the line when Apple rejects (you have my templates in `docs/REJECTION-RESPONSES.md`)
-- Test on a real iPhone (you'll need TestFlight on your own iPhone)
+```
+git add -A
+git commit -m "release: v4.0.0 - frontier go"
+git tag v4.0.0
+git push origin main
+git push origin v4.0.0
+```
 
-## Verifications already done
-- [x] All 23 React/JS source files parse via Babel (no syntax errors)
-- [x] All XML/SVG well-formed
-- [x] Bash scripts pass `bash -n` syntax check
-- [x] JSON files valid
-- [x] Swift / Obj-C brace balance (10/10 in plugin)
-- [x] ESLint flat config in place
-- [x] Vitest config + tests for `shuffleWeighting`, `tasteProfile`, `youtube`
+The tag triggers `.github/workflows/ios-release.yml`, which builds, signs and
+uploads to TestFlight on a macOS runner. No Mac required.
 
-## When something breaks
-Check `docs/MASTER-CHECKLIST.md` for the canonical order. If you hit a wall, ping me with the error and what you were trying to do.
+On device, the first thing to check is **Profile → Diagnostics → Player**. It
+must read `Native AVFoundation · active`. If it says `Web fallback · native NOT
+bound`, the Swift class has lost its `CAPBridgedPlugin` conformance and every
+native capability is silently absent.
+
+## Licence
+
+Application code: see [LICENSE](LICENSE). Footage belongs to the organisations
+credited on it and is used under the terms linked above.

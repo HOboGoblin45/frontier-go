@@ -7,7 +7,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // The web view is transparent and the video plays on a layer behind it
+        // (see FrontierPlayer.swift). Without a dark window underneath, the
+        // gap between the launch image disappearing and the first video frame
+        // arriving is a flash of white — which, on a product whose whole look
+        // is a dark room, reads as a crash.
+        window?.backgroundColor = UIColor(red: 0.043, green: 0.059, blue: 0.055, alpha: 1.0) // Forest Black
         return true
     }
 

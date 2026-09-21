@@ -1,45 +1,37 @@
-# Security Policy
+# Security policy — frontier go
 
-## Reporting a vulnerability
+## Reporting
 
-If you discover a security vulnerability in Trailer Roulette, please **email crescicharles@gmail.com directly**. Do NOT open a public GitHub issue — security reports should be private until a fix is in place.
+Email **crescicharles@gmail.com** with "frontier go security" in the subject.
+Please do not open a public issue for a vulnerability. Expect an
+acknowledgement within a few days; this is a one-person project.
 
-Include:
-- A description of the vulnerability
-- Steps to reproduce
-- Affected version(s) of the app
-- Any potential impact you've identified
+## What the app's attack surface actually is
 
-You'll get an acknowledgment within 48 hours and a fix timeline within 7 days for confirmed issues.
+Deliberately small, and worth stating plainly because it shapes what is worth
+reporting:
 
-## What we consider in scope
+- **No server.** No API, no backend, no database, no user accounts, no sessions,
+  no authentication. The catalog ships inside the app.
+- **No user-generated content.** Nothing is uploaded, submitted or shared
+  between users.
+- **No personal data.** No sign-in, no location permission, no analytics SDK,
+  no advertising identifier. What the app remembers stays in Capacitor
+  Preferences on the device.
+- **Outbound network is two hosts.** `oceanexplorer.noaa.gov` and
+  `images-assets.nasa.gov`, over HTTPS, for video only. Every stream URL in the
+  catalog is validated as `https://` by the eligibility gate, in the pipeline
+  and again on the client.
+- **No remote code.** Nothing is `eval`d, no remote scripts, no web view
+  navigation to a third-party origin.
 
-- Code-execution vulnerabilities in the app
-- Bypasses that expose user data (we don't have a server, so this is mostly local-storage attacks via SFSafariViewController)
-- Supply-chain attacks against our npm dependencies
-- Issues in our GitHub Actions workflows that could leak secrets
+## Secrets
 
-## What we don't consider in scope
+The repository contains no secrets and needs none at build time. iOS signing
+material lives in GitHub Actions secrets and is never written to the repository.
+If you believe a secret has been committed, report it privately rather than
+opening an issue.
 
-- Bugs in YouTube's player (report to Google)
-- Bugs in TMDB's API (report to TMDB)
-- Bugs in iOS itself (report to Apple Security: https://security.apple.com)
-- Issues that require physical device access AND the user's passcode
+## Supported versions
 
-## Disclosure
-
-After a fix ships:
-- For exploitable bugs: published in the CHANGELOG with a CVE if assigned
-- Reporters credited unless they request anonymity
-
-## Cryptographic concerns
-
-The app does not implement custom cryptography. All TLS is via iOS's standard libraries; our distribution certificate is the only cryptographic material in our control.
-
-If our **distribution certificate is leaked**:
-1. Revoke at https://developer.apple.com/account/resources/certificates/list
-2. Generate a new cert (see `docs/IOS-CERT-SETUP-WINDOWS.md`)
-3. Update GitHub Secrets
-4. Cut a new patch release
-
-Existing builds in the wild keep working until the cert reaches its 1-year expiry; new builds need the new cert.
+The most recent App Store release.

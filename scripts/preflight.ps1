@@ -142,13 +142,10 @@ Write-Host ""
 Write-Host "8. Environment"
 if (Test-Path ".env.local") {
     $envContent = Get-Content ".env.local" -Raw
-    if ($envContent -match 'VITE_TMDB_API_KEY=\S{20,}') {
-        Check-Pass ".env.local has VITE_TMDB_API_KEY set"
-    } else {
-        Check-Warn ".env.local exists but VITE_TMDB_API_KEY looks empty or short"
-    }
+    Check-Pass ".env.local present (frontier go needs no build-time API keys)"
+
 } else {
-    Check-Warn ".env.local missing — copy from .env.local.template and add your TMDB key"
+    Check-Pass ".env.local missing, which is fine: frontier go needs no build-time API keys"
 }
 
 # 9. node_modules / install

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Apple's required privacy manifest.
+
+  frontier go tracks nothing and collects nothing, so the first three keys are
+  empty by fact rather than by omission. The one required-reason API it touches
+  is UserDefaults, through Capacitor Preferences, to remember where you have
+  been and what you have saved: reason CA92.1, "access info from the app
+  itself". There is no file-timestamp, disk-space, system-boot-time or
+  active-keyboard API in the app or in any of its five plugins.
+
+  If an SDK is ever added, this file and docs/PRIVACY-NUTRITION-LABEL.md must
+  change together, and the answer in App Store Connect with them.
+-->
+<plist version="1.0"><dict>
+  <key>NSPrivacyTracking</key><false/>
+  <key>NSPrivacyTrackingDomains</key><array/>
+  <key>NSPrivacyCollectedDataTypes</key><array/>
+  <key>NSPrivacyAccessedAPITypes</key><array><dict>
+    <key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key><array><string>CA92.1</string></array>
+  </dict></array>
+</dict></plist>

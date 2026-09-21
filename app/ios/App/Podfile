@@ -1,3 +1,12 @@
+# No Podfile.lock is committed.
+#
+# Every pod here is a local `:path` pod — the Capacitor packages come from
+# node_modules, which package-lock.json already pins, and FrontierPlayer is in
+# this repository. There is nothing for a lock file to pin that is not already
+# pinned, and the one that used to be committed had drifted to Capacitor 6 and
+# a Browser plugin that no longer exists. `pod install` writes a correct one on
+# every CI run.
+
 require_relative '../../node_modules/@capacitor/ios/scripts/pods_helpers'
 
 platform :ios, '15.0'
@@ -12,11 +21,10 @@ def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/@capacitor/ios'
   pod 'CapacitorApp', :path => '../../node_modules/@capacitor/app'
-  pod 'CapacitorDialog', :path => '../../node_modules/@capacitor/dialog'
   pod 'CapacitorHaptics', :path => '../../node_modules/@capacitor/haptics'
   pod 'CapacitorPreferences', :path => '../../node_modules/@capacitor/preferences'
-  pod 'AirplayPlugin', :path => '../../local-plugins/airplay-plugin'
-  pod 'TrailerPlayer', :path => '../../local-plugins/trailer-player'
+  pod 'CapacitorShare', :path => '../../node_modules/@capacitor/share'
+  pod 'FrontierPlayer', :path => '../../local-plugins/frontier-player'
 end
 
 target 'App' do
@@ -35,7 +43,10 @@ post_install do |installer|
       config.build_settings['EXPANDED_CODE_SIGN_IDENTITY'] = ''
       config.build_settings['CODE_SIGNING_REQUIRED'] = 'NO'
       config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+      # FrontierPlayer uses AVPictureInPictureController against an
+      # AVPlayerLayer and the modern AVAudioSession API; 14.0 no longer
+      # covers the deployment surface this app actually uses.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
     end
   end
 end

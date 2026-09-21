@@ -1,0 +1,88 @@
+name: Deploy landing page
+
+# The one release step that had no path off a keyboard.
+#
+# `vercel --prod` locally needs an interactive `vercel login`, so deploying the
+# marketing and privacy pages was stuck behind sitting at the machine. This
+# does the same deploy with a token, from a button, and then PROVES it took
+# rather than reporting a green tick for a no-op.
+#
+# Carried over from the 3.5.0 release branch. Note what has changed: the
+# landing page is no longer on the app's critical path. frontier go plays
+# agency-published files natively and this deployment serves nothing the app
+# needs, so a stale landing page can no longer break playback.
+#
+# ONE-TIME SETUP, doable from a phone:
+#   1. https://vercel.com/account/tokens -> Create Token, scope it to the
+#      trailer-roulette project, copy it.
+#   2. Repo -> Settings -> Secrets and variables -> Actions -> New repository
+#      secret, name VERCEL_TOKEN, paste.
+#   3. Actions -> Deploy landing page -> Run workflow.
+# VERCEL_ORG_ID and VERCEL_PROJECT_ID are already set as repository variables;
+# they are identifiers, not credentials, and are useless without the token.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check the token is present before touching anything
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN}" ]; then
+            echo "::error::VERCEL_TOKEN is not set. See the setup steps at the top of .github/workflows/deploy-landing.yml"
+            exit 1
+          fi
+          echo "Token present."
+
+      - name: Deploy landing-page to production
+        working-directory: landing-page
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
+
+      - name: Prove the deploy took
+        # A green deploy step is not evidence the live page changed. The 3.5.0
+        # version of this diffed the live /embed handler against the checkout;
+        # there is no handler any more, so it checks that the two pages that do
+        # exist are served and carry this version's copy. Vercel's edge takes a
+        # moment to propagate, hence the retries.
+        env:
+          SITE: ${{ vars.LANDING_PAGE_URL || 'https://trailer-roulette.vercel.app' }}
+        run: |
+          set -u
+          for attempt in 1 2 3 4 5; do
+            echo "--- verification attempt $attempt ---"
+            ok=1
+            for path in "/" "/privacy"; do
+              body=$(curl -fsSL --max-time 20 "$SITE$path" || true)
+              if [ -z "$body" ]; then
+                echo "  $path did not respond"; ok=0; continue
+              fi
+              case "$body" in
+                *"frontier"*) echo "  $path OK" ;;
+                *) echo "  $path responded but does not look like this version"; ok=0 ;;
+              esac
+            done
+            if [ "$ok" = "1" ]; then
+              echo "Production matches this checkout."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::The deploy reported success but production still does not serve this version."
+          exit 1

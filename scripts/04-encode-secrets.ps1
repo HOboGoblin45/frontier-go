@@ -95,32 +95,6 @@ if (-not $config.KEYCHAIN_PASSWORD) {
     Write-Host "  ✓ KEYCHAIN_PASSWORD generated (random 24 chars)" -ForegroundColor Green
 }
 
-# ── VITE_TMDB_API_KEY ────────────────────────────
-if (-not $config.VITE_TMDB_API_KEY) {
-    $envFile = Join-Path $PSScriptRoot "..\app\.env.local"
-    if (Test-Path $envFile) {
-        $envContent = Get-Content $envFile -Raw
-        if ($envContent -match 'VITE_TMDB_API_KEY=(\S+)') {
-            $config["VITE_TMDB_API_KEY"] = $matches[1]
-            Write-Host "  ✓ VITE_TMDB_API_KEY copied from app/.env.local" -ForegroundColor Green
-        }
-    }
-    if (-not $config.VITE_TMDB_API_KEY) {
-        $config["VITE_TMDB_API_KEY"] = Read-WithDefault "TMDB v3 API Key"
-    }
-}
+# frontier go has no build-time API keys, so there is no app secret to
+# encode here - only the iOS signing material above.
 
-# Save updated cache
-$config | ConvertTo-Json | Set-Content $configPath
-
-Write-Host ""
-Write-Host "✅ All secrets encoded and cached." -ForegroundColor Green
-Write-Host ""
-Write-Host "Cached at: $configPath" -ForegroundColor Gray
-Write-Host "(This file is in your home dir, not the repo — safe.)" -ForegroundColor Gray
-Write-Host ""
-Write-Host "Next:" -ForegroundColor Cyan
-Write-Host "  - Run scripts/05-create-github-repo.ps1 to push the scaffold and set" -ForegroundColor White
-Write-Host "    all GitHub Secrets in one command (requires gh CLI)" -ForegroundColor White
-Write-Host "  - OR copy values manually from $configPath into GitHub UI" -ForegroundColor White
-Write-Host ""

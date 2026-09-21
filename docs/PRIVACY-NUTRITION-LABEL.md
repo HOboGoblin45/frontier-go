@@ -1,56 +1,44 @@
-# Privacy Nutrition Label — App Store Connect spec
+# App Store privacy answers — frontier go
 
-Apple requires a per-app privacy disclosure (the "nutrition label") at submission. Below is the exact form, mapped to App Store Connect's taxonomy, that v1 of Trailer Roulette will declare.
+What to enter in App Store Connect → App Privacy. These answers must stay true
+to `docs/PRIVACY-POLICY.md` and to the code.
 
-## Top-level question
-**Does this app collect data from this app?**
-→ **No, we do not collect data from this app.**
+## Data collection
 
-That single declaration is sufficient because Trailer Roulette has:
-- No accounts, no login, no email collection
-- No analytics SDK
-- No advertising SDK / IDFA usage
-- No location, camera, microphone, contacts, photos, health, or financial data access
-- No backend that holds user data
+**"Do you or your third-party partners collect data from this app?"**
 
-## What we *do* contact and why (NOT "data collection" by Apple's definition)
+> **No**
 
-Apple distinguishes "collection" (data linked to identity / shared with you) from "data sent to a third party for the user's benefit." None of the items below count as collection:
+That answer is only correct because all of the following are true, and each one
+should be re-checked before it is submitted:
 
-| Service | What's sent | Why |
-|---------|-------------|-----|
-| TMDB API | API key (yours, not user's), search/filter parameters | fetch movie metadata |
-| YouTube (via SFSafariViewController) | the trailer URL the user tapped | YouTube serves the player and ad |
-| Apple App Store / TestFlight | crash reports (Apple-mediated) | per Apple's own privacy policy |
+| Claim | Where to verify |
+| --- | --- |
+| No analytics or attribution SDK | `app/package.json` dependencies |
+| No crash reporter | same |
+| No advertising identifier, no App Tracking Transparency prompt | no `AppTrackingTransparency` import anywhere in `app/ios/` |
+| No account, no sign-in | there is no auth code in the repo |
+| No location permission requested | `Info.plist` contains no `NSLocation*UsageDescription` key |
+| Telemetry never leaves the device | `core/analytics/analytics.ts` — an in-memory ring buffer with no sink attached |
+| History and saved items never leave the device | `core/platform/storage.ts` — Capacitor Preferences only |
 
-These are user-initiated network requests, not background or behavior-tracking calls.
+**If any of those stops being true, this answer must change before release.**
 
-## App Store Connect form walkthrough
+## Permissions declared
 
-When you fill out the privacy questionnaire at submission:
+| Permission | Requested | Why |
+| --- | --- | --- |
+| Location | No | The globe shows where the footage came from, not where you are. |
+| Camera, microphone, photos, contacts, calendars, health | No | Nothing in the product uses them. |
+| Background audio (`UIBackgroundModes: audio`) | Yes | Playback continues with the screen locked, and Picture in Picture requires it. Not a privacy permission and not prompted. |
 
-1. **Data Types** → tick **None of the data types listed in this section are collected.** (Repeat for every category — Contact Info, Health & Fitness, Financial Info, Location, Sensitive Info, Contacts, User Content, Browsing History, Search History, Identifiers, Purchases, Usage Data, Diagnostics, Other Data.)
+## Age rating
 
-2. **Tracking** → "Does this app track users?" → **No.** ("Tracking" in Apple's sense means linking user/device data with data from other apps/sites for ads or sharing with data brokers — neither happens here.)
+**4+.** No user-generated content, no chat, no web browser, no purchases, no
+gambling. The footage is scientific and expedition material published by U.S.
+federal agencies, filtered against graphic and disturbing content at ingest
+(`core/types/safety.ts`).
 
-3. **Privacy policy URL** → the hosted URL of `privacy-policy-hosted/index.html`. Set to `https://trailerroulette.app/privacy` once domain is live.
+## Export compliance
 
-## If we ever add features that change this
-
-| Feature | Disclosure delta |
-|---------|------------------|
-| Sign in with Apple (cross-device sync) | Add **Email Address** under "Contact Info — Linked to user" |
-| Crash analytics SDK (e.g. Sentry) | Add **Crash Data, Performance Data — Not linked** under "Diagnostics" |
-| Push notifications | Add **Device ID — Linked** if registering with our own backend |
-| Couple's Mode with shared backend | Reconsider entire posture; likely needs full disclosure |
-
-**v1 strategy: keep the label at "Data Not Collected."** It's the most legible, lowest-friction posture and matches the codebase reality.
-
-## Verification checklist before submission
-
-- [ ] No third-party SDKs in `package.json` beyond Capacitor's official ones and React
-- [ ] No analytics calls anywhere in `src/`
-- [ ] `Capacitor.getPlatform()` is the only device-property read
-- [ ] Crashes go through TestFlight/App Store Connect only (Apple-mediated)
-- [ ] Privacy policy hosted URL is reachable and accurate
-- [ ] About screen surfaces the same disclosures
+`ITSAppUsesNonExemptEncryption` is `false`. The app uses HTTPS and nothing else.

@@ -1,46 +1,44 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
+  // The bundle identifier is deliberately unchanged.
+  //
+  // Apple does not allow a bundle id to change after first submission: a new
+  // one means a new App Store record, new provisioning profiles, new signing
+  // secrets and a first review from zero. Every one of those would also break
+  // the Mac-free GitHub Actions pipeline this project depends on. The app's
+  // NAME is what users see, and that is free to change in App Store Connect,
+  // so frontier go ships under the identifier Trailer Roulette established.
+  // See docs/FRONTIER-GO-MIGRATION.md.
   appId: 'app.trailerroulette.ios',
-  appName: 'Trailer Roulette',
+  appName: 'frontier go',
   webDir: 'dist',
   ios: {
-    // Full-screen immersive UI: CSS owns all insets via viewport-fit=cover +
-    // env(safe-area-inset-*). Don't let WKWebView add its own content inset or
-    // bounce-scroll — that double-inset was pushing the bottom buttons off the
-    // bottom of the screen.
+    // The web view is transparent and floats over a native AVPlayerLayer.
+    // Any inset, bounce or background colour here would show up as a band of
+    // nothing over the footage.
     contentInset: 'never',
     scrollEnabled: false,
-    backgroundColor: '#000000', // immersive dark video stage
+    backgroundColor: '#00000000',
     limitsNavigationsToAppBoundDomains: false,
     preferredContentMode: 'mobile',
     handleApplicationNotifications: false,
   },
   server: {
-    // 'https' tells WKWebView to serve the bundled web app from
-    // `https://localhost` instead of a custom scheme. YouTube embeds
-    // validate the parent-page origin during their load handshake and
-    // reject non-http(s) schemes with error 153. We hit that on
-    // 'app.trailerroulette://localhost' through v1.3.1; switching to
-    // 'https' makes the embed see a normal-looking parent and accept it.
-    //
-    // Side effect: localStorage keyed by the old scheme is invisible to
-    // the new scheme. Existing TestFlight users get a fresh watchlist on
-    // first launch after this update — acceptable for a pre-release tester
-    // group, and Capacitor Preferences (which the app uses for the real
-    // persistence) is unaffected because it stores in NSUserDefaults keyed
-    // by bundle id, not by web origin.
+    // Serve the bundled app from https://localhost rather than a custom
+    // scheme. Retained from the previous product: the original reason (a
+    // YouTube embed that rejected non-http origins) is gone with YouTube, but
+    // changing the scheme now would orphan the localStorage of every
+    // installed build for no benefit. Durable state lives in Capacitor
+    // Preferences, which is keyed by bundle id and unaffected either way.
     iosScheme: 'https',
   },
   plugins: {
-    // v1.5.0: trailers play inline via our Vercel-hosted /embed proxy
-    // (workaround for WebKit Bug 169846 + YouTube's referer-required
-    // embedder check). No Browser plugin needed — see Player.ios.jsx.
     App: {},
     Haptics: {},
-    Dialog: {},
+    Share: {},
     Preferences: {
-      group: 'NSUserDefaults', // single shared store; future: 'app.trailerroulette.shared' for App Group
+      group: 'NSUserDefaults',
     },
   },
 };

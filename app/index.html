@@ -6,14 +6,21 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0B0F0E" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="description" content="frontier go - a continuously playing window into extraordinary places on Earth and beyond." />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <title>Trailer Roulette</title>
+    <title>frontier go</title>
   </head>
   <body>
+    <!--
+      The video plane. On iOS the native AVPlayerLayer sits behind this web
+      view and this element stays empty; in a browser the web player draws its
+      <video> elements here. Either way the interface floats above it.
+    -->
+    <div id="frontier-stage"></div>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

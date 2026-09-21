@@ -1,0 +1,103 @@
+/*
+ * frontier go — design tokens.
+ *
+ * Seven colours, taken from the approved design board, and nothing else. Every
+ * component reads a semantic token; no component names a palette value. Two
+ * intermediate surfaces are derived between Forest Black and Deep Olive because
+ * an interface needs more than two depths of dark and inventing them per
+ * component is how a palette stops being one.
+ */
+
+:root {
+  /* Palette */
+  --forest-black: #0B0F0E;
+  --deep-olive: #2E3A2F;
+  --charcoal-moss: #3F4A40;
+  --warm-stone: #D7C9BB;
+  --bone: #F4EFE7;
+  --muted-bronze: #B0886B;
+  --clay: #9B6F5A;
+
+  /* Derived surfaces */
+  --olive-shade: #131A15;
+  --olive-mid: #1E2720;
+
+  /* Semantic surfaces */
+  --surface-primary: var(--forest-black);
+  --surface-secondary: var(--olive-shade);
+  --surface-elevated: var(--olive-mid);
+  --surface-raised: var(--deep-olive);
+  --surface-inset: rgba(11, 15, 14, 0.55);
+
+  /* Semantic text */
+  --text-primary: var(--bone);
+  --text-secondary: var(--warm-stone);
+  --text-muted: rgba(215, 201, 187, 0.6);
+  --text-inverse: var(--forest-black);
+
+  /* Accents */
+  --accent-primary: var(--muted-bronze);
+  --accent-secondary: var(--clay);
+
+  /* Lines */
+  --border-subtle: rgba(215, 201, 187, 0.14);
+  --border-strong: rgba(215, 201, 187, 0.3);
+
+  /* Scrims over footage. The heavy one must survive a bright frame. */
+  --scrim-light: linear-gradient(to bottom, rgba(11, 15, 14, 0.62) 0%, rgba(11, 15, 14, 0) 38%);
+  --scrim-heavy: linear-gradient(to top, rgba(11, 15, 14, 0.92) 0%, rgba(11, 15, 14, 0.72) 26%, rgba(11, 15, 14, 0) 62%);
+
+  /* Type */
+  --font-display: 'Playfair Display', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+
+  --step--2: 0.6875rem;   /* 11 — eyebrow, meta */
+  --step--1: 0.8125rem;   /* 13 — secondary copy */
+  --step-0: 0.9375rem;    /* 15 — body */
+  --step-1: 1.125rem;     /* 18 — section heads */
+  --step-2: 1.5rem;       /* 24 — screen titles */
+  --step-3: 1.875rem;     /* 30 — display */
+  --step-4: 2.5rem;       /* 40 — wordmark */
+
+  --tracking-eyebrow: 0.18em;
+  --tracking-wordmark: 0.01em;
+
+  /* Space */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --gutter: 20px;
+
+  /* Motion. Short, and always spatial rather than decorative. */
+  --ease-travel: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-sheet: 320ms;
+  --dur-travel: 1100ms;
+
+  --tap-min: 44px;
+}
+
+/*
+ * Reduce Motion is honoured by making transitions instant rather than by
+ * removing them, so nothing jumps to a different layout.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur-base: 1ms;
+    --dur-sheet: 1ms;
+    --dur-travel: 260ms;
+  }
+}

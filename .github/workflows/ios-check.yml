@@ -1,0 +1,84 @@
+name: iOS compile check
+
+# The gate that matters most on this project.
+#
+# Development is on Windows. Swift can be syntax-checked locally
+# (`swiftc -frontend -parse`) and its Foundation-only logic can be compiled and
+# run under Linux Swift, but UIKit, AVFoundation, AVKit, MediaPlayer and
+# Capacitor cannot be typechecked anywhere except a Mac. This workflow is that
+# Mac: it builds the real app and the real native plugin against the iOS SDK,
+# without signing, so a mistake in FrontierPlayer.swift is caught in minutes
+# rather than discovered by a failed release.
+#
+# Carried over from the 3.5.0 release branch, where it was introduced for the
+# previous product, and kept because frontier go needs it more: the native
+# player is now 870 lines of AVFoundation rather than a WKWebView wrapper.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [frontier-go]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - run: npm ci
+        working-directory: app
+
+      # No API keys: frontier go ships its catalog and fetches nothing at
+      # build time.
+      - run: npm run build
+        working-directory: app
+
+      - run: npx cap sync ios
+        working-directory: app
+
+      - name: Compile the app and the native plugin without signing
+        run: |
+          xcodebuild \
+            -workspace app/ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-check \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify the bundled privacy manifest
+        run: plutil -lint build/ios-check/Build/Products/Debug-iphonesimulator/App.app/PrivacyInfo.xcprivacy
+
+      # The single most expensive failure this project has had was a native
+      # plugin that compiled and shipped and was never bound to JS. The Swift
+      # class must declare all three CAPBridgedPlugin members; check the source
+      # rather than trusting that a green build means a reachable plugin.
+      - name: Verify the plugin is registered both ways
+        run: |
+          set -e
+          SWIFT=app/local-plugins/frontier-player/ios/Plugin/FrontierPlayer.swift
+          OBJC=app/local-plugins/frontier-player/ios/Plugin/FrontierPlayer.m
+          for needle in "CAPBridgedPlugin" "public let identifier" "public let jsName" "public let pluginMethods"; do
+            grep -q "$needle" "$SWIFT" || { echo "::error::$SWIFT is missing: $needle"; exit 1; }
+          done
+          grep -q 'CAP_PLUGIN(FrontierPlayer, "FrontierPlayer"' "$OBJC" \
+            || { echo "::error::$OBJC is missing the CAP_PLUGIN registration macro"; exit 1; }
+          echo "FrontierPlayer declares CAPBridgedPlugin and ships the CAP_PLUGIN macro."

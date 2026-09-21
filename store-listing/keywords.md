@@ -1,37 +1,21 @@
-# Keywords — v2.9.0 (immersive all-eras channel)
+# App Store keywords — frontier go
 
-Apple's keyword field is one comma-separated string, no spaces around commas,
-max 100 characters. Apple already indexes the app name + subtitle, so don't
-repeat "Trailer Roulette" or obvious tokens from them.
-
-## Final string (live in App Store Connect)
+100 characters, comma-separated, no spaces after commas, no words already in the
+app name or subtitle.
 
 ```
-movie trailers,trailers,films,what to watch,streaming,new movies,movie night,cinema,watchlist
+ocean,space,nasa,noaa,deep sea,exploration,nature,relax,ambient,science,documentary,earth,globe
 ```
-
-**Character count: 93 / 100.**
+_94 characters._
 
 ## Why these
-| Keyword | Reason |
-|---------|--------|
-| movie trailers / trailers | Primary intent; Apple matches singular/plural together |
-| films | Broad category synonym |
-| what to watch | High-volume "decide what to watch" intent — pairs with the where-to-watch feature |
-| streaming | Matches the where-to-watch feature (which surfaces streaming availability) |
-| new movies | Captures the now-included modern catalog |
-| movie night | Strong use-case keyword |
-| cinema | Category/identity term |
-| watchlist | High-intent feature term |
 
-## Notes / risk
-- "streaming" is included because the app now has a genuine **Where to watch**
-  feature (JustWatch-backed). It points to third-party services; the app does
-  not stream movies itself. If App Review ever flags it, swap "streaming" for
-  "where to watch".
-- "YouTube" and "TMDB" remain excluded (5.2 trigger / wasted characters).
-- JustWatch is required as **attribution** (in description + About), but is not
-  used as a keyword.
+- **ocean, deep sea, space, nasa, noaa** — what is actually in it. NASA and
+  NOAA are searched by name and the app genuinely carries their footage.
+- **relax, ambient** — the real use case. It plays on a television for hours.
+- **nature, science, documentary, exploration** — the category people reach for.
+- **earth, globe** — the defining feature.
 
-## Reserve list (swap in after ASO data)
-- "where to watch" (15) · "find movies" (11) · "movie game" (10)
+Deliberately not used: *trailer*, *movie*, *film*, *roulette* (the previous
+product), and *4K*, *HD*, *free* (Apple discourages them and they attract the
+wrong install).

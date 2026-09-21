@@ -1,42 +1,44 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Trailer Roulette icon">
-  <rect width="1024" height="1024" fill="#0E1726"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    frontier go — app icon master.
+
+    A thin globe and one bronze point. No wordmark: "frontier go" is set in
+    Inter and is unreadable below about 120px, and an icon that only works on
+    the App Store page is not an icon.
+
+    The strokes are Warm Stone rather than Charcoal Moss because the first
+    render proved the palette's mid-greens vanish against Forest Black at
+    40 points — the mark has to survive on a home screen, not just on a
+    presentation board.
+  -->
   <defs>
-    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
-      <stop offset="0%" stop-color="#1B2A4A" stop-opacity="1"/>
-      <stop offset="100%" stop-color="#0E1726" stop-opacity="1"/>
+    <radialGradient id="ground" cx="50%" cy="46%" r="72%">
+      <stop offset="0%" stop-color="#202B23"/>
+      <stop offset="55%" stop-color="#121A15"/>
+      <stop offset="100%" stop-color="#0B0F0E"/>
     </radialGradient>
-    <radialGradient id="goldGrad" cx="35%" cy="35%" r="80%">
-      <stop offset="0%" stop-color="#F1CB60"/>
-      <stop offset="55%" stop-color="#D4AF37"/>
-      <stop offset="100%" stop-color="#9A7B1F"/>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#B0886B" stop-opacity="0.62"/>
+      <stop offset="42%" stop-color="#B0886B" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#B0886B" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="1024" height="1024" fill="url(#glow)"/>
+
+  <rect width="1024" height="1024" fill="url(#ground)"/>
+
+  <g transform="translate(512 512)" fill="none" stroke="#D7C9BB" stroke-linecap="round">
+    <circle r="338" stroke-opacity="0.58" stroke-width="10"/>
+    <path d="M-338 0H338" stroke-opacity="0.42" stroke-width="7"/>
+    <path d="M-318 -116H318M-318 116H318" stroke-opacity="0.24" stroke-width="6"/>
+    <path d="M0 -338c88 99 131 210 131 338S88 239 0 338c-88-99-131-210-131-338S-88-239 0-338Z"
+          stroke-opacity="0.42" stroke-width="7"/>
+    <path d="M0 -338c33 99 50 210 50 338S33 239 0 338c-33-99-50-210-50-338S-33-239 0-338Z"
+          stroke-opacity="0.2" stroke-width="6"/>
+  </g>
+
   <g transform="translate(512 512)">
-    <circle r="430" fill="none" stroke="#0E1726" stroke-width="60"/>
-    <g stroke="#D4AF37" stroke-width="60" fill="none" stroke-linecap="butt">
-      <path d="M 430 0 A 430 430 0 0 1 372.4 215"/>
-      <path d="M 215 372.4 A 430 430 0 0 1 -57.6 426.1"/>
-      <path d="M -293.7 314.5 A 430 430 0 0 1 -426.1 -57.6"/>
-      <path d="M -372.4 -215 A 430 430 0 0 1 -215 -372.4"/>
-      <path d="M 57.6 -426.1 A 430 430 0 0 1 293.7 -314.5"/>
-      <path d="M 372.4 -215 A 430 430 0 0 1 430 0"/>
-    </g>
-    <circle r="350" fill="url(#goldGrad)"/>
-    <circle r="300" fill="none" stroke="#0E1726" stroke-width="8" opacity="0.5"/>
-    <g fill="#0E1726">
-      <circle cx="0" cy="-220" r="58"/>
-      <circle cx="155.6" cy="-155.6" r="58"/>
-      <circle cx="220" cy="0" r="58"/>
-      <circle cx="155.6" cy="155.6" r="58"/>
-      <circle cx="0" cy="220" r="58"/>
-      <circle cx="-155.6" cy="155.6" r="58"/>
-      <circle cx="-220" cy="0" r="58"/>
-      <circle cx="-155.6" cy="-155.6" r="58"/>
-    </g>
-    <circle r="70" fill="#0E1726"/>
-    <circle r="60" fill="url(#goldGrad)"/>
-    <circle r="20" fill="#0E1726"/>
+    <circle cx="196" cy="-196" r="150" fill="url(#halo)"/>
+    <circle cx="196" cy="-196" r="52" fill="#B0886B"/>
+    <circle cx="196" cy="-196" r="52" fill="none" stroke="#F4EFE7" stroke-opacity="0.85" stroke-width="7"/>
   </g>
 </svg>

@@ -1,7 +1,9 @@
 name: iOS Bootstrap (one-time)
 
 # Runs `npx cap add ios` ONCE on a macOS runner and commits the generated
-# ios/ folder back to the repo. After this runs successfully, you should
+# ios/ folder back to the repo. ALREADY DONE for this project: app/ios/App is
+# committed, so the guard below stops this workflow immediately. It is kept for
+# the case where the iOS project has to be regenerated from scratch. After this runs successfully, you should
 # never run it again — the iOS folder is now committed and `cap sync` keeps
 # it up to date.
 #
@@ -49,8 +51,6 @@ jobs:
       - name: npm install
         working-directory: app
         env:
-          # First-time bootstrap doesn't need real keys; CI just runs cap add ios.
-          VITE_TMDB_API_KEY: dummy-for-bootstrap
           VITE_PRIVACY_POLICY_URL: https://example.com/privacy
         run: |
           npm ci

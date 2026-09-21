@@ -59,13 +59,7 @@ try {
         Copy-Item ".env.local.template" ".env.local"
         Write-Host "  Created .env.local from template." -ForegroundColor Green
 
-        $tmdbKey = Read-Host "Paste your TMDB v3 API key (or press Enter to fill in later)"
-        if ($tmdbKey) {
-            (Get-Content ".env.local") -replace 'VITE_TMDB_API_KEY=.*', "VITE_TMDB_API_KEY=$tmdbKey" | Set-Content ".env.local"
-            Write-Host "  ✓ TMDB key written to .env.local" -ForegroundColor Green
-        } else {
-            Write-Host "  ! Remember to add VITE_TMDB_API_KEY before npm run dev" -ForegroundColor Yellow
-        }
+        Write-Host "  - frontier go needs no API keys; .env.local is optional" -ForegroundColor Gray
     } else {
         Write-Host "  .env.local already exists; skipping." -ForegroundColor Gray
     }

@@ -1,0 +1,32 @@
+# Git stores text with LF, and every blob in this repo's history is LF. During
+# the 3.5.0 work something rewrote 23 tracked files in the working tree to
+# CRLF - no content change at all, but a diff of roughly 38,000 lines covering
+# all of package-lock.json, the whole native plugin and every Xcode file. It
+# was normalised back by hand. This stops the next editor, sync client or tool
+# from doing it again, and makes `git status` stay quiet when one tries.
+* text=auto eol=lf
+
+# Shell and CI scripts break outright with CRLF, so they are named explicitly
+# rather than left to auto-detection.
+*.sh text eol=lf
+*.mjs text eol=lf
+*.yml text eol=lf
+
+# Never normalised. SVG is XML and is deliberately absent - it is text.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.icns binary
+*.zip binary
+*.pdf binary
+*.mp4 binary
+*.mov binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+
+# Carried over from the 3.5.0 release branch during the frontier go
+# reorientation. The CRLF problem it prevents is a property of this machine and
+# this checkout, not of the product, so it survives the product change.

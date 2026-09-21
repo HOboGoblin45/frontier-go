@@ -24,7 +24,7 @@ permissions:
 env:
   XCODE_WORKSPACE: app/ios/App/App.xcworkspace
   XCODE_SCHEME: App
-  ARCHIVE_PATH: build/TrailerRoulette.xcarchive
+  ARCHIVE_PATH: build/FrontierGo.xcarchive
   EXPORT_PATH: build/export
   IPA_NAME: App.ipa
 
@@ -64,21 +64,31 @@ jobs:
       - name: npm install
         working-directory: app
         run: npm ci
-      - name: Verify build secrets are present
-        env:
-          VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
+
+      # frontier go needs no API keys at build time. Every provider request
+      # happens in the ingestion workflow, and the app ships with the result.
+      # The gate that matters now is that the catalog is actually there.
+      - name: Verify the catalog is present
+        working-directory: app
         run: |
-          if [ -z "$VITE_TMDB_API_KEY" ]; then
-            echo "::error::VITE_TMDB_API_KEY is empty at build time"
+          set -e
+          COUNT=$(node -e "console.log(require('./public/catalog/frontier-catalog.json').items.length)")
+          if [ "$COUNT" -lt 50 ]; then
+            echo "::error::catalog has only $COUNT items; refusing to ship"
             exit 1
           fi
-          echo "Build secrets present."
+          echo "Catalog: $COUNT items."
+
+      - name: Typecheck, lint and test
+        working-directory: app
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test
 
       - name: Build web
         working-directory: app
         env:
-          VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
-          VITE_TMDB_BEARER_TOKEN: ${{ secrets.VITE_TMDB_BEARER_TOKEN }}
           VITE_PRIVACY_POLICY_URL: ${{ vars.VITE_PRIVACY_POLICY_URL }}
         run: npm run build
 
@@ -108,14 +118,28 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" App/Info.plist
           echo "Set CFBundleVersion to $BUILD"
 
-      - name: Set marketing version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Set marketing version
         working-directory: app/ios/App
+        # A tag names the version. A dispatch has no tag, and this step used to
+        # be skipped entirely - which left Info.plist on $(MARKETING_VERSION),
+        # i.e. the 1.0 still sitting in project.pbxproj. Every manually
+        # dispatched TestFlight build was therefore labelled 1.0 regardless of
+        # what it contained. app/package.json is already the version of record
+        # (vite reads it for VITE_APP_VERSION), so use it.
+        #
+        # Carried over from the 3.5.0 release branch.
         run: |
-          TAG="${GITHUB_REF##*/}"
-          VERSION="${TAG#v}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF##*/}"
+            VERSION="${TAG#v}"
+            SOURCE="tag $TAG"
+          else
+            VERSION=$(node -p "require('$GITHUB_WORKSPACE/app/package.json').version")
+            SOURCE="app/package.json"
+          fi
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" App/Info.plist
-          echo "Set CFBundleShortVersionString to $VERSION"
+          echo "Set CFBundleShortVersionString to $VERSION (from $SOURCE)"
+          echo "Build $VERSION (${{ github.event.inputs.build_number || github.run_number }}) from $SOURCE" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Import code-signing certificate
         env:

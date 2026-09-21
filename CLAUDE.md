@@ -1,170 +1,121 @@
-# CLAUDE.md — Trailer Roulette (hardwired project context)
+# CLAUDE.md — frontier go (hardwired project context)
 
-This file is loaded automatically whenever an AI session works in this folder. It is the
-single source of truth for what this project is, what is in flight, and the rules of the
-road. Deep detail lives in `docs/PROJECT-PROMPT.md`; session-learned history lives in
-`docs/ai-memory/`. Keep all three updated when the project moves.
+Loaded automatically whenever an AI session works in this folder. Single source
+of truth for what this project is and the rules of the road. Deeper detail:
+`docs/ARCHITECTURE.md`, `docs/FRONTIER-GO-MIGRATION.md`, `docs/RIGHTS-REVIEW.md`.
 
 ## What this app is
 
-**Trailer Roulette** — an iOS app (Capacitor 7 + React 18 + Vite 5) that shuffles movie
-trailers like a TV channel. Two buttons: **Play** (spin a random trailer) and **AirPlay**
-(throw it on the TV). Trailers auto-advance forever. No accounts, no filters, no algorithm.
-Six optional "fun modes" live behind the top-right **Modes** pill. As of v3.2.0 there is a
-second channel type: **Theater Mode** — tune the roulette to a real independent theater
-(Alamo Drafthouse's 23 markets) and it spins only what that theater is showing this month.
+**frontier go** — an iOS app (Capacitor 7 + React 18 + TypeScript + Vite 5) that
+plays a continuous channel of real exploration footage: NOAA deep-ocean ROV
+dives, NASA orbital and mission footage. Open it and something is already
+playing. Tap Shuffle and you are somewhere else. No account, no search, no
+decisions.
 
-- Bundle ID `app.trailerroulette.ios` · Apple ID 6764209094 · repo `github.com/HOboGoblin45/trailer-roulette-ios`
-- v1.0 (build 2.11.0) was submitted to App Review 2026-07-03 (manual release). Latest
-  release: **v3.4.2** (2026-08-16) — the auto-advance root-cause fix. v3.4.1 fixed the
-  unregistered native plugins (`CAPBridgedPlugin`); v3.4.2 fixes the proxy's missing
-  player-event subscription and disables the v3.4.0 playlist handoff. See CHANGELOG.
-
-## Current objective (as of 2026-08-16)
-
-Ship **v3.4.2** and confirm it on a device. Two parts (full detail:
-`docs/bugs.md` B4, `docs/HANDOFF.md` §6–7):
-
-1. **The missing event — the actual root cause of "trailer never auto-advances".**
-   Proven live against real YouTube (2026-08-16): the proxy page
-   (`landing-page/api/embed.js`) only ever sent the IFrame API's
-   `{ event:'listening' }` message, which arms the player but never subscribes to
-   its state. `onStateChange`/`onError` are delivered only after an explicit
-   `addEventListener` command; without it the widget's state channel is silent
-   for the whole clip (while `infoDelivery` keeps streaming, so every liveness
-   timer believed the page was healthy) and the `ENDED` every end-detection
-   mirror waits on never arrives. B1–B3 all tuned consumers of that absent
-   event. The proxy now sends `addEventListener('onStateChange')` +
-   `addEventListener('onError')` on load with one 2.5s retry; the subscription
-   is player-level and survives `trLoad` swaps (no double-subscribe).
-2. **Native playlist handoff disabled** (`TrailerPlayer.swift`). v3.4.0 handed
-   the queue to YouTube via `loadPlaylist`; live observation showed the widget
-   advances items itself but fires **no ENDED between items** (`-1 → 3 → 1`), so
-   `playlistDidAdvance()` could never run and the queue/chrome desyncs. Gated
-   off (call site documented); the proven end-detection → `advanceInPlace`
-   (`trLoad`) path now has its input event.
-
-**To ship (Charlie must do; AI has no push creds / no Mac here):**
-1. **Redeploy the Vercel proxy FIRST — this is the step that fixes the live
-   app**, with no App Review round trip: `cd landing-page` then `npx vercel
-   --prod` (interactive browser login). The currently deployed page is v1.9.0
-   (verified byte-identical 2026-08-16) and has never subscribed to player
-   events, so NO installed build can auto-advance until this lands. It also
-   fixes the v3.4.1 build already in TestFlight.
-2. `git add -A; git commit -m "release: v3.4.2 - ..."; git tag v3.4.2; git push origin main; git push origin v3.4.2`
-   (paste as separate lines — his PowerShell is 5.1, don't use `&&` chains).
-3. The tag push triggers `.github/workflows/ios-release.yml` → TestFlight.
-4. On device: About screen must show `Native player: active · AirPlay: active`
-   (P0), then Play and watch three trailers auto-advance with zero taps (P1).
-
-**Ordering rule for this class of bug:** the proxy is the only layer that reaches
-already-installed builds. Any playback fix must be expressible in the message vocabulary
-those builds already understand (`stateChange`, `error`), or it cannot ship without App
-Review. New message kinds are an enhancement, never the fix itself.
+- Bundle id `app.trailerroulette.ios` · Apple ID 6764209094 · repo `github.com/HOboGoblin45/trailer-roulette-ios`
+- Reoriented from **Trailer Roulette** at v3.4.3 (`main`). Version series restarts at **v4.0.0**.
+- **`release/public-3.5` is a separate line** carrying 27 commits of Trailer Roulette v3.5.0 work that `main` does not have. frontier go branches from `main` and does not include it. Four project-level things were ported across: `.gitattributes`, the Apple privacy manifest, `ios-check.yml` and the marketing-version fix. What to do with the rest of that branch is an open decision — see `decisions/0005-frontier-go-reorientation.md`.
+- The reasoning this product rests on is in `docs/decisions-evidence/`, written on that branch the day before: there is no lawful non-YouTube trailer catalogue, and every lawful source hands you a direct MP4 or HLS URL.
+- The full audit, migration classification and the open decisions are in `docs/FRONTIER-GO-MIGRATION.md`. Read it before proposing structural change.
 
 ## Hard rules (never violate)
 
-- **NO EMOJIS anywhere** — not in app UI, not in chat, not in docs. Use text, SVG glyphs,
-  or letter monograms. (Typographic glyphs like ▸ ✓ ∞ · are fine.)
-- **Deliver finished work, not plans** ("Boil the Ocean"). Complete implementation, tests,
-  docs, version bump, changelog.
-- **The three playback mirrors change together**: `app/src/lib/endDetection.js` (web),
-  `app/local-plugins/trailer-player/ios/Plugin/TrailerPlayer.swift` (native),
-  `landing-page/api/embed.js` (Vercel proxy). A fix applied to one will look fixed and
-  regress on another path.
-- **Never fake theater data.** If a lineup feed fails, error out; never substitute a
-  generic "now playing" list or mismatched TMDB titles.
-- **Don't touch the proven playback architecture** (WKWebView → real HTTPS nav to
-  `https://trailer-roulette.vercel.app/embed?v=ID`). Every alternative failed; the
-  post-mortems are in `docs/ai-memory/trailer-roulette-project.md`.
-- Charlie is Windows-only with PowerShell 5.1: no `??` operator, no `&&` chains in
-  suggested PS commands; give plain multi-line blocks.
-
-## Environment gotchas (sandbox sessions)
-
-- **OneDrive mount staleness**: the Linux sandbox's view of this folder serves stale or
-  truncated copies of files edited minutes ago (new files sync fast; edits lag). The
-  Windows-side file (Read/Write/Edit tools) is always authoritative. To build/test:
-  rsync to /tmp, then re-materialize freshly-edited files from context (heredoc) or from
-  `git show HEAD:<file>` + patches; `npm install` works in /tmp (registry reachable).
-- `node_modules/` here holds Windows binaries — never run vite/vitest against the mount.
-- drafthouse.com blocks non-browser user agents (sandbox fetches return empty); use
-  browser-based verification. The API itself is public and CORS-open from real origins.
-- No Swift compiler preinstalled — but one can be fetched: `download.swift.org` is
-  reachable, and the Linux 5.10 toolchain gives `swiftc -frontend -parse` (syntax-checks
-  the whole plugin) plus real compile-and-run of any Foundation-only logic extracted from
-  it. See the harness pattern used for v3.2.1: copy the pure functions out verbatim, diff
-  the copy back against the source to prove fidelity, shim `Timer` via a typealias, run
-  scenarios. CI (macOS runner) is still the only gate for UIKit/WebKit typechecking.
-- youtube.com and trailer-roulette.vercel.app are NOT reachable from the sandbox
-  (connection reset), so live playback cannot be observed here. Test the proxy by importing
-  its Edge Function, lifting the `<script>` out of the rendered HTML and running it in a
-  `node:vm` sandbox — see `app/src/lib/__tests__/embedProxy.test.js`.
-- In Cowork sessions the device bridge (`device_stage_files` / `device_commit_files`) round-
-  trips files byte-identically; verify with `md5sum` on both sides rather than assuming the
-  OneDrive staleness above applies.
-- **`device_bash` cannot unlink files.** A plain `git status` on the mount takes
-  `.git/index.lock` for its opportunistic index refresh, fails to remove it, and leaves a
-  stale lock that blocks Charlie's next `git add`/`git commit`. Always use
-  `git --no-optional-locks status`. If a lock is already stranded, `mv` it aside — deleting
-  it is not possible from that tool.
+- **NO EMOJIS anywhere** — not in app UI, not in chat, not in docs. Text, SVG
+  glyphs or letter monograms. (Typographic glyphs like ▸ ✓ ∞ · are fine.)
+- **Deliver finished work, not plans** ("Boil the Ocean"). Complete
+  implementation, tests, docs, version bump, changelog.
+- **Rights fail closed.** `unknown` is a rejection. No "probably public domain",
+  no inferring a licence from the fact that a file is reachable. The gate is
+  `rightsAreClear()` in `core/types/rights.ts` and it runs twice: in the
+  pipeline and again on the client.
+- **Never fabricate geography.** A location with no published coordinates gets
+  `accuracy: 'mission'` and no latitude. Every coordinate carries a
+  `coordinateSource` saying what it is. A region reference point is never shown
+  as a position.
+- **Do not bring YouTube back.** Not as a fallback, not for one channel, not for
+  a single item. The whole reorientation exists because embedded playback cost
+  this product AirPlay, PiP, preloading, buffering control and an ad-free
+  shuffle. There is no `youtube.com` string left in the repo; keep it that way.
+- **The native plugin must stay bound.** `FrontierPlayer` conforms to
+  `CAPBridgedPlugin` *and* ships the `CAP_PLUGIN` macro. This project already
+  lost a release cycle (v3.4.1) to a plugin that compiled, shipped, and was
+  never reachable from JS. `assertNative()` and the Profile screen exist to make
+  that failure loud.
+- **The bundle id is load-bearing.** It is the previous product's name and it
+  must not be tidied. See `docs/FRONTIER-GO-MIGRATION.md` §7.
+- Charlie is Windows-only with PowerShell 5.1: no `??`, no `&&` chains in
+  suggested commands; give plain multi-line blocks.
 
 ## Key file map
 
 | Area | Files |
 | --- | --- |
-| Main screen (two buttons + queue engine) | `app/src/components/TrailerRoulette.jsx` |
-| Player router / web / iOS | `app/src/components/Player.jsx`, `Player.web.jsx`, `Player.ios.jsx` |
-| Native player plugin (modal WKWebView, watchdog, ad logic) | `app/local-plugins/trailer-player/ios/Plugin/TrailerPlayer.swift` |
-| Embed proxy (load-bearing for playback) | `landing-page/api/embed.js` → deployed at trailer-roulette.vercel.app |
-| Ad-aware end detection (shared brain + tests) | `app/src/lib/endDetection.js`, `__tests__/endDetection.test.js` |
-| Proxy behaviour tests (runs the real Edge Function's script) | `app/src/lib/__tests__/embedProxy.test.js` |
-| Theater Mode service + tests | `app/src/lib/theaters.js`, `__tests__/theaters.test.js`, `docs/THEATER-MODE.md` |
-| Theater picker UI | `app/src/components/TheaterSheet.jsx` + `theater-sheet.css` |
-| TMDB wrapper | `app/src/lib/tmdb.js` (discoverRandomMix, searchMovie, getTrailer) |
-| Fun modes | `app/src/features/` (registry in `index.js`) |
-| Storage keys | `app/src/lib/storage.js` (`KEYS.SOURCE` = active channel) |
-| Bug history | `docs/bugs.md` (B1 ~15s ad ENDED, B2 ~13s watchdog, B3 the actual cure) |
-| AI session memory (hardwired) | `docs/ai-memory/` |
+| Domain model | `app/src/core/types/` (media, location, rights, safety, playback, history) |
+| Rights and safety gates | `core/types/rights.ts`, `core/types/safety.ts`, `core/catalog/eligibility.ts` |
+| Shuffle engine | `core/shuffle/engine.ts`, `core/shuffle/constraint.ts` |
+| Catalog pipeline | `core/catalog/pipeline.ts`, `quality.ts`, `dedupe.ts`; runner `tools/ingest/run.ts` |
+| Providers | `providers/noaa/`, `providers/nasa/`, `providers/gazetteer.ts` |
+| Native player | `local-plugins/frontier-player/ios/Plugin/FrontierPlayer.swift` |
+| JS player wrapper + web implementation | `src/player/frontierPlayer.ts`, `src/player/webPlayer.ts` |
+| App state (the only place the pieces meet) | `src/state/useFrontier.ts` |
+| Design tokens | `src/ui/styles/tokens.css` |
+| Globe | `src/ui/globe/globeScene.ts`, `earthTexture.ts`, `FrontierGlobe.tsx` |
+| Shipped-catalog guard | `src/core/__tests__/shipped-catalog.test.ts` |
 
-## Verification status of the current tree (2026-08-14)
+## Verification status
 
-95/95 vitest (22 endDetection, 17 embedProxy, 17 theaters), eslint clean, `vite build`
-green. The v3.2.2 UI work is verified by those same gates plus a re-run of the native
-logic harness; it is NOT verified visually — no simulator here, so every layout value
-is reasoned, not seen. Check the six fun modes and the player chrome on a device. `app/src/lib/__tests__/embedProxy.test.js` renders the real Edge Function, lifts its
-`<script>` out verbatim and drives it through a fake DOM + virtual clock, so the deployed
-artefact is what gets asserted; all seven B3 defects reproduce as failures against the
-v3.2.0 page. The native end-detection logic was extracted verbatim (a script diffs the copy
-back against `TrailerPlayer.swift`) and compiled and run under Linux Swift 5.10 — 6 checks
-fail on v3.2.0's logic, all pass on v3.2.1; the full plugin is syntax-checked only, since
-UIKit/WebKit cannot be typechecked off a Mac. **Not verified on a device or against live
-YouTube** — the sandbox has no route to youtube.com or the Vercel host, so ad behaviour
-(does `infoDelivery` stream during a pre-roll? does `initialDelivery` carry the content
-duration?) is inferred from this repo's own recorded observations, not re-measured. First
-thing to confirm on the phone after the proxy redeploy.
+At the reorientation commit: **165 vitest tests passing**, `tsc --noEmit` clean,
+`eslint` clean, `vite build` green, catalog gates re-verified against the
+committed file. The Swift plugin is **syntax-checked** (`swiftc -frontend
+-parse`) and its item parser is **compiled and run** under Linux Swift 5.10 via
+`ios/Tests/extract-and-run.sh`, which diffs its extracted copy against the
+source so a stale harness fails rather than passes.
 
-Earlier, still current: live-verified Alamo markets feed (23), Austin July lineup (63
-films), TMDB matching 17/17 real programme titles including remake disambiguation
-(Moana 2026 vs 2016).
+**Not verified:** anything that needs a device or a simulator. AirPlay routing,
+Picture in Picture, the lock-screen controls, the transparent-web-view overlay,
+the native letterbox backdrop, background audio, and AVFoundation/UIKit
+typechecking are all first-run-on-device items. The browser harness verified
+layout, the state machine, queue handoff and shuffle latency (85-112 ms) against
+a local HTTPS server, because the sandbox's headless Chromium has no H.264
+decoder and its proxy will not pass large media.
+
+## Environment gotchas (sandbox sessions)
+
+- **No H.264 in the harness browser.** Playwright's Chromium is built without
+  proprietary codecs (`DEMUXER_ERROR_NO_SUPPORTED_STREAMS`). To see video
+  locally, transcode a clip to VP9/WebM and serve it over local HTTPS; the
+  eligibility gate requires `https://`, so plain `vite preview` will not do.
+- **The agent proxy will not pass video.** Large media through
+  `HTTPS_PROXY` aborts. `curl` works for downloading a sample; Chromium does not.
+- **Never set `crossOrigin` on a `<video>`.** Neither provider CDN sends
+  `Access-Control-Allow-Origin` on media, and AVPlayer does no CORS at all, so it
+  breaks only the web build — silently, and only off-device.
+- **The globe canvas needs an explicit CSS size.** Without one the backing store
+  drives the layout box, the ResizeObserver feeds back, and the canvas grows
+  without bound (it reached 4,915,200 × 2,457,600 px in testing).
+- Swift toolchain: `download.swift.org` is reachable; the Ubuntu 22.04 5.10.1
+  build runs on this image and gives `swiftc -frontend -parse` plus real
+  compile-and-run for Foundation-only code.
+- **`device_bash` cannot unlink files.** Use `git --no-optional-locks status` on
+  a OneDrive mount; a stale `.git/index.lock` blocks Charlie's next commit and
+  cannot be deleted from that tool (`mv` it aside instead).
 
 ## Open threads / next steps
 
-1. Redeploy the proxy, then verify on-device that trailers play past 13s on the build
-   already installed. Then ship v3.2.1 (steps above). If skipping persists after the
-   redeploy, capture what the page actually receives before changing more code: open
-   `https://trailer-roulette.vercel.app/embed?v=<id>` in desktop Chrome with a console
-   listener on `message` and log every `initialDelivery`/`infoDelivery`/`onStateChange`
-   through a real pre-roll. Two assumptions in this fix are inferred from this repo's
-   history, not measured: that `infoDelivery` streams during a pre-roll ad (the whole
-   synthetic-PLAYING path depends on it) and that `initialDelivery` carries the content
-   duration (the pin depends on it). If the first is false, an unpinned fallback is needed
-   for the watchdog; if the second is false, every trailer ends 5s late and the pin needs
-   a different source.
-2. Charlie's own local indie theaters: his city is still unknown — ask, then add
-   adapters (Eventive / Agile / Veezi guide in `docs/THEATER-MODE.md`).
-3. Regenerate stale App Store screenshots; refresh `store-listing/description.md` to
-   mention Theater Mode before the next submission.
-4. App icon: 6 concepts were presented (2026-07-07); Charlie hasn't picked yet.
-5. Privacy nutrition label: add Location (App Functionality, not linked) for "Near me".
-6. Watch the first TestFlight build for `UIGlassEffect` (needs Xcode 26 on CI).
+1. **First device run.** Confirm `Profile → Diagnostics → Player` reads
+   `Native AVFoundation · active`, then AirPlay to a TV, then PiP, then lock the
+   screen and confirm audio continues.
+2. **Icons and screenshots.** The icon set is regenerated
+   (`assets/icon-master-1024.svg`). App Store screenshots in `store-listing/`
+   are still Trailer Roulette's and must be recaptured.
+3. **App Store Connect.** The app's display name, subtitle, description,
+   keywords and privacy answers all need updating; the record itself stays.
+4. **More providers.** The adapter registry is `providers/index.ts`.
+   `docs/decisions-evidence/PIVOT-OPTIONS-2026-09.md` surveyed the field and
+   found roughly 28,000 rights-clean items across the Library of Congress,
+   Prelinger, US government films and NASA. Library of Congress and Prelinger
+   are the next two adapters; National Park Service, USGS and DVIDS after. Live HLS feeds are
+   modelled (`availability: 'live'`) and deliberately out of launch scope.
+5. **Dive-level coordinates.** NOAA publishes per-dive positions outside the
+   WordPress API. Adding them would raise those items from `accuracy: 'region'`
+   to `'exact'` and make the globe genuinely precise.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="frontier go">
+  <rect width="64" height="64" rx="14" fill="#0B0F0E"/>
+  <circle cx="32" cy="34" r="19" fill="none" stroke="#3F4A40" stroke-width="2"/>
+  <path d="M13 34h38" stroke="#3F4A40" stroke-width="1.4"/>
+  <path d="M32 15c5.4 5.8 8.1 12.2 8.1 19s-2.7 13.2-8.1 19c-5.4-5.8-8.1-12.2-8.1-19S26.6 20.8 32 15Z" fill="none" stroke="#3F4A40" stroke-width="1.4"/>
+  <circle cx="43" cy="25" r="3.4" fill="#B0886B"/>
+</svg>

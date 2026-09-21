@@ -1,0 +1,11 @@
+{
+  "name": "frontier-player",
+  "version": "1.0.0",
+  "description": "Native AVQueuePlayer transport for Frontier Go. Owns AVFoundation, the queue, AirPlay, Picture in Picture, the audio session and the system Now Playing controls; renders behind a transparent WKWebView so the React interface floats over the footage.",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "private": true,
+  "files": ["src/", "ios/Plugin/", "FrontierPlayer.podspec"],
+  "capacitor": { "ios": { "src": "ios" } },
+  "license": "UNLICENSED"
+}

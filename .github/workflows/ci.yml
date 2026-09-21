@@ -1,11 +1,12 @@
-name: CI (lint + test + web build)
+name: CI (typecheck + lint + test + web build)
 
-# Fast checks on every push and PR. No Mac runner needed; this only validates the
-# JS/JSX/CSS layer. iOS-specific work happens in ios-release.yml.
+# Fast checks on every push and PR. No Mac runner needed; this validates the
+# TypeScript/React layer, the catalog that ships inside the app, and the
+# production bundle. iOS compilation happens in ios-release.yml.
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, frontier-go]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -16,7 +17,7 @@ permissions:
 jobs:
   ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -31,17 +32,33 @@ jobs:
         working-directory: app
         run: npm ci
 
+      - name: Typecheck
+        working-directory: app
+        run: npm run typecheck
+
       - name: Lint
         working-directory: app
         run: npm run lint
 
+      # Includes shipped-catalog.test.ts, which re-runs the rights, safety and
+      # quality gates against the catalog file in the bundle. A regenerated
+      # catalog that smuggles in a copyrighted clip or a malformed URL fails
+      # here rather than on someone's television.
       - name: Test
         working-directory: app
         run: npm run test
 
       - name: Build (Vite)
         working-directory: app
-        env:
-          VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY || 'dummy-for-build-only' }}
-          VITE_PRIVACY_POLICY_URL: ${{ vars.VITE_PRIVACY_POLICY_URL || 'https://example.com/privacy' }}
         run: npm run build
+
+      - name: Verify the catalog shipped into the bundle
+        working-directory: app
+        run: |
+          set -e
+          test -f dist/catalog/frontier-catalog.json
+          node -e "
+            const c = require('./dist/catalog/frontier-catalog.json');
+            if (!c.items || c.items.length < 50) { console.error('::error::catalog too small'); process.exit(1); }
+            console.log('catalog:', c.items.length, 'items, generated', c.generatedAt);
+          "

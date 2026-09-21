@@ -1,92 +1,63 @@
-// Flat ESLint config (ESLint 9+).
-// Rules tuned for solo-dev DX: catches real bugs, doesn't fight the developer.
+// Flat ESLint config (ESLint 9+), TypeScript-aware.
+// Tuned to catch real defects without arguing about style.
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 
 export default [
-  js.configs.recommended,
   {
-    files: ['src/**/*.{js,jsx}'],
+    ignores: ['dist/**', 'ios/**', 'build/**', 'node_modules/**', 'coverage/**', 'public/**'],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ['src/**/*.{ts,tsx}', 'tools/**/*.ts'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      parserOptions: {
-        ecmaFeatures: { jsx: true },
-      },
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
+      parserOptions: { ecmaFeatures: { jsx: true } },
+      globals: { ...globals.browser, ...globals.node },
     },
-    plugins: {
-      react,
-      'react-hooks': reactHooks,
-    },
+    plugins: { react, 'react-hooks': reactHooks },
     rules: {
       ...react.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
 
-      // We use the new JSX transform (React 17+); React doesn't need to be in scope.
+      // The new JSX transform is in use; React need not be in scope.
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-react': 'off',
-
-      // PropTypes are overkill for a private app; we'll add TypeScript later if it matters.
+      // TypeScript types the props; PropTypes would be a second, worse copy.
       'react/prop-types': 'off',
 
-      // Allow unused destructured rest patterns (e.g. `const { x, ...rest } = obj`)
-      'no-unused-vars': ['warn', {
+      '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         ignoreRestSiblings: true,
       }],
-
-      // Empty catch blocks are fine when commented; warn only.
+      '@typescript-eslint/no-explicit-any': 'error',
       'no-empty': ['warn', { allowEmptyCatch: true }],
+      // Playback state is mirrored from native; a stray console in that path
+      // fires several times a second.
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
-    settings: {
-      react: { version: 'detect' },
-    },
+    settings: { react: { version: 'detect' } },
   },
   {
-    // Local Capacitor plugins ship a small web fallback that touches
-    // browser globals (window). Give them the same environment as src/.
-    files: ['local-plugins/**/*.{js,jsx}'],
-    languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
-    },
-  },
-  {
-    files: ['src/**/__tests__/**/*.{js,jsx}', 'src/**/*.test.{js,jsx}'],
+    files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.node,
-        // Vitest globals
-        describe: 'readonly',
-        it: 'readonly',
-        test: 'readonly',
-        expect: 'readonly',
-        beforeEach: 'readonly',
-        afterEach: 'readonly',
-        beforeAll: 'readonly',
-        afterAll: 'readonly',
-        vi: 'readonly',
+        describe: 'readonly', it: 'readonly', test: 'readonly', expect: 'readonly',
+        beforeEach: 'readonly', afterEach: 'readonly', beforeAll: 'readonly',
+        afterAll: 'readonly', vi: 'readonly',
       },
     },
+    rules: { '@typescript-eslint/no-explicit-any': 'off' },
   },
   {
-    ignores: [
-      'dist/**',
-      'ios/**',
-      'build/**',
-      'node_modules/**',
-      'coverage/**',
-    ],
+    files: ['tools/**/*.ts'],
+    rules: { 'no-console': 'off' },
   },
 ];

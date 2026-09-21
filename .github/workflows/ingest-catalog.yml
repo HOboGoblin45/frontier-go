@@ -1,0 +1,71 @@
+name: Ingest catalog
+
+# Rebuilds the Frontier Go catalog from the provider APIs and commits the
+# result. The app never queries a provider at runtime — it ships with this
+# file — so this workflow is how new footage reaches people, and how dead
+# stream URLs leave.
+#
+# It runs weekly and on demand. The commit it makes triggers CI, which
+# re-runs every rights, safety and quality gate against the new file.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Maximum items per provider'
+        required: false
+        default: '900'
+      providers:
+        description: 'Comma-separated provider filter (blank = all)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        working-directory: app
+        run: npm ci
+
+      - name: Run ingestion
+        working-directory: app
+        run: |
+          ARGS="--limit ${{ github.event.inputs.limit || '900' }}"
+          if [ -n "${{ github.event.inputs.providers }}" ]; then
+            ARGS="$ARGS --providers ${{ github.event.inputs.providers }}"
+          fi
+          npm run ingest -- $ARGS
+
+      # The gates run again on the file that was just written. A run that
+      # produced something inadmissible must not be committed.
+      - name: Re-verify the new catalog
+        working-directory: app
+        run: npm run test -- src/core/__tests__/shipped-catalog.test.ts
+
+      - name: Commit if the catalog changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/catalog docs/CATALOG-REJECTIONS.md
+          if git diff --staged --quiet; then
+            echo "Catalog unchanged."
+            exit 0
+          fi
+          PUBLISHED=$(node -e "console.log(require('./app/public/catalog/catalog-meta.json').stats.published)")
+          git commit -m "catalog: scheduled ingest ($PUBLISHED items)"
+          git push

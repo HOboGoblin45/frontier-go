@@ -38,3 +38,5 @@ app/preview.*.txt
 
 # Local release bundle - large binary, not source
 TrailerRoulette-v*-complete-*.zip
+# Local browser inspection artifacts (can contain request URLs).
+.playwright-cli/

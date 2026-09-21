@@ -121,7 +121,6 @@ $secretKeys = @(
     "APP_STORE_CONNECT_API_KEY_ID",
     "APP_STORE_CONNECT_API_KEY_ISSUER_ID",
     "APPLE_TEAM_ID",
-    "VITE_TMDB_API_KEY"
 )
 
 foreach ($k in $secretKeys) {
