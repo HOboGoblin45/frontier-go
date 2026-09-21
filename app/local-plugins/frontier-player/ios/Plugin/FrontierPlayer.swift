@@ -76,7 +76,14 @@ struct FrontierPlayableItem {
         } else {
             self.artworkUrl = nil
         }
-        self.durationHint = dict["durationSeconds"] as? Double
+        // A JS number reaches Swift as NSNumber, Int or Double depending on how
+        // it was serialised, and `as? Double` does not bridge an Int. Read it
+        // through NSNumber so a whole-second duration is not silently dropped.
+        if let n = dict["durationSeconds"] as? NSNumber {
+            self.durationHint = n.doubleValue
+        } else {
+            self.durationHint = dict["durationSeconds"] as? Double
+        }
     }
 }
 
@@ -84,6 +91,23 @@ struct FrontierPlayableItem {
 
 enum FrontierStatus: String {
     case idle, loading, ready, playing, paused, buffering, transitioning, ended, failed
+}
+
+// MARK: - Video surface
+
+/// Hosts the `AVPlayerLayer` and reports its own layout.
+///
+/// `UIView.bounds` is not dependably KVO-compliant, so observing it to keep the
+/// layer in step with rotation and split-view resizes would be relying on
+/// undefined behaviour. `layoutSubviews` is the documented hook and it fires
+/// for every case that matters.
+final class FrontierVideoView: UIView {
+    var onLayout: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
 }
 
 // MARK: - The engine
@@ -107,7 +131,7 @@ final class FrontierPlaybackEngine: NSObject {
     /// Hosts the player layer. A sibling of the backdrop rather than its
     /// parent, so z-order is explicit instead of depending on whether a
     /// sublayer was added before or after a subview.
-    private let videoView = UIView(frame: .zero)
+    private let videoView = FrontierVideoView(frame: .zero)
     private let backdropView = UIImageView(frame: .zero)
     private let backdropBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let backdropDim = UIView(frame: .zero)
@@ -171,6 +195,7 @@ final class FrontierPlaybackEngine: NSObject {
         }
         videoView.backgroundColor = .clear
         videoView.layer.addSublayer(playerLayer)
+        videoView.onLayout = { [weak self] in self?.layoutLayer() }
 
         configureAudioSession()
         observePlayer()
@@ -183,11 +208,6 @@ final class FrontierPlaybackEngine: NSObject {
     // MARK: Attachment
 
     /// Insert the video surface beneath the (now transparent) web view.
-    /// Keeps the player layer in step with rotation and split-view resizes.
-    /// Without this the video stays at the launch size and letterboxes itself
-    /// into a corner the first time the device is turned.
-    private var boundsObservation: NSKeyValueObservation?
-
     func attach(to host: UIView, webView: UIView?) {
         container.translatesAutoresizingMaskIntoConstraints = false
         host.insertSubview(container, at: 0)
@@ -207,10 +227,6 @@ final class FrontierPlaybackEngine: NSObject {
                 scroll.backgroundColor = .clear
             }
             host.bringSubviewToFront(web)
-        }
-
-        boundsObservation = videoView.observe(\.bounds, options: [.new]) { [weak self] _, _ in
-            DispatchQueue.main.async { self?.layoutLayer() }
         }
 
         setupRoutePicker(in: host)
@@ -269,9 +285,15 @@ final class FrontierPlaybackEngine: NSObject {
 
     private func setupPiP() {
         guard pipController == nil, AVPictureInPictureController.isPictureInPictureSupported() else { return }
-        let controller = AVPictureInPictureController(playerLayer: playerLayer)
-        controller?.delegate = self
-        if #available(iOS 14.2, *) { controller?.canStartPictureInPictureAutomaticallyFromInline = true }
+        // `init(playerLayer:)` is failable in older SDKs and non-failable in
+        // current ones. Binding through an explicitly optional local compiles
+        // against both, which matters on a project whose only compiler is a CI
+        // runner tracking latest-stable Xcode.
+        let controller: AVPictureInPictureController? = AVPictureInPictureController(playerLayer: playerLayer)
+        guard let controller else { return }
+        controller.delegate = self
+        // The deployment target is 15.0, so this needs no availability check.
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
         pipController = controller
     }
 
@@ -679,8 +701,6 @@ final class FrontierPlaybackEngine: NSObject {
         NotificationCenter.default.removeObserver(self)
         artworkTask?.cancel()
         backdropTask?.cancel()
-        boundsObservation?.invalidate()
-        boundsObservation = nil
         player.pause()
         player.removeAllItems()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
@@ -749,19 +769,36 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         }
         self.engine = engine
         DispatchQueue.main.async { [weak self] in self?.attachIfNeeded() }
+
+        // There is no `willAppear` to override.
+        //
+        // `CAPPlugin` exposes `load()` and nothing else in the view lifecycle,
+        // so re-attaching when the app comes forward is done by observing the
+        // application rather than the plugin. Layout while the app is running
+        // is handled separately, by the KVO on the video view's bounds in the
+        // engine, which also covers rotation and split view.
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(applicationDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification, object: nil)
     }
 
-    private func attachIfNeeded() {
-        guard !attached, let engine, let host = bridge?.viewController?.view else { return }
-        engine.attach(to: host, webView: bridge?.webView)
-        attached = true
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
-    public override func willAppear() {
+    @objc private func applicationDidBecomeActive() {
         DispatchQueue.main.async { [weak self] in
             self?.attachIfNeeded()
             self?.engine?.layoutLayer()
         }
+    }
+
+    /// Idempotent, and retried from several entry points: the bridge's view
+    /// controller is not guaranteed to exist when `load()` runs.
+    private func attachIfNeeded() {
+        guard !attached, let engine, let host = bridge?.viewController?.view else { return }
+        engine.attach(to: host, webView: bridge?.webView)
+        attached = true
     }
 
     // MARK: Methods
