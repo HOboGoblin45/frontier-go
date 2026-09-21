@@ -90,17 +90,16 @@ export function filtersQuery({ decades = [], genres = [] } = {}) {
 }
 
 export async function discoverMovies({ genre, genres, decade, decades, era = 'all', page = 1 } = {}) {
-  // Vote-count floor keeps the queue anchored to recognizable films even as
-  // we page deep into the catalog. The default 'all' era spans the entire
-  // history of cinema; 'classic' caps at 2009 and 'modern' starts at 2010 for
-  // users who want to narrow the window. A user-applied decade/genre filter
-  // lowers the floor (a filtered niche is thinner by nature), and the floor
-  // still keeps out the long tail of no-vote uploads.
+  // The floor exists to keep out the long tail of no-vote uploads - DVD
+  // extras, shorts, untitled fragments - not to keep the feed famous. It used
+  // to be 200 unfiltered, which did the second thing; see CATALOG_VOTE_FLOOR.
+  // A user-applied filter goes lower still, because a chosen niche is thinner
+  // by nature and the user has already told us what they want.
   const params = {
     sort_by: 'popularity.desc',
     page,
     include_adult: false,
-    'vote_count.gte': (genres?.length || decades?.length) ? 50 : (era === 'modern' ? 100 : 200),
+    'vote_count.gte': (genres?.length || decades?.length) ? 20 : CATALOG_VOTE_FLOOR,
   };
   const today = new Date().toISOString().slice(0, 10);
   Object.assign(params, filtersQuery({ decades, genres }));
@@ -180,34 +179,75 @@ function randInt(min, max) {
 }
 
 /**
- * The era bands we sample from. The whole point: `sort_by=popularity.desc`
- * collapses the catalog onto recent blockbusters, so a random *page* is still
- * mostly modern. Instead we sample a random *year* from each band and pull a
- * random page within that year — guaranteeing every batch spans old, mid, and
- * recent cinema rather than over-indexing on the last few years.
- *
- * Vote floors fall off for older bands (fewer ratings exist for old films) but
- * stay high enough to keep titles recognizable. Page ranges are wider for
- * recent years (deeper catalogs) than for sparse early ones.
+ * Where the catalog starts. 1950 rather than 1970 (owner decision 2026-09-21):
+ * noir, the New Wave and early colour Hollywood are exactly the "all kinds of
+ * cinema" this app is for, and enough of their trailers survive on YouTube to
+ * stay playable. Earlier than this the trailers thin out badly.
  */
-export const CATALOG_START_YEAR = 1970;
+export const CATALOG_START_YEAR = 1950;
 
 /**
- * One band per decade. Sampling a random year from EACH decade (rather than one
- * year across a huge band) means a single batch spans ~6 different decades with
- * no two movies clumped on the same year — the feed feels random across all of
- * cinema. Vote floors rise for newer decades (more films, more ratings) so older
- * picks stay recognizable without demanding modern vote counts.
+ * The vote floor the whole feed draws against, and the single most important
+ * number in this file.
+ *
+ * It used to be 40-180, rising for newer decades, with a comment saying the
+ * floors kept titles "recognizable". They did, and that was the bug: combined
+ * with maxPage 2-5 the feed could only ever see the top 40-100 most popular
+ * films of a year, which is a list of blockbusters, not a roulette. Measured
+ * against live TMDB on 2026-09-21, that feed averaged 4,631 votes per pick and
+ * returned Alien, Pulp Fiction, Shawshank, Forrest Gump and Godzilla vs. Kong.
+ *
+ * 30, sampling the FULL page range, averages 190 votes per pick — about
+ * twenty-four times less famous — and 90% of those picks still have a YouTube
+ * video, so almost nothing churns. Lower was measured too and is worse than it
+ * sounds: at floor 10 only 52% have a trailer, and at 0 only 4% do, because
+ * the bottom of TMDB is DVD extras, architecture shorts and untitled
+ * fragments rather than obscure films. 30 is the knee of that curve.
+ */
+export const CATALOG_VOTE_FLOOR = 30;
+
+/**
+ * One band per decade, from CATALOG_START_YEAR to now.
+ *
+ * Sampling a random year from EACH decade (rather than one year across a huge
+ * band) means a single batch spans every decade at once, with no two picks
+ * clumped on the same year. The floor is uniform: an old film having fewer
+ * ratings than a new one is not a reason to demand a bigger share of them,
+ * and the graded floors were part of what made the feed famous-only.
+ *
+ * No maxPage any more. discoverRandomMix learns each year's real page count
+ * and samples across all of it — that is the change that actually widened the
+ * feed; everything else here is a supporting adjustment.
  */
 export function eraStrata(currentYear = new Date().getFullYear()) {
-  return [
-    { lo: CATALOG_START_YEAR, hi: 1979, voteFloor: 40, maxPage: 2 },
-    { lo: 1980, hi: 1989, voteFloor: 60, maxPage: 3 },
-    { lo: 1990, hi: 1999, voteFloor: 90, maxPage: 3 },
-    { lo: 2000, hi: 2009, voteFloor: 130, maxPage: 4 },
-    { lo: 2010, hi: 2019, voteFloor: 180, maxPage: 5 },
-    { lo: 2020, hi: currentYear, voteFloor: 150, maxPage: 5 },
-  ];
+  const bands = [];
+  for (let lo = CATALOG_START_YEAR; lo <= currentYear; lo += 10) {
+    bands.push({ lo, hi: Math.min(lo + 9, currentYear), voteFloor: CATALOG_VOTE_FLOOR });
+  }
+  return bands;
+}
+
+/**
+ * How many discover pages a given year actually has at a given floor.
+ *
+ * Cached for the session: it is the price of sampling deep, and a year's page
+ * count does not meaningfully move inside half an hour. Capped at TMDB's own
+ * 500-page ceiling, beyond which it refuses to paginate.
+ */
+async function discoverPageCount(year, voteFloor) {
+  return cached(`pages:${year}:${voteFloor}`, async () => {
+    const d = await call('/discover/movie', {
+      sort_by: 'popularity.desc',
+      page: 1,
+      include_adult: false,
+      'vote_count.gte': voteFloor,
+      primary_release_year: year,
+    });
+    return {
+      total: Math.min(Math.max(1, d.total_pages || 1), TMDB_MAX_DISCOVER_PAGE),
+      firstPage: d.results || [],
+    };
+  });
 }
 
 /**
@@ -231,18 +271,28 @@ export function catalogDecades(nowYear = new Date().getFullYear()) {
 export async function discoverRandomMix({ strata } = {}) {
   const bands = strata || eraStrata();
   const groups = await Promise.all(
-    bands.map((s) => {
-      const year = randInt(s.lo, s.hi);
-      const page = randInt(1, s.maxPage);
-      return call('/discover/movie', {
-        sort_by: 'popularity.desc',
-        page,
-        include_adult: false,
-        'vote_count.gte': s.voteFloor,
-        primary_release_year: year,
-      })
-        .then((d) => d.results || [])
-        .catch(() => []);
+    bands.map(async (s) => {
+      try {
+        const year = randInt(s.lo, s.hi);
+        const floor = s.voteFloor ?? CATALOG_VOTE_FLOOR;
+        // Learn the year's real depth, then sample anywhere in it. A band with
+        // a maxPage of 5 could only ever return that year's 100 best-known
+        // films; 1994 alone has 46 pages at this floor, and the interesting
+        // half of the catalog starts somewhere around page 10.
+        const { total, firstPage } = await discoverPageCount(year, floor);
+        const page = randInt(1, total);
+        if (page === 1) return firstPage;   // already paid for
+        const d = await call('/discover/movie', {
+          sort_by: 'popularity.desc',
+          page,
+          include_adult: false,
+          'vote_count.gte': floor,
+          primary_release_year: year,
+        });
+        return d.results || [];
+      } catch {
+        return [];   // one band failing must not empty the batch
+      }
     })
   );
   const seen = new Set();

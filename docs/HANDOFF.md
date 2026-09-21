@@ -3,6 +3,34 @@
 Written 2026-08-14 for a fresh model or developer picking this up cold.
 Everything here is verified against the repo unless marked otherwise.
 
+> **Updated 2026-09-21 for the v3.5.0 public release candidate.** Sections 1, 3
+> and the new section 0 below are current. Sections 5 through 7 still describe
+> the v3.4.x playback work and are accurate as history, but the release sequence
+> that matters now is in `docs/RELEASE-REVIEW-2026-09.md` and in the current
+> objective in `CLAUDE.md`.
+
+---
+
+## 0. Where this stands today (2026-09-21)
+
+The app has never been public. v3.5.0 on `release/public-3.5` (PR #1) is the
+first build aimed at the App Store rather than TestFlight, and it is a
+release-readiness release: consent recorded against a policy version, policy
+pages that exist, a store listing that matches what ships, Theater Mode held
+back pending permission, and three bugs fixed that only a public build would
+have exposed (`docs/bugs.md` B5, B6, B7).
+
+**The single most important fact:** production
+`https://trailer-roulette.vercel.app/embed` was still serving the **v1.9.0**
+proxy page at review time. No installed build can auto-advance until
+`landing-page/` is deployed, and that one deploy also publishes `/privacy`,
+`/terms` and `/support` — two of which were 404 while the shipped binary linked
+to them. Deploy first, then `node scripts/verify-production.mjs`.
+
+**Nothing in 3.5.0 has been run on a device.** 224 tests, clean lint, green
+build and a green CI simulator compile say the code is consistent; they say
+nothing about how it behaves on hardware.
+
 ---
 
 ## 1. Where the project lives
@@ -13,8 +41,10 @@ C:\Users\ccres\OneDrive\Documents\Claude\Projects\Trailer Roulette
 ```
 
 **Git remote:** `https://github.com/HOboGoblin45/trailer-roulette-ios`
-**Current branch/tag:** `main` at `d8b753c`, tagged `v3.4.2` (the auto-advance
-root-cause fix; see sections 5–7).
+**Current branch/tag:** work is on `release/public-3.5` (PR #1, draft), branched
+from `main` at `af535e1`. `main` is untouched. No 3.5.0 tag has been pushed and
+nothing has been deployed. Last tagged release: `v3.4.2` (the auto-advance
+root-cause fix; see sections 5-7).
 **Apple:** bundle id `app.trailerroulette.ios`, Apple ID `6764209094`
 
 Owner is on **Windows with PowerShell 5.1 and has no Mac**. Do not suggest
@@ -30,9 +60,11 @@ An iOS app that shuffles movie trailers like a TV channel. Two buttons: **Play**
 auto-advance forever. No accounts, no algorithm. Optional **filters** (v3.4.3)
 narrow the Everything feed by decade and genre (Filter pill, top bar).
 
-Secondary features: **Theater Mode** (tune the channel to one real cinema's
-monthly programme, via Alamo Drafthouse's public JSON API), six optional "fun
-modes", and an "About this movie" sheet.
+Secondary features: six optional "fun modes", an "About this movie" sheet, and
+**Saved movies** (v3.5.0, bookmark button in the top bar). **Theater Mode**
+(tune the channel to one real cinema's monthly programme, via Alamo Drafthouse's
+public JSON API) exists but is **hidden in public builds** as of v3.5.0, behind
+`VITE_ENABLE_THEATER_MODE`, pending verified permission for that data.
 
 Movie metadata comes from **TMDB**. Trailer video comes from **YouTube**.
 
@@ -44,7 +76,7 @@ Movie metadata comes from **TMDB**. Trailer video comes from **YouTube**.
 | --- | --- |
 | App shell | Capacitor **7** |
 | UI | React 18.3 + Vite 5.4, plain CSS (no framework) |
-| Tests | Vitest (167 passing), ESLint 9 |
+| Tests | Vitest (224 passing, 12 files), ESLint 9 at `--max-warnings 0` |
 | Native | Swift, two local Capacitor plugins |
 | Serverless | Vercel Edge Function (the YouTube embed proxy) |
 | CI/CD | GitHub Actions, macOS runner, tag-triggered |

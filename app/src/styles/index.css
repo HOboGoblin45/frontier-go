@@ -967,10 +967,36 @@ a { color: var(--accent); text-decoration: none; }
 }
 .feat-close:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.17); }
 
-/* ─────────────────────────── Desktop dev view ─────────────────────────── */
-
-@media (min-width: 900px) {
-  .app-shell { max-width: 520px; margin: 0 auto; border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline); }
+/* ──────────────────── Desktop dev view (browser only) ──────────────────── */
+/*
+ * A phone-width column with hairlines down both sides, so `npm run dev` in a
+ * desktop browser looks like the device instead of a stretched page. It is a
+ * DEVELOPMENT affordance and must never reach a shipped build.
+ *
+ * It reached one. The query was width-only, and an iPad in portrait is about
+ * 1032px wide, so every iPad got this: measured at 1032px, .app-shell came
+ * back 520px with a 1px border on each side — half the screen black, with
+ * visible hairlines framing it. The stage, the top bar, the movie title and
+ * the Play/AirPlay pills all sat inside that column.
+ *
+ * Two independent gates now keep it out, because one is not enough:
+ *   - hover/pointer — a real iPad reports (hover: none) and (pointer: coarse);
+ *     a desktop browser reports hover and a fine pointer. This also fixes the
+ *     browser preview on any touch device.
+ *   - html[data-native] — set in main.jsx for any Capacitor build, so the
+ *     shipped app is excluded even if iPadOS ever reports a fine pointer
+ *     (an attached trackpad, a future OS change). Belt and braces: this rule
+ *     is cosmetic, and the cost of it leaking again is an App Store screenshot
+ *     that makes the iPad build look broken.
+ *
+ * A Playwright capture at iPad width must pass hasTouch so it represents the
+ * device rather than this view — see scripts/capture-release-screenshots.mjs.
+ */
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  html:not([data-native]) .app-shell {
+    max-width: 520px; margin: 0 auto;
+    border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline);
+  }
 }
 
 /* ─────────────────────────── Reduced motion ─────────────────────────── */
@@ -1001,6 +1027,24 @@ a { color: var(--accent); text-decoration: none; }
  * parses forgivingly, so an engine that cannot handle the descendant argument
  * degrades to "motion off everywhere" rather than dropping the rule.
  */
+
+.policy-links a { color: var(--accent, #b6ceff); display: inline-block; padding: 8px 0; }
+.saved-row { display: flex; align-items: center; gap: 12px; border-top: 1px solid #414753; padding: 12px 0; }
+.saved-title { flex: 1; text-align: left; background: transparent; color: inherit; border: 0; min-height: 44px; font: inherit; }
+.tr-hint-policy { font-size: 13px; line-height: 1.5; color: #c5cbd5; }
+/* `.tr-hint { max-height: calc(100dvh - 32px) }` used to sit here and is gone
+   on purpose. .tr-hint-backdrop is a centred flex box padded by
+   safe-area-inset + 24px on top and bottom, so the space available inside it
+   is 100dvh minus both insets minus 48px — smaller than that cap allowed. A
+   centred flex item that overflows its line box splits the overflow above and
+   below, and the backdrop is fixed with nothing to scroll. On a notched phone
+   that put roughly 50px past the bottom edge, and what lives at the bottom of
+   this panel is "Agree and continue" — which 3.5.0 also made the ONLY exit, by
+   removing the backdrop tap and passing dismissible: false. One more list item
+   or one longer translation and first launch would have had no way out. The
+   rule at .tr-hint above already declares max-height: 100%, which is correct
+   and bounded by the actual container, so this added nothing but the hazard. */
+.diagnostics-toggle { background: transparent; color: inherit; border: 1px solid #737b89; border-radius: 8px; min-height: 44px; padding: 8px 12px; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto !important; }

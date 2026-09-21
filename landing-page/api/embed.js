@@ -113,6 +113,11 @@ export default async function handler(request) {
   const controls = url.searchParams.get('controls') === '0' ? '0' : '1';
   const ivLoadPolicy = url.searchParams.get('iv_load_policy') === '3' ? '3' : '1';
   const fs = url.searchParams.get('fs') === '0' ? '0' : '1';
+  // Defaults to 1, which is what every deployed build has always requested.
+  // The iOS player asks for 0 so the video is handed to iOS's own full-screen
+  // player, which is the only presentation iOS will route to an AirPlay video
+  // device - see the AIRPLAY note in TrailerPlayer.swift and docs/bugs.md B10.
+  const playsinline = url.searchParams.get('playsinline') === '0' ? '0' : '1';
   // Epoch token (v3.2.0): native hands us its per-load token; we echo it on
   // every message so native can drop stale messages that cross a load/swap
   // boundary. Absent (older native builds) = 0, harmless.
@@ -138,7 +143,7 @@ export default async function handler(request) {
     `&controls=${controls}` +
     `&iv_load_policy=${ivLoadPolicy}` +
     `&fs=${fs}` +
-    `&playsinline=1` +
+    `&playsinline=${playsinline}` +
     `&rel=0` +
     `&modestbranding=1` +
     `&enablejsapi=1` +
@@ -321,6 +326,13 @@ export default async function handler(request) {
     try {
       if (typeof e === 'number' && isFinite(e)) trEpoch = e; // new epoch (v3.2.0 native)
       resetProgress(); // new video — forget the previous clip's progress/pin
+      // The new video has not spoken yet, whatever the old one did. Leaving
+      // this set meant the 1s heartbeat reported yt:true within a second of
+      // every swap, which switched off native's 20s silent-player check for
+      // the incoming video and left only the 75s hard cap between a skip and
+      // a stuck spinner. Native carries its own progress-based guard for the
+      // builds already installed; this is the same fix at the source.
+      sawYt = false;
       iframe.contentWindow.postMessage(
         JSON.stringify({ event: 'command', func: 'loadVideoById', args: [String(id)] }),
         'https://www.youtube-nocookie.com'

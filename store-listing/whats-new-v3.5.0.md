@@ -1,0 +1,1 @@
+Saved movies now have their own screen. Filter changes handle slow networks more reliably, and empty results explain when Everything is playing. Updated privacy, terms and support access. Improved player layout and iPad rotation. Theater Mode is held back while we arrange data permission.

@@ -162,11 +162,11 @@ describe('corrupt or foreign stored values recover to an empty list', () => {
     expect((await listWatchlist()).map((m) => m.id)).toEqual([5]);
   });
 
-  it('never throws when the storage layer itself fails', async () => {
+  it('recovers a failed read but reports a failed write instead of claiming success', async () => {
     storage.get.mockRejectedValueOnce(new Error('preferences unavailable'));
     await expect(listWatchlist()).resolves.toEqual([]);
     storage.set.mockRejectedValueOnce(new Error('quota exceeded'));
-    await expect(toggleSaved(movie(1))).resolves.toBe(true);
+    await expect(toggleSaved(movie(1))).rejects.toThrow('quota exceeded');
   });
 });
 

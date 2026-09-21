@@ -1,56 +1,153 @@
-# Privacy Nutrition Label — App Store Connect spec
+# App Privacy and age rating — decided answers for 3.5.0
 
-Apple requires a per-app privacy disclosure (the "nutrition label") at submission. Below is the exact form, mapped to App Store Connect's taxonomy, that v1 of Trailer Roulette will declare.
+Reviewed 2026-09-21 against Apple's current guidance and against this
+checkout. These are answers to paste, not questions to resolve. Each one says
+what it rests on and what would change it — check those before submitting,
+because a label that stops being true is worse than one that was never filed.
 
-## Top-level question
-**Does this app collect data from this app?**
-→ **No, we do not collect data from this app.**
+The two must agree with `app/ios/App/App/PrivacyInfo.xcprivacy`, which is
+signed into the binary. Changing an answer below without changing the manifest
+puts a contradiction in front of the reviewer.
 
-That single declaration is sufficient because Trailer Roulette has:
-- No accounts, no login, no email collection
-- No analytics SDK
-- No advertising SDK / IDFA usage
-- No location, camera, microphone, contacts, photos, health, or financial data access
-- No backend that holds user data
+---
 
-## What we *do* contact and why (NOT "data collection" by Apple's definition)
+## App Privacy: **Data Not Collected**
 
-Apple distinguishes "collection" (data linked to identity / shared with you) from "data sent to a third party for the user's benefit." None of the items below count as collection:
+Apple defines collect as "transmitting data off the device in a way that allows
+you and/or your third-party partners to access it for a period longer than what
+is necessary to service the transmitted request in real time," and defines
+third-party partners as "analytics tools, advertising networks, third-party
+SDKs, or other external vendors whose code you've added to your app."
 
-| Service | What's sent | Why |
-|---------|-------------|-----|
-| TMDB API | API key (yours, not user's), search/filter parameters | fetch movie metadata |
-| YouTube (via SFSafariViewController) | the trailer URL the user tapped | YouTube serves the player and ad |
-| Apple App Store / TestFlight | crash reports (Apple-mediated) | per Apple's own privacy policy |
+Nothing in this app meets that. The evidence, all checked in this tree:
 
-These are user-initiated network requests, not background or behavior-tracking calls.
+| Claim | Evidence |
+| --- | --- |
+| No third-party SDK collects anything | `app/ios/App/Podfile` links Capacitor core, App, Dialog, Haptics and Preferences, plus the two local plugins in this repo. No analytics, ads, attribution or crash SDK. |
+| The binary declares no collection and no tracking | `PrivacyInfo.xcprivacy`: `NSPrivacyTracking false`, `NSPrivacyTrackingDomains` empty, `NSPrivacyCollectedDataTypes` empty, one accessed API — UserDefaults, reason CA92.1. |
+| No analytics on the web side | No `@vercel/analytics`, no Speed Insights, no tag manager anywhere in `landing-page/` or `app/src/`. |
+| No accounts, no server-side store | There is no backend that holds user data. `landing-page/api/embed.js` is a stateless Edge Function that renders a page. |
+| Preferences never leave the device | Saved list, filters, mute, consent and the local error log go through `app/src/lib/storage.js` to Capacitor Preferences (NSUserDefaults). Nothing uploads them. |
+| The player runs in YouTube's privacy-enhanced origin | `embed.js` frames `https://www.youtube-nocookie.com/embed/...` with `referrerpolicy="strict-origin-when-cross-origin"`. That is a cross-origin iframe the app cannot read. |
+| No adult content is requested | `include_adult: false` on every discover and search call in `app/src/lib/tmdb.js` (four call sites). |
 
-## App Store Connect form walkthrough
+TMDB and Google receive what is needed to service a request in real time — a
+metadata lookup, a video stream. Neither is a partner whose code was added to
+the app to collect data for the developer, and the developer cannot access what
+either of them logs.
 
-When you fill out the privacy questionnaire at submission:
+### What would change this answer
 
-1. **Data Types** → tick **None of the data types listed in this section are collected.** (Repeat for every category — Contact Info, Health & Fitness, Financial Info, Location, Sensitive Info, Contacts, User Content, Browsing History, Search History, Identifiers, Purchases, Usage Data, Diagnostics, Other Data.)
+- **Turning on Vercel Analytics or Speed Insights.** That is Usage Data
+  collected by the developer's own host, and it would have to be declared and
+  added to the manifest. Do not enable it without revisiting this file.
+- **Any advertising, attribution or crash SDK**, including one added by a
+  Capacitor plugin update. Re-read the Podfile after any dependency bump.
+- **Affiliate links** on where-to-watch providers. 3.5.0 has none.
+- **Theater Mode shipping.** Location re-enters the assessment, though a
+  one-time location used on device and never transmitted is still not
+  "collected" — see `docs/RELEASE-REVIEW-2026-09.md` section 9.
+- **A reviewer disagreeing.** Apple's rule is that "data collected via web
+  traffic must be declared, unless you are enabling the user to navigate the
+  open web," and this web view is the developer's own page rather than the open
+  web. If that is challenged, the fallback needs no code change: declare
+  **Data Not Linked to You → Identifiers (Device ID)** and **Usage Data
+  (Product Interaction)**, purposes **Third-Party Advertising** and **App
+  Functionality**, **not** used for tracking — and update the manifest to match.
+  Non-personalised is defensible because the player is in nocookie mode.
 
-2. **Tracking** → "Does this app track users?" → **No.** ("Tracking" in Apple's sense means linking user/device data with data from other apps/sites for ads or sharing with data brokers — neither happens here.)
+### Other App Store Connect fields
 
-3. **Privacy policy URL** → the hosted URL of `privacy-policy-hosted/index.html`. Set to `https://trailerroulette.app/privacy` once domain is live.
+- **Privacy Policy URL**: `https://trailer-roulette.vercel.app/privacy` — set it
+  only after the deploy, or the reviewer gets the April page.
+- **Tracking / ATT**: **No**, and no ATT prompt. Tracking means linking this
+  app's data with other companies' data for targeted advertising or sharing
+  with a data broker. Nothing here does that, and the player is in
+  privacy-enhanced mode.
+- **Do not declare Location.** The public build makes no location request. An
+  iOS purpose string existing in Info.plist is not a reason to declare
+  collection; if the string is present for the disabled Theater Mode, that is
+  still not collection.
 
-## If we ever add features that change this
+---
 
-| Feature | Disclosure delta |
-|---------|------------------|
-| Sign in with Apple (cross-device sync) | Add **Email Address** under "Contact Info — Linked to user" |
-| Crash analytics SDK (e.g. Sentry) | Add **Crash Data, Performance Data — Not linked** under "Diagnostics" |
-| Push notifications | Add **Device ID — Linked** if registering with our own backend |
-| Couple's Mode with shared backend | Reconsider entire posture; likely needs full disclosure |
+## Age rating: answer honestly, expect 16+ or 18+
 
-**v1 strategy: keep the label at "Data Not Collected."** It's the most legible, lowest-friction posture and matches the codebase reality.
+The app plays a random feed of trailers from across cinema and does not filter
+by certification. Under-rating is a removal cause, so every answer below is the
+one the content actually supports rather than the one that widens the audience.
 
-## Verification checklist before submission
+### Capabilities
 
-- [ ] No third-party SDKs in `package.json` beyond Capacitor's official ones and React
-- [ ] No analytics calls anywhere in `src/`
-- [ ] `Capacitor.getPlatform()` is the only device-property read
-- [ ] Crashes go through TestFlight/App Store Connect only (Apple-mediated)
-- [ ] Privacy policy hosted URL is reachable and accurate
-- [ ] About screen surfaces the same disclosures
+| Question | Answer | Why |
+| --- | --- | --- |
+| Unrestricted Web Access | **No** | There is no in-app browser. The one web view loads a single fixed URL; every other link is an `<a target="_blank">` that hands off to Safari. |
+| Advertising | **Yes** | YouTube serves its own ads inside the player and the app may not remove them. The privacy policy, terms, store description and review notes all say so. |
+| User-Generated Content | **No** | |
+| Social Media | **No** | |
+| Messaging and Chat | **No** | The system share sheet is not messaging. |
+| Parental Controls | **No** | The app has none of its own. |
+| Age Assurance | **No** | |
+
+### Violence
+
+| Question | Answer | Why |
+| --- | --- | --- |
+| Realistic Violence | **Frequent or Intense** | Action and horror trailers are a large share of a random feed. |
+| Cartoon or Fantasy Violence | **Frequent or Intense** | |
+| Guns or Other Weapons | **Yes** | |
+| Prolonged Graphic or Sadistic Realistic Violence | **None** | Trailers are short and are marketing material cleared for general distribution. |
+
+### Mature themes
+
+| Question | Answer |
+| --- | --- |
+| Profanity or Crude Humor | **Frequent or Intense** |
+| Horror/Fear Themes | **Frequent or Intense** — Horror is a selectable genre |
+| Alcohol, Tobacco, or Drug Use or References | **Frequent or Intense** |
+
+### Sexuality or nudity
+
+| Question | Answer | Why |
+| --- | --- | --- |
+| Mature or Suggestive Themes | **Frequent or Intense** | |
+| Sexual Content or Nudity | **Infrequent or Mild** | Trailers are certificated marketing material, and `include_adult: false` is set on every TMDB call. |
+| Graphic Sexual Content and Nudity | **None** | |
+
+### Chance-based activities
+
+All **No**: Gambling, Simulated Gambling, Contests, Loot Boxes.
+
+**Say this in the review notes.** "Roulette Wheel" and "Trailer Roulette" invite
+the question. The mode spins to pick a decade and then plays a trailer. There is
+no wager, no stake, no chips, no odds, no virtual currency and no prize. It is
+a randomiser, which is the whole premise of the app.
+
+### Medical or wellness
+
+All **None** / **No**.
+
+### Expected outcome
+
+Frequent or Intense realistic violence, horror themes and profanity will land
+this at **16+ or 18+**. That is the honest rating for an unfiltered trailer
+channel, and the privacy policy and support page already tell users that
+trailers carry violence, strong language and mature themes.
+
+**If a lower rating matters more than the unfiltered feed**, the only legitimate
+route is a product change, not a different answer: constrain the TMDB discover
+calls by certification (`certification_country` plus `certification.lte`), so
+the channel draws only from titles at or below a chosen rating. That narrows the
+catalogue considerably and is an owner decision, not a release fix — it is not
+in 3.5.0.
+
+---
+
+## Before submitting
+
+- [ ] Vercel Analytics and Speed Insights confirmed off on the project.
+- [ ] Podfile re-read after any dependency change since this review.
+- [ ] `PrivacyInfo.xcprivacy` still declares no collection and no tracking.
+- [ ] Privacy Policy URL set, and `/privacy` confirmed live and current.
+- [ ] Age rating answered as above; the gambling note added to review notes.
+- [ ] Location **not** declared.

@@ -4,6 +4,121 @@ All notable changes to Trailer Roulette. Format: [Keep a Changelog](https://keep
 
 ## [Unreleased]
 
+## [3.5.0] — unreleased (public App Store release candidate)
+
+**The first build meant for strangers.** Everything before this was TestFlight
+or a submission that never went public. This release is about the things a
+public listing needs and a private build never did: policies that exist and are
+linked from inside the app, consent recorded against a version, a store listing
+that describes what actually ships, and a layout that is not a phone in a box on
+an iPad. Branch `release/public-3.5`, PR #1.
+
+### Added
+- **First-launch consent sheet.** Cannot be dismissed except by "Agree and
+  continue"; links Privacy, Terms and the YouTube Terms of Service. Acceptance
+  is stored under `KEYS.POLICY_ACCEPTED` against `POLICY_VERSION`, so a material
+  policy revision asks again rather than inheriting an old agreement.
+- **Saved movies** gets its own screen, reached by the bookmark button in the
+  top bar. Save failures now surface an error instead of failing silently.
+- **`/terms` and `/support`** exist. Both were linked from inside the shipped
+  binary and both returned 404.
+- **`scripts/verify-production.mjs`** — a deploy gate that fetches the live
+  `/embed` and diffs it against this checkout's handler, then checks that the
+  three policy pages are live and current. Wired into `ios-release.yml` ahead of
+  signing, alongside lint and tests.
+- **`scripts/capture-release-screenshots.mjs`** — one capture path for both
+  device sizes, through a touch-emulating context, with YouTube served a
+  transparent stub so the drafts show the backdrop the device shows rather than
+  YouTube's play button.
+- **`.github/workflows/ios-screenshots.yml`** — native captures from a macOS
+  runner at 1320x2868 and 2064x2752, asserted. There is no Mac on this project,
+  so this is the only gate that *runs* the app rather than compiling it. It is
+  what confirmed the app renders on iOS and that the iPad fix holds on iPadOS.
+- **`.gitattributes`** — pins LF. 23 tracked files had been rewritten CRLF
+  during this release with no content change and a diff of about 38,000 lines.
+- App-level `PrivacyInfo.xcprivacy` (UserDefaults, reason CA92.1), added to the
+  App target's resources.
+- `store-listing/review-notes.md`, `subtitle.md`, `whats-new-v3.5.0.md`;
+  `docs/MONETIZATION-2026-09.md`; `docs/RELEASE-REVIEW-2026-09.md`.
+
+### Fixed
+- **The consent sheet flashed on every cold launch.** `hintOpen` started `true`,
+  so `FirstRunHint` mounted on frame one and `useDismissAnimation` played its
+  240ms exit the moment the stored acceptance resolved — a returning user saw
+  the sheet appear and leave every single launch. The gate is tri-state now
+  (`consentGate` in `lib/release.js`): `null` until the read lands, and neither
+  the sheet nor the player renders while it holds. The player-wrap condition
+  moved from `!hintOpen` to `hintOpen === false` so it does not mount during
+  that window either. Still fails closed — a read that throws asks again — and
+  the match on `POLICY_VERSION` is exact rather than truthy. The boot comment
+  claimed the opposite of what the code did and is corrected. (B5)
+- **The swipe-down dismissal could not be started.** `chromeMayAutoHide()`
+  returns `false`, so the glass header is permanently visible, and
+  `gestureRecognizerShouldBegin` rejected its entire frame; the web view spans
+  from the header's bottom edge to the progress track and takes everything else.
+  The only surface left was the 2.5pt track and the home-indicator inset. It now
+  rejects the header's `UIControl`s, grown to the 44pt target, instead of the
+  whole header — Done, Mute and Skip are untouched, and the title and the empty
+  glass are draggable. (B6)
+- **Every iPad build shipped the desktop dev view.** The phone-width column with
+  hairline borders in `styles/index.css` was gated on `min-width: 900px` alone,
+  and an iPad in portrait is about 1032px. Measured in Chromium at 1032px:
+  `.app-shell` 520px with a 1px border each side — half the screen black. It now
+  also requires `(hover: hover) and (pointer: fine)`, which no touch device
+  reports, and is scoped to `html:not([data-native])` with the marker set in
+  `main.jsx` for any Capacitor build. Desktop keeps its dev view unchanged.
+  The screenshot script was reproducing the bug rather than catching it — its
+  context now emulates touch. (B7)
+- **Filters**: generation guards against stale responses, an empty-result
+  fallback banner, and safer restore of saved filters.
+- **Player layout**: the web view sits between the glass header and the progress
+  track, so no native view overlaps the YouTube player; artwork and spinner are
+  confined to the header.
+- **Landing pages**: `privacy.html` rewritten against the real 3.5.0 data flows
+  (it still read "Effective date: TBD" from April); per-page descriptions,
+  canonical links, `theme-color`, Open Graph and `viewport-fit=cover` restored,
+  with `og:url` corrected from `trailerroulette.app`; `terms.html` and
+  `support.html` get permanent redirects from their `.html` spellings.
+
+### Changed
+- **The feed actually draws from the whole catalogue.** `eraStrata` capped each
+  decade at `maxPage` 2-5, so with `sort_by=popularity.desc` the roulette could
+  only ever see the top 40-100 most popular films of a year; graded vote floors
+  of 40-180 filtered the same axis again. Measured against live TMDB, that feed
+  averaged **4,631 votes** per pick — Alien, Pulp Fiction, Shawshank, Godzilla
+  vs. Kong. It now learns each year's real page count and samples anywhere in
+  it, against one floor of 30, with the catalogue starting at **1950** instead
+  of 1970. Measured on the shipped path: **82% of picks still have a trailer,
+  average 572 votes, all eight decades represented** — The Night Porter, Donkey
+  Skin, Dead Ringers, Too Late Blues, Kaagaz Ke Phool. Lower floors were
+  measured and rejected: at 10 only 52% have a trailer, at 0 only 4%, because
+  the bottom of TMDB is DVD extras and fragments, not obscure films. (B12)
+- **Theater Mode is hidden**, behind `VITE_ENABLE_THEATER_MODE` (off unless set
+  to `true`; the release workflow does not set it). Owner decision, 2026-09-21:
+  hold it until permission for Alamo Drafthouse programming data is verified
+  rather than assumed from a public API. Development builds are unaffected.
+- **Player presentation is `.fullScreen`**, not `.overFullScreen`, so UIKit
+  consults the player's `supportedInterfaceOrientations` and iPad rotates
+  freely. Two costs come with it and NEITHER is measured: the swipe-down no
+  longer reveals the roulette stage behind it, and the main Capacitor web view
+  leaves the window for the duration, which iOS may throttle. Both are on the
+  device test. The comment block above the line argued for `.overFullScreen`
+  while the code did the opposite; it now records the trade.
+- `eslint . --max-warnings 0` — warnings fail the build.
+- Store listing rewritten: description, subtitle, promotional text and keywords
+  are paste-ready copy rather than notes.
+
+### Verification
+230 vitest across 12 files (193 before this release; +15 consent, +17 policy
+pages, +5 dev view), `eslint --max-warnings 0` clean, `vite build` green, CI's
+unsigned iOS simulator compile green on the branch, `scripts/release-smoke.mjs`
+green (48 browser assertions across four viewport sizes, its first run outside
+its author), and native simulator captures confirming the app launches and
+renders on iOS. **Not verified on a device.** No physical-device test has been run against this build; the player
+layout, iPad rotation, AirPlay, unattended auto-advance and the `.fullScreen`
+trade are all reasoned, not seen. `docs/RELEASE-REVIEW-2026-09.md` has the
+script and the definition of done.
+
 ## [3.4.3] — unreleased (held until P1 playback verification passes)
 
 **Decade + genre filters.** The Everything feed can be narrowed to chosen

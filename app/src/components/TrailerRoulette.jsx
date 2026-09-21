@@ -1,10 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import Player from './Player.jsx';
+import PolicyLinks from './PolicyLinks.jsx';
+import {
+  THEATER_MODE_ENABLED, POLICY_VERSION, consentGate, withTimeout,
+} from '../lib/release.js';
 import AboutScreen from './AboutScreen.jsx';
 import TheaterSheet from './TheaterSheet.jsx';
 import FiltersSheet from './FiltersSheet.jsx';
 import MovieSheet from './MovieSheet.jsx';
+import SavedMovies from './SavedMovies.jsx';
 import FunSheet from '../features/FunSheet.jsx';
 import { FEATURES } from '../features/index.js';
 import { useOverlay } from '../features/overlay.js';
@@ -50,16 +55,17 @@ function decadeLabel(year) {
  * useOverlay — same contract as FunSheet, TheaterSheet and the six modes, so
  * this closes the way everything else in the app closes.
  */
-function FirstRunHint({ open, onClose }) {
+export function FirstRunHint({ open, onClose }) {
   const { mounted, closing, close, dialogProps } = useOverlay({
     open,
     onClose,
     label: 'How Trailer Roulette works',
+    dismissible: false,
   });
   if (!mounted) return null;
 
   return (
-    <div className={`tr-hint-backdrop${closing ? ' is-closing' : ''}`} onClick={close}>
+    <div className={`tr-hint-backdrop${closing ? ' is-closing' : ''}`}>
       <div
         className={`tr-hint${closing ? ' is-closing' : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -87,7 +93,7 @@ function FirstRunHint({ open, onClose }) {
             </span>
             <span><strong>AirPlay</strong> throws whatever is playing to a TV.</span>
           </li>
-          <li>
+          {THEATER_MODE_ENABLED && (<li>
             <span className="tr-hint-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 {/* Film-strip glyph — same mark as the Theaters pill. */}
@@ -102,7 +108,7 @@ function FirstRunHint({ open, onClose }) {
               <strong>Theaters</strong>, top left, tunes the channel to one real cinema and
               what it is showing this month.
             </span>
-          </li>
+          </li>)}
           <li>
             <span className="tr-hint-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -113,8 +119,9 @@ function FirstRunHint({ open, onClose }) {
           </li>
         </ul>
 
+        <p className="tr-hint-policy">By continuing, you agree to our Terms and Privacy policy and the YouTube Terms of Service. This app uses YouTube API Services. <PolicyLinks /></p>
         <button type="button" className="tr-hint-go" onClick={close}>
-          Start watching
+          Agree and continue
         </button>
       </div>
     </div>
@@ -145,6 +152,7 @@ export default function TrailerRoulette() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [loadError, setLoadError] = useState(false); // flag only — see loadQueue
+  const [filterFallback, setFilterFallback] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [playSignal, setPlaySignal] = useState(0);
@@ -153,8 +161,13 @@ export default function TrailerRoulette() {
   const [source, setSource] = useState(null); // null = Everything; { marketSlug, marketName } = Theater Mode
   const [theaterOpen, setTheaterOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [savedMovie, setSavedMovie] = useState(null);
   const [muted, setMuted] = useState(false); // restored from storage on boot
-  const [hintOpen, setHintOpen] = useState(false); // first launch only
+  // Tri-state, deliberately not a boolean: null until the stored acceptance
+  // has been read, then false (accepted) or true (show the sheet). See
+  // consentGate in lib/release.js for why the unknown state has to exist.
+  const [hintOpen, setHintOpen] = useState(consentGate(undefined));
   // Filters (v3.4.3): { decades: number[], genres: number[] }, both empty =
   // Everything. Lives here (not in a mode) because it shapes the core feed.
   const [filters, setFilters] = useState({ decades: [], genres: [] });
@@ -168,6 +181,8 @@ export default function TrailerRoulette() {
   const loadQueueRef = useRef(null);
   const sourceRef = useRef(null); // mirrors `source` for use inside stable callbacks
   const filtersRef = useRef({ decades: [], genres: [] }); // mirrors `filters` for loadQueue
+  const queueGeneration = useRef(0);
+  const selectionGeneration = useRef(0);
 
   // Build the queue for the active source.
   //  - Everything: an era-diverse random batch (old + mid + recent), shuffled
@@ -181,6 +196,12 @@ export default function TrailerRoulette() {
   //    matched to TMDB and shuffled. Finite by nature, so when it runs dry we
   //    reshuffle and loop — a cinema lobby reel, not an endless feed.
   const loadQueue = useCallback(async ({ append = false } = {}) => {
+    if (!append) {
+      queueGeneration.current += 1;
+      selectionGeneration.current += 1;
+      clearTimeout(retryRef.current.timer);
+    }
+    const generation = queueGeneration.current;
     try {
       if (!append) setLoadError(false);
       const src = sourceRef.current;
@@ -197,6 +218,8 @@ export default function TrailerRoulette() {
           // Everything. See discoverFilteredMix in tmdb.js.
           results = await discoverFilteredMix({ genres: flt.genres, decades: flt.decades });
         }
+        if (generation !== queueGeneration.current) return;
+        setFilterFallback(Boolean(filtered && !results.length));
         if (!results.length) {
           // No filter, or the filter came back empty — the unfiltered mix.
           results = await discoverRandomMix();
@@ -207,6 +230,7 @@ export default function TrailerRoulette() {
         }
         candidates = results.map(toTrailerCandidate);
       }
+      if (generation !== queueGeneration.current) return;
       const ordered = uniformShuffle(candidates);
       retryRef.current.attempt = 0;
       clearTimeout(retryRef.current.timer);
@@ -229,6 +253,7 @@ export default function TrailerRoulette() {
         if (ordered.length > 0) await selectAsCurrent(ordered[0]);
       }
     } catch (err) {
+      if (generation !== queueGeneration.current) return;
       console.error('[TrailerRoulette] loadQueue failed', err);
       // A flag, not the message: `err` is whatever TMDB, the network stack or
       // a parser threw, and the banner is the first thing a new user may see.
@@ -259,9 +284,28 @@ export default function TrailerRoulette() {
   // — straight into a trailer, or on the one-time hint.
   useEffect(() => {
     (async () => {
+      // CONSENT FIRST, AND ON A CLOCK. Everything below is a preference; this
+      // one decides whether any surface renders at all, because the gate
+      // starts unknown and unknown renders neither the sheet nor the player.
+      //
+      // It used to be read last, behind three other Preferences round-trips
+      // and loadQueue(). A single bridge call that never settled — plugin not
+      // yet registered, web view resumed from a background snapshot — left the
+      // app on a black stage forever, and `catch` does not cover a promise
+      // that never settles. The old boolean could not fail this way because it
+      // mounted the player on frame one; the tri-state can, so the read moves
+      // to the front and gets a timeout. Both paths fail CLOSED: consent is
+      // what is being recorded, so anything short of a confirmed acceptance
+      // asks again rather than assuming.
+      let accepted = null;
+      try {
+        accepted = (await withTimeout(storage.get(storage.KEYS.POLICY_ACCEPTED))) ?? null;
+      } catch { accepted = null; }
+      setHintOpen(consentGate(accepted));
+
       try {
         const saved = await storage.get(storage.KEYS.SOURCE);
-        if (saved?.marketSlug) {
+        if (THEATER_MODE_ENABLED && saved?.marketSlug) {
           sourceRef.current = saved;
           setSource(saved);
         }
@@ -272,8 +316,8 @@ export default function TrailerRoulette() {
         const saved = await storage.get(storage.KEYS.FILTERS);
         if (saved?.decades?.length || saved?.genres?.length) {
           filtersRef.current = {
-            decades: saved.decades.filter(Number.isFinite) || [],
-            genres: saved.genres.filter(Number.isFinite) || [],
+            decades: (saved.decades || []).filter(Number.isFinite),
+            genres: (saved.genres || []).filter(Number.isFinite),
           };
           setFilters(filtersRef.current);
         }
@@ -288,15 +332,6 @@ export default function TrailerRoulette() {
         setMuted((await storage.get(storage.KEYS.MUTED)) === true);
       } catch { /* default unmuted */ }
 
-      // First launch shows the hint and lets its dismissal start playback;
-      // every launch after that arms autoplay immediately. A failed read
-      // counts as "already seen" — skipping the hint once is far better than
-      // showing it on every launch of a device where persistence is broken.
-      let seenHint = true;
-      try {
-        seenHint = (await storage.get(storage.KEYS.ONBOARDED)) === true;
-      } catch { seenHint = true; }
-      if (!seenHint) setHintOpen(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -304,7 +339,7 @@ export default function TrailerRoulette() {
   // The hint is dismissed: remember that, and hand off to autoplay.
   const onDismissHint = useCallback(() => {
     setHintOpen(false);
-    storage.set(storage.KEYS.ONBOARDED, true).catch(() => { /* best-effort */ });
+    storage.set(storage.KEYS.POLICY_ACCEPTED, POLICY_VERSION).catch(() => { /* best-effort */ });
   }, []);
 
 
@@ -369,6 +404,8 @@ export default function TrailerRoulette() {
   }, [loadQueue]);
 
   const selectAsCurrent = useCallback(async (trailer, depth = 0) => {
+    const selection = ++selectionGeneration.current;
+    const generation = queueGeneration.current;
     let next = trailer;
     if (!trailer.youtubeKey) {
       try {
@@ -379,6 +416,7 @@ export default function TrailerRoulette() {
         console.warn('[TrailerRoulette] getTrailer failed', e);
       }
     }
+    if (selection !== selectionGeneration.current || generation !== queueGeneration.current) return;
     // Skip movies with no trailer or a known-unplayable key (auto-skip up to 8
     // deep) so the feed never lands on a dead card.
     const keyKnownBad = next.youtubeKey && unplayableKeysRef.current.has(next.youtubeKey);
@@ -520,6 +558,7 @@ export default function TrailerRoulette() {
   // card on the stage.
   const onOpenDetails = useCallback(() => {
     haptics.light();
+    setSavedMovie(null);
     setSheetOpen(true);
   }, []);
 
@@ -554,7 +593,7 @@ export default function TrailerRoulette() {
         <div className="tr-next" aria-hidden="true" style={{ backgroundImage: `url("${nextArt}")` }} />
       )}
 
-      {!activeFeature && (
+      {!activeFeature && hintOpen === false && (
         <div className="player-wrap">
           {/* ONE Play affordance on this screen: the bottom pill below.
               The player used to render its own 88px on-stage Play as well —
@@ -601,7 +640,7 @@ export default function TrailerRoulette() {
             </svg>
             <span>{filterCount ? `Filters · ${filterCount}` : 'Filter'}</span>
           </button>
-          <button
+          {THEATER_MODE_ENABLED && <button
             className={`tr-pill tr-pill-theater${source ? ' is-tuned' : ''}`}
             onClick={() => { haptics.light(); setTheaterOpen(true); }}
             aria-label={source ? `Theater: ${source.marketName}. Change theater` : 'Pick a theater'}
@@ -615,7 +654,7 @@ export default function TrailerRoulette() {
               <line x1="17" y1="9" x2="21" y2="9" /><line x1="17" y1="15" x2="21" y2="15" />
             </svg>
             <span className="tr-pill-theater-label">{source ? source.marketName : 'Theaters'}</span>
-          </button>
+          </button>}
         </div>
         <div className="tr-topbar-right">
           <button className="tr-pill" onClick={() => { haptics.light(); setMenuOpen(true); }} aria-label="Open fun modes">
@@ -628,6 +667,9 @@ export default function TrailerRoulette() {
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
+          </button>
+          <button className="tr-glyph" onClick={() => setSavedOpen(true)} aria-label="Saved movies">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z" /></svg>
           </button>
         </div>
       </div>
@@ -707,14 +749,21 @@ export default function TrailerRoulette() {
         </div>
       )}
 
+      {filterFallback && !loadError && (
+        <div className="tmdb-error-banner" role="status">
+          No movies matched these filters. Playing Everything until you change or clear them.
+          <button onClick={() => setFiltersOpen(true)}>Change filters</button>
+        </div>
+      )}
+
       <AboutScreen open={showAbout} onClose={() => setShowAbout(false)} />
 
-      <TheaterSheet
+      {THEATER_MODE_ENABLED && <TheaterSheet
         open={theaterOpen}
         current={source}
         onPick={onPickSource}
         onClose={() => setTheaterOpen(false)}
-      />
+      />}
 
       <FiltersSheet
         open={filtersOpen}
@@ -725,10 +774,15 @@ export default function TrailerRoulette() {
 
       <MovieSheet
         open={sheetOpen}
-        movie={current}
-        source={source}
+        movie={savedMovie || current}
+        source={savedMovie ? null : source}
         onClose={() => setSheetOpen(false)}
       />
+      <SavedMovies open={savedOpen} onClose={() => setSavedOpen(false)} onPick={(movie) => {
+        setSavedMovie(movie);
+        setSavedOpen(false);
+        setSheetOpen(true);
+      }} />
 
       <FunSheet
         open={menuOpen}
@@ -748,7 +802,7 @@ export default function TrailerRoulette() {
       {ActiveComp && <ActiveComp onClose={() => setActiveFeature(null)} />}
 
       {/* Last in the tree so it sits above the stage chrome it points at. */}
-      <FirstRunHint open={hintOpen} onClose={onDismissHint} />
+      <FirstRunHint open={hintOpen === true} onClose={onDismissHint} />
     </div>
   );
 }

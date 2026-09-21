@@ -166,7 +166,7 @@ export default function PlayerWeb({
       player = new YT.Player(containerRef.current, {
         videoId: trailer.youtubeKey,
         playerVars: {
-          autoplay: 1,
+          autoplay: isPlayingRef.current ? 1 : 0,
           playsinline: 1,
           mute: muted ? 1 : 0,
           rel: 0,
@@ -192,7 +192,6 @@ export default function PlayerWeb({
             if (isPlayingRef.current) {
               try { e.target.playVideo?.(); } catch { /* noop */ }
             }
-            onPlayRef.current?.();
           },
           onStateChange: (e) => {
             if (destroyed) return;

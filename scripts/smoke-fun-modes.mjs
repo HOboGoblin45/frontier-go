@@ -1,9 +1,34 @@
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 const URL = process.argv[2] || 'http://127.0.0.1:4174/';
-const OUT = process.argv[3];
-const b = await chromium.launch({ headless: true, args: ['--no-sandbox','--disable-dev-shm-usage','--mute-audio'] });
+// 3.5.0 replaced the ONBOARDED flag with a consent record checked against
+// POLICY_VERSION, and made the first-run sheet dismissible ONLY by its button:
+// no backdrop tap, no Escape. Seeding the old key left this script staring at
+// that sheet with every later interaction failing. Read the version rather than
+// pasting it, so a bump does not quietly break this again.
+// globalThis.URL, not URL: this module declares `const URL` for its target
+// page two lines up, which shadows the global for the whole module scope.
+const POLICY_VERSION = readFileSync(new globalThis.URL('../app/src/lib/release.js', import.meta.url), 'utf8')
+  .match(/POLICY_VERSION\s*=\s*'(\d{4}-\d{2}-\d{2})'/)?.[1];
+if (!POLICY_VERSION) throw new Error('Could not read POLICY_VERSION from app/src/lib/release.js');
+// Optional. Unset, this used to concatenate onto the string "undefined" and
+// quietly create an `undefined/` directory at the repo root - which is exactly
+// how seven stray PNGs got committed. No path, no screenshots; the pass/fail
+// output is the point of this script.
+const OUT = process.argv[3] || null;
+const shoot = async (page, name) => { if (OUT) await page.screenshot({ path: `${OUT}/${name}` }); };
+// Installed Chrome, like release-smoke.mjs and capture-release-screenshots.mjs.
+// The bundled Chromium is not downloaded on this machine, so without a channel
+// this script fails before it reaches the app at all.
+const b = await chromium.launch({
+  headless: true,
+  channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome',
+  args: ['--no-sandbox','--disable-dev-shm-usage','--mute-audio'],
+});
 const ctx = await b.newContext({ viewport: { width: 1024, height: 1366 }, deviceScaleFactor: 1 });
-await ctx.addInitScript(() => { try { localStorage.setItem('trailer-roulette.onboarded','true'); } catch {} });
+await ctx.addInitScript((version) => {
+  try { localStorage.setItem('trailer-roulette.policy-accepted', JSON.stringify(version)); } catch {}
+}, POLICY_VERSION);
 const page = await ctx.newPage();
   await page.route(/youtube\.com|youtube-nocookie\.com|ytimg\.com|googlevideo\.com/, r=>r.abort());
 const errors = [];
@@ -19,7 +44,7 @@ const sheet = await page.$('.fun-sheet');
 console.log('Fun sheet opened:', !!sheet);
 const labels = await page.$$eval('.fun-item .fun-label', els => els.map(e => e.innerText)).catch(()=>[]);
 console.log('Fun items:', labels.length, '->', JSON.stringify(labels));
-await page.screenshot({ path: OUT + '/00-funmenu.png' });
+await shoot(page, '00-funmenu.png');
 for (let i = 0; i < labels.length; i++) {
   if (!(await page.$('.fun-sheet'))) { const mb = await page.$('button[aria-label="Open fun modes"]'); if (mb) { await mb.click(); await page.waitForTimeout(500); } }
   const items = await page.$$('.fun-item');
@@ -29,7 +54,7 @@ for (let i = 0; i < labels.length; i++) {
   const heading = await page.$eval('.feat h1, .feat h2, .feat-title, .feat', el => (el.innerText||'').slice(0,50)).catch(()=>'');
   const newErr = errors.slice(before);
   console.log(`MODE ${i+1} "${labels[i]}": overlay=${!!feat} | heading="${heading.replace(/\n/g,' ')}" | errors=${newErr.length} ${newErr.join(' || ')}`);
-  await page.screenshot({ path: OUT + `/${String(i+1).padStart(2,'0')}-${labels[i].replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.png` });
+  await shoot(page, `${String(i+1).padStart(2,'0')}-${labels[i].replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.png`);
   const close = await page.$('.feat-close') || await page.$('button[aria-label="Close"]');
   if (close) { await close.click(); await page.waitForTimeout(700); } else { await page.keyboard.press('Escape'); await page.waitForTimeout(400); }
 }
