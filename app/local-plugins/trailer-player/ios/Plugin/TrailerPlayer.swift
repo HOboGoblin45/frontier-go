@@ -81,19 +81,24 @@
 //         IMPORTANT: it retires on the first observed playback of ANY kind,
 //         including a pre-roll ad, for YouTube policy reasons. Do not "improve"
 //         that; markStageLive() explains, and there is a timer backstop.
-//      2. Cross-dissolve in, interactive swipe-down out, presented
-//         .overFullScreen so the roulette stage stays rendered behind the
-//         player and the drag reveals the artwork instead of window black. The
-//         user is already looking at this movie's artwork, so dissolving into
-//         the trailer is continuous where a sheet sliding up over it was a
-//         context switch. Swipe-down is what every first-party full-screen iOS
-//         video player does; before this, Done was the only way out.
-//      3. Auto-hiding chrome (3s idle). The glass header used to sit on the
-//         video forever. SAFETY RULE, enforced in three places: the chrome can
-//         never be both invisible AND the only exit — it stays pinned while the
-//         spinner is up, it is made non-interactive while hidden so a blind tap
-//         restores it instead of landing on Done, and the swipe-down works
-//         whether or not the chrome is on screen.
+//      2. Cross-dissolve in, interactive swipe-down out. The user is already
+//         looking at this movie's artwork, so dissolving into the trailer is
+//         continuous where a sheet sliding up over it was a context switch.
+//         Swipe-down is what every first-party full-screen iOS video player
+//         does; before this, Done was the only way out.
+//         CHANGED IN 3.5.0: the presentation is .fullScreen, not
+//         .overFullScreen — see the note at modalPresentationStyle below for
+//         what that trades away and what still has to be checked on a device.
+//      3. Auto-hiding chrome (3s idle). SUPERSEDED: chromeMayAutoHide()
+//         returns false, so the glass header is permanently visible and the
+//         hide path is dormant. The machinery stays because the SAFETY RULE it
+//         encodes still governs — the chrome may never be both invisible AND
+//         the only exit: it is pinned while the spinner is up, made
+//         non-interactive while hidden so a blind tap restores it instead of
+//         landing on Done, and the swipe-down works whether or not it is on
+//         screen. A permanently visible header is what forced the 3.5.0
+//         change to gestureRecognizerShouldBegin: rejecting its whole frame
+//         left the drag with nowhere to start.
 //      4. A progress line along the bottom edge of the glass, driven by the
 //         heartbeat's t/d — gated on contentConfirmedNow() so a pre-roll ad's
 //         clock can never drive it, and reset on every load/swap.
@@ -292,15 +297,30 @@ public class TrailerPlayer: CAPPlugin, CAPBridgedPlugin {
         )
         if let nextId = nextId { vc.setNext(videoId: nextId, title: nextTitle) }
         vc.setPlaylist(playlist, titles: playlistTitles)
-        // v3.2.2: .overFullScreen, not .fullScreen. UIKit tears the presenting
+        // 3.5.0 CHANGED THIS AND THE COMMENT HERE DESCRIBED THE OPPOSITE OF
+        // THE CODE. The history, so the next change is made with it in hand:
+        //
+        // v3.2.2 chose .overFullScreen deliberately. UIKit tears the presenting
         // view controller's view out of the hierarchy for a .fullScreen
         // presentation, so the interactive swipe-down (A2) dragged the player
         // over flat window black — the gesture felt like it was uncovering a
         // void instead of putting the trailer back down on the roulette stage
-        // it came from. .overFullScreen keeps that stage rendered underneath.
-        // The player's own root view and webView are opaque near-black, so
-        // nothing shows through at rest; the stage is revealed only by the
-        // drag's translation and alpha.
+        // it came from. .overFullScreen kept that stage rendered underneath,
+        // revealed only by the drag's translation and alpha.
+        //
+        // 3.5.0 switched to .fullScreen so UIKit consults this VC's
+        // supportedInterfaceOrientations, which is what lets iPad rotate
+        // freely. Two costs come with it, and NEITHER is verified:
+        //   - the drag-to-reveal above is gone; a dismissal now uncovers
+        //     window black until the presenting view is restored;
+        //   - the app's main Capacitor web view leaves the window for the
+        //     duration, and iOS may throttle or suspend its JavaScript. If it
+        //     does, queue feeding stalls in a long unattended session.
+        // Inference, not measurement. The device test covers it: play more
+        // than eight trailers without touching anything and watch for a stall.
+        // Do not revert this to .overFullScreen without re-testing iPad
+        // rotation, and do not switch it back and forth to chase a symptom —
+        // measure which of the two problems is actually present first.
         vc.modalPresentationStyle = .fullScreen
         // v3.2.2: dissolve, not a sheet sliding up. The screen behind this is
         // the roulette stage showing THIS movie's artwork full-bleed, and the
@@ -596,10 +616,13 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // MUST stay opaque. Since v3.2.2 this VC is presented .overFullScreen,
-        // so the roulette stage underneath is still rendered and would show
-        // through any transparency here. The only thing allowed to make this
-        // player see-through is the swipe-down drag's own alpha.
+        // MUST stay opaque. Under 3.5.0's .fullScreen presentation there is
+        // nothing rendered behind this VC, so transparency here would show
+        // window black; under the .overFullScreen it replaced, it would have
+        // leaked the roulette stage. Opaque is correct either way, which is
+        // why this line did not move with the presentation change. The only
+        // thing allowed to make the player see-through is the swipe-down
+        // drag's own alpha.
         view.backgroundColor = Self.stageColor
         // The player has its own unobscured rectangle; artwork stays in the header.
         setupWebView()
@@ -764,8 +787,9 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
         // through; that approach was wrong (the proxy page's own black body,
         // and the YouTube iframe behind it, are opaque) and the backdrop moved
         // above the webView instead. So these stay black, and the player has no
-        // transparency of its own to leak the stage through under the new
-        // .overFullScreen presentation.
+        // transparency of its own to leak anything through — which held under
+        // v3.2.2's .overFullScreen presentation and still holds under 3.5.0's
+        // .fullScreen.
         webView.backgroundColor = Self.stageColor
         webView.isOpaque = false
         webView.scrollView.isScrollEnabled = false
@@ -1176,19 +1200,46 @@ class TrailerPlayerViewController: UIViewController, WKNavigationDelegate, WKUID
     // MARK: - UIGestureRecognizerDelegate
 
     public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        // Player touches belong exclusively to YouTube. Swipe to dismiss from
-        // the space below the video; Done remains available in the header.
+        // Player touches belong exclusively to YouTube: never start a drag
+        // inside the embedded player's rectangle.
         if let player = webView, player.frame.contains(gestureRecognizer.location(in: view)) {
             return false
         }
-        // Never start on top of the glass chrome — Done / Mute / Skip have to
-        // stay ordinary buttons, and a drag that starts on a control is a
-        // mis-hit, not a dismissal. Only guarded while the chrome is actually
-        // visible and interactive; once it has auto-hidden, its frame is just
-        // more stage.
+        // 3.5.0: the drag starts on the glass header's BACKGROUND, not on its
+        // controls.
+        //
+        // This used to reject the chrome's whole frame, which was correct when
+        // the chrome auto-hid after 3s — its frame was "just more stage" most
+        // of the time, and the comment above promised a swipe "from the space
+        // below the video". Both premises are gone. chromeMayAutoHide() returns
+        // false, so the header is always visible and always rejected; and the
+        // web view now spans from the header's bottom edge to the progress
+        // track, so it takes everything else. What was left was the 2.5pt track
+        // and the home-indicator inset underneath it — i.e. nothing a thumb can
+        // land on, and a gesture that could not be started at all.
+        //
+        // Rejecting the controls rather than the whole header restores it.
+        // Done / Mute / Skip stay ordinary buttons: a drag that begins on one
+        // is a mis-hit, not a dismissal. The title, the spinner's column and
+        // the empty glass around them are fair game. Iterating UIControls
+        // rather than naming three outlets means a control added later is
+        // protected without anyone having to remember this method exists.
         if let chrome = chromeEffectView, chromeVisible, chrome.alpha > 0.01 {
             let point = gestureRecognizer.location(in: view)
-            if chrome.frame.contains(point) { return false }
+            if chrome.frame.contains(point) {
+                let local = gestureRecognizer.location(in: chrome.contentView)
+                for control in chrome.contentView.subviews where control is UIControl {
+                    guard control.isUserInteractionEnabled, !control.isHidden,
+                          control.alpha > 0.01 else { continue }
+                    // Grow anything smaller than the HIG target to it, so the
+                    // rejected area matches the area that actually takes taps.
+                    let frame = control.frame
+                    let target = frame.insetBy(
+                        dx: min(0, (frame.width - Self.minimumTapTarget) / 2),
+                        dy: min(0, (frame.height - Self.minimumTapTarget) / 2))
+                    if target.contains(local) { return false }
+                }
+            }
         }
         guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return true }
         // Downward and mostly vertical. A horizontal swipe is not a dismissal,
