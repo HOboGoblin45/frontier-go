@@ -52,6 +52,7 @@
 }
 .icon-btn:active { background: rgba(244, 239, 231, 0.12); }
 .icon-btn--on { color: var(--accent-primary); }
+.icon-btn--wide { width: auto; padding: 0 var(--space-3); gap: 4px; }
 
 /* ---------- Chips ---------- */
 .chips { display: flex; gap: var(--space-2); padding: var(--space-1) 0; }
@@ -556,3 +557,19 @@
   animation: fade-in var(--dur-fast) var(--ease-standard);
   white-space: nowrap;
 }
+
+/* ---------- Collections ---------- */
+.collections { flex: 1 1 auto; min-height: 0; padding-bottom: var(--space-4); }
+.collections .row { grid-template-columns: 62px 1fr auto; }
+.collections .row > svg { color: var(--text-muted); }
+
+/* ---------- Watch top-bar cluster ---------- */
+.watch__top-actions { display: flex; align-items: center; gap: var(--space-1); }
+.watch__nowplaying-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; padding: 6px 10px; border-radius: 999px;
+  color: var(--text-secondary); font-size: var(--step--1);
+  max-width: 56vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.watch__nowplaying-btn:active { background: rgba(244, 239, 231, 0.08); }
+.watch__sleep-label { font-size: var(--step--2); color: var(--accent-primary); margin-left: 2px; white-space: nowrap; }

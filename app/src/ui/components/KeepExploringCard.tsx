@@ -2,6 +2,7 @@ import type { FrontierMediaItem } from '../../core/types/media';
 import type { ExplorationConstraint } from '../../core/shuffle/constraint';
 import { locationHeadline } from '../../core/types/location';
 import { Icon } from './Icon';
+import { artworkFor } from '../../core/catalog/artwork';
 
 /**
  * "Keep Exploring Here" and its way out.
@@ -24,7 +25,7 @@ export function KeepExploringCard({
 }) {
   if (!open || !item) return null;
 
-  const poster = item.imagery.posterUrl || item.imagery.thumbnailUrl;
+  const poster = artworkFor(item);
   const place = item.location?.displayName || item.location?.regionName || item.source.organization;
 
   return (

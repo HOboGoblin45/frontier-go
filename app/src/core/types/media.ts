@@ -30,6 +30,11 @@ export interface FrontierStream {
 export interface FrontierImagery {
   thumbnailUrl?: string;
   posterUrl?: string;
+  /**
+   * The provider's poster is a branded title card rather than a frame of the
+   * footage. Set by the ingest; see core/catalog/artwork.ts.
+   */
+  titleCard?: boolean;
 }
 
 export interface FrontierTemporal {
@@ -98,6 +103,12 @@ export interface FrontierMediaItem {
   health?: FrontierHealthMetadata;
   /** Optional WebVTT captions, when the provider publishes them. */
   captionsUrl?: string;
+  /**
+   * When this item first appeared in a published catalog. Absent for the
+   * launch set, which has no meaningful "new"; stamped by the ingest for
+   * everything that arrives after it. Drives "New this week".
+   */
+  addedAt?: string;
 }
 
 export interface FrontierCatalog {

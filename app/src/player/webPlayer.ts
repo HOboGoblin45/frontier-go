@@ -130,6 +130,8 @@ export class WebFrontierPlayer extends WebPlugin implements FrontierPlayerPlugin
 
     setBackdrop(item.artworkUrl);
     const v = makeVideo();
+    // The agency's own frame while the file loads, instead of a black box.
+    if (item.artworkUrl) v.poster = item.artworkUrl;
     v.src = item.url;
     v.muted = this.muted;
     this.bind(v, item);
@@ -149,6 +151,7 @@ export class WebFrontierPlayer extends WebPlugin implements FrontierPlayerPlugin
     const item = options.item;
     if (this.failed.has(item.id) || this.nextEl) return { queued: false };
     const v = makeVideo();
+    if (item.artworkUrl) v.poster = item.artworkUrl;
     v.src = item.url;
     v.muted = true;
     v.style.display = 'none';

@@ -4,19 +4,23 @@ import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import { useFrontier } from './state/useFrontier';
 import { constraintForItem } from './core/shuffle/constraint';
-import { isSaved as isSavedIn, shareable, parseDeepLink } from './core/history/saved';
+import { isSaved as isSavedIn, shareable, parseDeepLink, resolveDiscovery } from './core/history/saved';
 import { get, set, KEYS } from './core/platform/storage';
 import { track } from './core/analytics/analytics';
 import { TabBar, type TabKey } from './ui/components/TabBar';
 import { TravelTransition, TravelAnnouncement } from './ui/components/TravelTransition';
 import { InfoSheet } from './ui/components/InfoSheet';
 import { KeepExploringCard } from './ui/components/KeepExploringCard';
+import { ChannelSheet } from './ui/components/ChannelSheet';
+import { SleepSheet, sleepLabel as formatSleep, type SleepChoice } from './ui/components/SleepSheet';
+import { CHANNEL_LABELS, inChannel, type FrontierChannel } from './core/types/media';
 import { Onboarding } from './ui/screens/Onboarding';
 import { Watch } from './ui/screens/Watch';
 import { GlobeScreen } from './ui/screens/GlobeScreen';
 import { Passport } from './ui/screens/Passport';
 import { Profile } from './ui/screens/Profile';
 import { visitedPlaces } from './core/history/passport';
+import { SITE_URL } from './core/platform/site';
 
 const VERSION = (import.meta.env.VITE_APP_VERSION as string) || '0.0.0';
 
@@ -47,6 +51,10 @@ export default function App() {
   const [exploreOpen, setExploreOpen] = useState(false);
   const [ambient, setAmbient] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [channelsOpen, setChannelsOpen] = useState(false);
+  const [sleepOpen, setSleepOpen] = useState(false);
+  const [sleep, setSleep] = useState<{ kind: 'off' } | { kind: 'minutes'; endsAt: number } | { kind: 'clip'; itemId: string }>({ kind: 'off' });
+  const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
     void get<boolean>(KEYS.ONBOARDED).then((v) => setOnboarded(!!v));
@@ -67,8 +75,9 @@ export default function App() {
   useEffect(() => {
     let handle: { remove: () => void } | null = null;
     void CapApp.addListener('appUrlOpen', ({ url }) => {
-      const id = parseDeepLink(url);
-      if (id) { setTab('watch'); void frontier.goTo(id); }
+      const ref = parseDeepLink(url);
+      const item = ref ? resolveDiscovery(frontier.state.pool, ref) : undefined;
+      if (item) { setTab('watch'); void frontier.goTo(item.id); }
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
   }, [frontier]);
@@ -103,6 +112,17 @@ export default function App() {
     }
   }, [current, showToast]);
 
+  const handleShareApp = useCallback(async () => {
+    track('discovery_shared', { itemId: 'app' });
+    try {
+      await Share.share({
+        title: 'frontier go',
+        text: 'Deep-sea dives, spacewalks, launches and Mars, playing continuously. Free, no account, no ads.',
+        url: SITE_URL,
+      });
+    } catch { /* dismissed */ }
+  }, []);
+
   const toggleAmbient = useCallback(() => {
     setAmbient((a) => {
       const next = !a;
@@ -111,6 +131,57 @@ export default function App() {
     });
     setTab('watch');
   }, []);
+
+  // ------------------------------------------------------------ sleep timer
+  const { pause } = frontier;
+  const fireSleep = useCallback(() => {
+    setSleep({ kind: 'off' });
+    void pause();
+    track('sleep_timer_fired');
+    showToast('Sleep timer ended');
+  }, [pause, showToast]);
+
+  useEffect(() => {
+    if (sleep.kind !== 'minutes') return undefined;
+    const tick = () => {
+      const now = Date.now();
+      if (now >= sleep.endsAt) fireSleep(); else setClock(now);
+    };
+    const t = window.setInterval(tick, 5000);
+    return () => window.clearInterval(t);
+  }, [sleep, fireSleep]);
+
+  // "End of this clip": the channel advances on its own, so the moment the
+  // clip on screen is no longer the one the timer was set on, stop.
+  useEffect(() => {
+    if (sleep.kind === 'clip' && current && current.id !== sleep.itemId) fireSleep();
+  }, [sleep, current, fireSleep]);
+
+  const chooseSleep = useCallback((choice: SleepChoice) => {
+    if (choice.kind === 'off') { setSleep({ kind: 'off' }); showToast('Sleep timer off'); return; }
+    if (choice.kind === 'clip') {
+      if (!current) return;
+      setSleep({ kind: 'clip', itemId: current.id });
+      track('sleep_timer_set', { mode: 'clip' });
+      showToast('Stopping at the end of this clip');
+      return;
+    }
+    setSleep({ kind: 'minutes', endsAt: Date.now() + choice.minutes * 60_000 });
+    setClock(Date.now());
+    track('sleep_timer_set', { mode: 'minutes', minutes: choice.minutes });
+    showToast(`Stopping in ${choice.minutes} min`);
+  }, [current, showToast]);
+
+  const sleepText = sleep.kind === 'off' ? null : formatSleep(sleep.kind === 'minutes' ? sleep.endsAt - clock : null, sleep.kind === 'clip');
+
+  const channelCounts = useMemo(() => {
+    const counts: Partial<Record<FrontierChannel, number>> = {};
+    for (const c of ['deep_sea', 'space', 'wild_earth', 'field_science', 'archives'] as FrontierChannel[]) {
+      counts[c] = state.pool.filter((i) => inChannel(i, c)).length;
+    }
+    counts.everything = state.pool.length;
+    return counts;
+  }, [state.pool]);
 
   const available = useMemo(() => (current ? constraintForItem(current) : null), [current]);
   const saved = current ? isSavedIn(state.saved, current.id) : false;
@@ -134,8 +205,12 @@ export default function App() {
           item={state.current}
           playback={state.playback}
           constraint={state.constraint}
+          channelLabel={state.channel === 'everything' ? null : CHANNEL_LABELS[state.channel]}
+          sleepLabel={sleepText}
           isSaved={saved}
           ambient={ambient}
+          onChannels={() => setChannelsOpen(true)}
+          onSleep={() => setSleepOpen(true)}
           onShuffle={frontier.shuffle}
           onTogglePlay={frontier.togglePlay}
           onSeekBy={frontier.seekBy}
@@ -156,6 +231,12 @@ export default function App() {
           visited={places}
           reducedMotion={reducedMotion}
           active={tab === 'globe'}
+          constraint={state.constraint}
+          onOpenCollection={(c) => {
+            setTab('watch');
+            void frontier.exploreCollection(c);
+            showToast(`Exploring ${c.title}`);
+          }}
           onGoTo={(id) => {
             track('globe_location_selected', { itemId: id });
             setTab('watch');
@@ -177,11 +258,10 @@ export default function App() {
       {tab === 'profile' ? (
         <Profile
           catalog={state.catalog}
-          channel={state.channel}
           ambient={ambient}
           version={VERSION}
-          onChannel={frontier.setChannel}
           onToggleAmbient={toggleAmbient}
+          onShareApp={handleShareApp}
         />
       ) : null}
 
@@ -207,6 +287,23 @@ export default function App() {
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
         onShare={handleShare}
+      />
+
+      <ChannelSheet
+        open={channelsOpen}
+        channel={state.channel}
+        constraint={state.constraint}
+        counts={channelCounts}
+        onChannel={(c) => { frontier.setChannel(c); showToast(c === 'everything' ? 'Everything' : CHANNEL_LABELS[c]); }}
+        onGoAnywhere={() => { frontier.goAnywhere(); showToast('Going anywhere'); }}
+        onClose={() => setChannelsOpen(false)}
+      />
+
+      <SleepSheet
+        open={sleepOpen}
+        activeLabel={sleepText}
+        onChoose={chooseSleep}
+        onClose={() => setSleepOpen(false)}
       />
 
       <KeepExploringCard

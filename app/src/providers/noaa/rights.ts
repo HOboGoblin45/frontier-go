@@ -87,6 +87,9 @@ const PERSON_TITLE_CUES = [
 const PERSON_ANY_CUES = [
   'q&a', 'ask me anything', 'press conference', 'news conference', 'briefing',
   'principal investigator', 'mission team member',
+  // "Meredith Everett sat down to explain just what environmental DNA is":
+  // a person to camera, whatever the title says.
+  'sat down to', 'sits down with', 'as he explains', 'as she explains', 'as they explain',
 ];
 const GRAPHIC_CUES = ['dissection', 'necropsy', 'carcass', 'decomposing', 'whale fall'];
 

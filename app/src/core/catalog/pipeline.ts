@@ -1,4 +1,5 @@
 import type { FrontierCatalog, FrontierMediaItem } from '../types/media';
+import { cleanDescription, cleanTitle } from './text';
 import type { FrontierProviderAdapter, IngestLogger } from '../../providers/types';
 import { evaluateEligibility } from './eligibility';
 import { withRanking } from './quality';
@@ -90,7 +91,14 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
     for (const raw of raws) {
       const item = adapter.normalize(raw);
       if (!item) continue;
-      const ranked = withRanking(item, now);
+      // Titles are for a screen, not a filing system. See core/catalog/text.ts
+      // for the inventory of what this was putting in front of people.
+      const tidy: FrontierMediaItem = {
+        ...item,
+        title: cleanTitle(item.title),
+        description: cleanDescription(item.description),
+      };
+      const ranked = withRanking(tidy, now);
       normalized.push(ranked);
     }
   }
@@ -185,4 +193,32 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
     },
     rejected,
   };
+}
+
+
+/**
+ * Carry each item's first-seen date forward from the previous catalog.
+ *
+ * An item the previous catalog already had keeps whatever it had - including
+ * nothing, which is how the launch set stays out of "New this week". Anything
+ * the previous catalog did not have is new as of this run. With no previous
+ * catalog at all nothing is stamped, because "everything is new" means nothing.
+ */
+export function stampAddedAt(
+  items: FrontierMediaItem[],
+  previous: Pick<FrontierCatalog, 'items'> | null | undefined,
+  at: string,
+): FrontierMediaItem[] {
+  if (!previous || !Array.isArray(previous.items) || previous.items.length === 0) {
+    return items.map(({ addedAt: _drop, ...rest }) => rest as FrontierMediaItem);
+  }
+  const before = new Map(previous.items.map((i) => [i.id, i.addedAt]));
+  return items.map((item) => {
+    if (before.has(item.id)) {
+      const kept = before.get(item.id);
+      const { addedAt: _drop, ...rest } = item;
+      return (kept ? { ...rest, addedAt: kept } : rest) as FrontierMediaItem;
+    }
+    return { ...item, addedAt: at };
+  });
 }

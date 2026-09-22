@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import type { FrontierMediaItem } from '../../core/types/media';
 import type { VisitedPlace } from '../../core/types/history';
 import { globePoints, offEarthGroups } from '../../core/catalog/catalog';
+import { buildCollections, type Collection } from '../../core/catalog/collections';
+import type { ExplorationConstraint } from '../../core/shuffle/constraint';
 import { FrontierGlobe, type GlobeMarker } from '../globe/FrontierGlobe';
+import { CollectionsList } from '../components/CollectionsList';
+import { thumbnailFor } from '../../core/catalog/artwork';
 import { Icon } from '../components/Icon';
 
 /**
@@ -35,16 +39,22 @@ function matchesFilter(item: FrontierMediaItem, filter: GlobeFilter): boolean {
   }
 }
 
+type ExploreView = 'globe' | 'collections';
+
 export function GlobeScreen({
-  pool, current, visited, reducedMotion, active, onGoTo,
+  pool, current, visited, reducedMotion, active, constraint, onGoTo, onOpenCollection,
 }: {
   pool: FrontierMediaItem[];
   current: FrontierMediaItem | null;
   visited: VisitedPlace[];
   reducedMotion: boolean;
   active: boolean;
+  constraint: ExplorationConstraint | null;
   onGoTo: (itemId: string) => void;
+  onOpenCollection: (c: Collection) => void;
 }) {
+  const [view, setView] = useState<ExploreView>('globe');
+  const collections = useMemo(() => buildCollections(pool), [pool]);
   const [filter, setFilter] = useState<GlobeFilter>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -84,10 +94,35 @@ export function GlobeScreen({
     setFocus({ latitude: point.latitude, longitude: point.longitude, token: Date.now() });
   };
 
+  const tabs = (
+    <div className="segmented" role="tablist" aria-label="Explore by">
+      <button type="button" role="tab" className="segmented__item" aria-selected={view === 'globe'} onClick={() => setView('globe')}>
+        Globe
+      </button>
+      <button type="button" role="tab" className="segmented__item" aria-selected={view === 'collections'} onClick={() => { setView('collections'); setSearching(false); }}>
+        Collections{collections.length ? ` \u00b7 ${collections.length}` : ''}
+      </button>
+    </div>
+  );
+
+  if (view === 'collections') {
+    return (
+      <div className="screen">
+        <header className="screen__header">
+          <h1 className="screen__title">Explore</h1>
+        </header>
+        {tabs}
+        <div className="screen__body" style={{ padding: 'var(--space-4) var(--gutter) 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <CollectionsList collections={collections} constraint={constraint} onOpen={onOpenCollection} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="screen">
       <header className="screen__header">
-        <h1 className="screen__title">Explore the World</h1>
+        <h1 className="screen__title">Explore</h1>
         <button
           type="button"
           className="icon-btn"
@@ -98,6 +133,8 @@ export function GlobeScreen({
           <Icon name={searching ? 'close' : 'search'} />
         </button>
       </header>
+      {tabs}
+      <div style={{ height: 'var(--space-3)' }} />
 
       <div style={{ padding: '0 var(--gutter) var(--space-3)' }}>
         {searching ? (
@@ -166,8 +203,8 @@ export function GlobeScreen({
             className="globe__pick"
             onClick={() => onGoTo(selectedItem.id)}
           >
-            {selectedItem.imagery.thumbnailUrl
-              ? <img src={selectedItem.imagery.thumbnailUrl} alt="" loading="lazy" />
+            {thumbnailFor(selectedItem)
+              ? <img src={thumbnailFor(selectedItem)} alt="" loading="lazy" />
               : <span className="row__thumb" aria-hidden="true" />}
             <span>
               <span className="row__title">{selectedPoint.displayName}</span>

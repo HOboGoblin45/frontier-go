@@ -68,14 +68,21 @@ function eyebrowFor(item: FrontierMediaItem): string {
 }
 
 export function Watch({
-  item, playback, constraint, isSaved, ambient,
+  item, playback, constraint, channelLabel, sleepLabel, isSaved, ambient,
   onShuffle, onTogglePlay, onSeekBy, onSeek, onSave, onInfo, onAirPlay, onPiP, onExplore, onToggleAmbient,
+  onChannels, onSleep,
 }: {
   item: FrontierMediaItem | null;
   playback: PlaybackState;
   constraint: ExplorationConstraint | null;
+  /** The channel's name, or null for Everything. */
+  channelLabel: string | null;
+  /** Remaining sleep time, or null when no timer is set. */
+  sleepLabel: string | null;
   isSaved: boolean;
   ambient: boolean;
+  onChannels: () => void;
+  onSleep: () => void;
   onShuffle: () => void;
   onTogglePlay: () => void;
   onSeekBy: (delta: number) => void;
@@ -200,15 +207,36 @@ export function Watch({
         <button type="button" className="icon-btn" onClick={onToggleAmbient} aria-label="Ambient mode">
           <Icon name="chevron-down" />
         </button>
-        <span className="watch__nowplaying">{constraint ? `Exploring ${constraint.label}` : 'Now Playing'}</span>
         <button
           type="button"
-          className={`icon-btn${playback.airPlayActive ? ' icon-btn--on' : ''}`}
-          onClick={onAirPlay}
-          aria-label="AirPlay"
+          className="watch__nowplaying-btn"
+          onClick={onChannels}
+          aria-label={`${constraint ? `Exploring ${constraint.label}` : channelLabel || 'Now Playing'}. Choose a channel`}
         >
-          <Icon name="airplay" />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {constraint ? `Exploring ${constraint.label}` : channelLabel || 'Now Playing'}
+          </span>
+          <Icon name="chevron-down" size={14} />
         </button>
+        <div className="watch__top-actions">
+          <button
+            type="button"
+            className={`icon-btn${sleepLabel ? ' icon-btn--on icon-btn--wide' : ''}`}
+            onClick={onSleep}
+            aria-label={sleepLabel ? `Sleep timer, ${sleepLabel} left` : 'Sleep timer'}
+          >
+            <Icon name="moon" size={20} />
+            {sleepLabel ? <span className="watch__sleep-label">{sleepLabel}</span> : null}
+          </button>
+          <button
+            type="button"
+            className={`icon-btn${playback.airPlayActive ? ' icon-btn--on' : ''}`}
+            onClick={onAirPlay}
+            aria-label="AirPlay"
+          >
+            <Icon name="airplay" />
+          </button>
+        </div>
       </div>
 
       <div className="watch__bottom" ref={bottomRef}>

@@ -26,7 +26,7 @@ export function Onboarding({ onStart, busy }: { onStart: () => void; busy: boole
         </p>
       </div>
 
-      <div className="onboarding__foot">Nature &middot; Science &middot; People</div>
+      <div className="onboarding__foot">Free &middot; No account &middot; No ads</div>
     </div>
   );
 }

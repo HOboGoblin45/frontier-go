@@ -1,6 +1,7 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { FrontierMediaItem } from '../core/types/media';
 import { locationHeadline } from '../core/types/location';
+import { artworkFor } from '../core/catalog/artwork';
 import type { FrontierPlayerPlugin, PlayableItem, PlayerDiagnostics } from './types';
 import { WebFrontierPlayer } from './webPlayer';
 
@@ -27,7 +28,8 @@ export function toPlayable(item: FrontierMediaItem): PlayableItem {
     title: item.title,
     place: locationHeadline(item.location),
     organization: item.source.organization,
-    artworkUrl: item.imagery.posterUrl || item.imagery.thumbnailUrl,
+    // No title cards on the lock screen or behind the letterbox.
+    artworkUrl: artworkFor(item),
     durationSeconds: item.stream.durationSeconds,
   };
 }

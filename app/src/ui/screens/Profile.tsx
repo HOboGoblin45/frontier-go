@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { FrontierChannel } from '../../core/types/media';
-import { ALL_CHANNELS, CHANNEL_LABELS } from '../../core/types/media';
+import { APP_STORE_URL, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../../core/platform/site';
+import { Icon } from '../components/Icon';
 import type { LoadedCatalog } from '../../core/catalog/catalog';
 import { diagnostics } from '../../player/frontierPlayer';
 import type { PlayerDiagnostics } from '../../player/types';
@@ -16,14 +16,13 @@ import { Wordmark } from '../components/Wordmark';
  * whether the Swift layer is actually bound on this build.
  */
 export function Profile({
-  catalog, channel, ambient, version, onChannel, onToggleAmbient,
+  catalog, ambient, version, onToggleAmbient, onShareApp,
 }: {
   catalog: LoadedCatalog | null;
-  channel: FrontierChannel;
   ambient: boolean;
   version: string;
-  onChannel: (c: FrontierChannel) => void;
   onToggleAmbient: () => void;
+  onShareApp: () => void;
 }) {
   const [diag, setDiag] = useState<PlayerDiagnostics | null>(null);
   const [errors, setErrors] = useState<Array<{ t: string; kind: string; message: string }>>([]);
@@ -45,26 +44,6 @@ export function Profile({
       </header>
 
       <div className="screen__body scroll-y" style={{ padding: '0 var(--gutter) var(--space-7)' }}>
-        <section style={{ marginBottom: 'var(--space-6)' }}>
-          <h2 className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>Channel</h2>
-          <div className="chips scroll-x">
-            {ALL_CHANNELS.filter((c) => c !== 'live').map((c) => (
-              <button
-                key={c}
-                type="button"
-                className="chip"
-                aria-pressed={channel === c}
-                onClick={() => onChannel(c)}
-              >
-                {CHANNEL_LABELS[c]}
-              </button>
-            ))}
-          </div>
-          <p className="meta muted" style={{ marginTop: 'var(--space-3)' }}>
-            Channels change where Shuffle can take you. Everything is the default, and it is the one to come back to.
-          </p>
-        </section>
-
         <section style={{ marginBottom: 'var(--space-6)' }}>
           <h2 className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>Playback</h2>
           <button type="button" className="btn btn--secondary btn--block" onClick={onToggleAmbient}>
@@ -92,6 +71,35 @@ export function Profile({
                 {new Date(catalog.generatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             ) : null}
+            <p className="meta muted" style={{ marginTop: 'var(--space-3)' }}>
+              frontier go is an independent app. It is not affiliated with, sponsored by or endorsed by
+              NASA, NOAA or any government agency.
+            </p>
+          </div>
+        </section>
+
+        <section style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 className="eyebrow" style={{ marginBottom: 'var(--space-3)' }}>About</h2>
+          <div className="row-list">
+            {[
+              { label: 'Share frontier go', href: null, action: onShareApp },
+              { label: 'Support', href: SUPPORT_URL },
+              { label: 'Privacy policy', href: PRIVACY_URL },
+              { label: 'Terms of use', href: TERMS_URL },
+              { label: 'Rate on the App Store', href: `${APP_STORE_URL}?action=write-review` },
+            ].map((l) => (
+              l.href ? (
+                <a key={l.label} className="row" style={{ gridTemplateColumns: '1fr auto', textDecoration: 'none', color: 'inherit' }} href={l.href} target="_blank" rel="noopener noreferrer">
+                  <span className="row__title">{l.label}</span>
+                  <Icon name="chevron-right" size={18} />
+                </a>
+              ) : (
+                <button key={l.label} type="button" className="row" style={{ gridTemplateColumns: '1fr auto' }} onClick={l.action ?? undefined}>
+                  <span className="row__title">{l.label}</span>
+                  <Icon name="share" size={18} />
+                </button>
+              )
+            ))}
           </div>
         </section>
 

@@ -7,10 +7,13 @@
  * Runs on a schedule in GitHub Actions and commits the result, so the app ships
  * with a catalog and never has to query a provider API to decide what to play.
  */
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runPipeline, type StreamProbe } from '../../src/core/catalog/pipeline';
+import { runPipeline, stampAddedAt, type StreamProbe } from '../../src/core/catalog/pipeline';
+import type { FrontierCatalog, FrontierMediaItem } from '../../src/core/types/media';
+import { isAgencyTitleCard } from '../../src/core/catalog/artwork';
+import jpeg from 'jpeg-js';
 import { ADAPTERS } from '../../src/providers/index';
 import type { FrontierProviderAdapter } from '../../src/providers/types';
 
@@ -48,6 +51,37 @@ const probe: StreamProbe = async (url) => {
   }
 };
 
+/**
+ * Look at every NOAA poster and flag the ones that are the agency's emblem
+ * title card rather than a frame of the dive. See core/catalog/artwork.ts.
+ * Failures leave the item unflagged: this can only ever hide a poster, never
+ * a clip.
+ */
+async function auditPosters(items: FrontierMediaItem[]): Promise<number> {
+  let flagged = 0;
+  let next = 0;
+  const worker = async () => {
+    for (;;) {
+      const item = items[next];
+      next += 1;
+      if (!item) return;
+      const url = item.imagery.posterUrl || item.imagery.thumbnailUrl;
+      if (!url || !/\.jpe?g(\?|$)/i.test(url)) continue;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const img = jpeg.decode(new Uint8Array(await res.arrayBuffer()), { useTArray: true, maxMemoryUsageInMB: 256 });
+        if (isAgencyTitleCard(img.data, img.width, img.height)) {
+          item.imagery = { ...item.imagery, titleCard: true };
+          flagged += 1;
+        }
+      } catch { /* unreadable image: leave it alone */ }
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  return flagged;
+}
+
 async function main() {
   const limit = Number(arg('limit', '400'));
   const only = arg('providers');
@@ -69,6 +103,20 @@ async function main() {
     logger,
     probe: skipProbe ? undefined : probe,
   });
+
+  // First-seen dates come from the catalog this run is replacing.
+  let previous: FrontierCatalog | null = null;
+  try {
+    previous = JSON.parse(await readFile(resolve(OUT_DIR, 'frontier-catalog.json'), 'utf8')) as FrontierCatalog;
+  } catch { /* first ever run */ }
+  catalog.items = stampAddedAt(catalog.items, previous, catalog.generatedAt);
+  const arrived = catalog.items.filter((i) => i.addedAt === catalog.generatedAt).length;
+  console.log(`  new since the previous catalog: ${arrived}`);
+
+  if (!skipProbe) {
+    const cards = await auditPosters(catalog.items.filter((i) => i.provider === 'noaa_ocean_exploration'));
+    console.log(`  NOAA title-card posters flagged: ${cards}`);
+  }
 
   await mkdir(OUT_DIR, { recursive: true });
   await writeFile(resolve(OUT_DIR, 'frontier-catalog.json'), `${JSON.stringify(catalog)}\n`, 'utf8');

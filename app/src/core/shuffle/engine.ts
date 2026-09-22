@@ -137,7 +137,7 @@ export function eligibleUniverse(
   const played = new Set(ctx.sessionPlayedIds);
   const inScope = items.filter((item) => (
     evaluateEligibility(item).eligible
-    && inChannel(item, ctx.channel)
+    && (ctx.constraint?.kind === 'collection' || inChannel(item, ctx.channel))
     && matchesConstraint(item, ctx.constraint)
   ));
   const unseen = inScope.filter((item) => !played.has(item.id));

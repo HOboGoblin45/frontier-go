@@ -118,11 +118,20 @@ const PERSON_TITLE_FORMATS = [
   'testimony', 'hearing', 'welcome remarks', 'keynote', 'welcome address',
   'podcast', 'webinar', 'profile:', 'meet the', 'we are nasa',
   'in-flight event', 'educational downlink', 'public affairs', 'soundbites',
+  // Found in the 4.1.0 catalog: "Meet NASA Astronaut Nick Hague...", "...Inflight
+  // with ABC and NBC", "...Answers Dubai Student, Public Questions",
+  // "...NASDAQ Bell Ringing...", "...July4th Message", "...Resilience Message".
+  'meet nasa', 'meet jaxa', 'meet esa', 'meet astronaut', 'inflight with',
+  'in flight with', 'answers', 'bell ringing', 'message',
 ];
 
 /** Unambiguous wherever they appear. */
 const PERSON_ANY_FORMATS = [
   'press conference', 'news conference', 'post-flight news', 'media briefing',
+  // A caption that says someone explains something to camera is describing a
+  // talk, not a narration over footage: "Join ... Simone Marchi ... as he
+  // explains how impact experiments are conducted".
+  'as he explains', 'as she explains', 'as they explain', 'sat down to', 'sits down with',
 ];
 const MILITARY_CUES = ['weapon', 'missile defense', 'warfighter', 'combat', 'classified payload'];
 

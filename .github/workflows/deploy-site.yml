@@ -1,0 +1,90 @@
+name: Deploy site
+
+# The frontier go website on GitHub Pages: the landing page, privacy and
+# support, one pre-rendered share page per clip, and the catalog the app
+# fetches for new footage.
+#
+# It has to follow the catalog. The weekly ingest commits with the workflow
+# token, and pushes made with that token do not trigger other workflows, so
+# this one also listens for the ingest finishing.
+
+on:
+  push:
+    branches: [frontier-go]
+    paths:
+      - 'landing-page/**'
+      - 'app/public/catalog/**'
+      - 'app/tools/site/**'
+      - 'app/src/core/history/saved.ts'
+      - 'app/src/core/platform/site.ts'
+      - '.github/workflows/deploy-site.yml'
+  workflow_run:
+    workflows: ['Ingest catalog']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: frontier-go
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install
+        working-directory: app
+        run: npm ci
+
+      - name: Build the site
+        working-directory: app
+        run: npx tsx tools/site/build.ts
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/site-dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      # A green deploy is not proof the site serves. Check the three things
+      # the app and a shared link actually depend on.
+      - name: Verify what the app and a shared link depend on
+        env:
+          BASE: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -e
+          BASE="${BASE%/}"
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/catalog/catalog-meta.json")
+            [ "$code" = "200" ] && break
+            echo "catalog not live yet ($code), waiting"; sleep 20
+          done
+          curl -sf "$BASE/catalog/catalog-meta.json" | head -c 400; echo
+          curl -sfI "$BASE/catalog/frontier-catalog.json" | grep -i '^access-control-allow-origin: \*'
+          curl -sf "$BASE/privacy" | grep -q 'Privacy'
+          curl -sf "$BASE/support/" | grep -q 'Support'
+          echo "site verified at $BASE"

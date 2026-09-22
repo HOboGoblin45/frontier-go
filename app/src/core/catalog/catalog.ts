@@ -40,6 +40,57 @@ export async function loadCatalog(url = CATALOG_URL, fetchImpl: typeof fetch = f
   return indexCatalog(json);
 }
 
+/**
+ * Fetch the newest published catalog, or null.
+ *
+ * Never throws and never blocks the bundled catalog: a phone on a plane, a
+ * site that is down or a malformed file all simply mean the app keeps playing
+ * what it shipped with. Whatever arrives goes through `indexCatalog`, which
+ * re-runs the client's own eligibility gate - rights included - so the network
+ * can add footage but cannot vouch for it.
+ */
+export async function loadRemoteCatalog(
+  url: string,
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = 20000,
+): Promise<LoadedCatalog | null> {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+  try {
+    const res = await fetchImpl(url, { signal: controller?.signal });
+    if (!res.ok) return null;
+    const json = (await res.json()) as Partial<FrontierCatalog>;
+    if (json.version !== 1 || !Array.isArray(json.items) || typeof json.generatedAt !== 'string') return null;
+    return indexCatalog(json as FrontierCatalog);
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Adopt a fetched catalog only if it is newer AND not a collapse.
+ *
+ * "Newer" alone would let a half-failed ingest - a provider outage, a broken
+ * adapter - replace a healthy catalog with a thin one on every phone at once.
+ * A shrink below 60% of what is already playable is treated as a fault
+ * upstream, not as news.
+ */
+export function shouldAdopt(current: LoadedCatalog, candidate: LoadedCatalog): boolean {
+  const newer = Date.parse(candidate.generatedAt) > Date.parse(current.generatedAt);
+  const floor = Math.max(50, Math.floor(current.eligible.length * 0.6));
+  return newer && candidate.eligible.length >= floor;
+}
+
+/** Items first published within the window, newest first. */
+export function recentlyAdded(items: FrontierMediaItem[], now: number, days = 14): FrontierMediaItem[] {
+  const since = now - days * 86_400_000;
+  return items
+    .filter((i) => i.addedAt && Date.parse(i.addedAt) >= since)
+    .sort((a, b) => Date.parse(b.addedAt!) - Date.parse(a.addedAt!));
+}
+
 export interface GlobePoint {
   key: string;
   latitude: number;

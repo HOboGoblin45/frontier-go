@@ -8,7 +8,7 @@ import { haversineKm } from '../util/geo';
  * filter interface. One value, one label, one way out ("Go Anywhere").
  */
 
-export type ConstraintKind = 'expedition' | 'mission' | 'region' | 'nearby' | 'environment' | 'tag';
+export type ConstraintKind = 'expedition' | 'mission' | 'region' | 'nearby' | 'environment' | 'tag' | 'collection';
 
 export interface ExplorationConstraint {
   kind: ConstraintKind;
@@ -17,6 +17,12 @@ export interface ExplorationConstraint {
   value: string;
   radiusKm?: number;
   origin?: FrontierLocation;
+  /**
+   * For a collection: the exact membership. A collection is chosen, so it
+   * supersedes the channel - opening "Octopus and squid" while the channel is
+   * Space should play octopus, not nothing.
+   */
+  memberIds?: ReadonlySet<string>;
 }
 
 export const DEFAULT_NEARBY_RADIUS_KM = 400;
@@ -64,6 +70,7 @@ export function matchesConstraint(item: FrontierMediaItem, c: ExplorationConstra
     case 'region': return item.location?.regionName === c.value;
     case 'environment': return item.environment === c.value;
     case 'tag': return item.tags.includes(c.value);
+    case 'collection': return c.memberIds?.has(item.id) ?? false;
     case 'nearby': {
       const o = c.origin;
       const l = item.location;

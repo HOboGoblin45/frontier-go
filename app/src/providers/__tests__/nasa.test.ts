@@ -300,3 +300,18 @@ describe('NASA facility addresses', () => {
     expect(typeof item!.location?.latitude).toBe('number');
   });
 });
+
+describe('NASA talking heads found in the 4.1.0 catalog', () => {
+  const person = (title: string, description = '') => nasaSafety({ title, description, keywords: [] }).identifiablePersons;
+  it('catches the formats that slipped through', () => {
+    expect(person('Meet NASA Astronaut Nick Hague Crew-9 Commander')).toBe(true);
+    expect(person('Expedition 63 In Flight with ABC and NBC')).toBe(true);
+    expect(person('Expedition 68 Astronaut Sultan Alneyadi Answers Dubai Student, Public Questions')).toBe(true);
+    expect(person('Inside the Psyche Mission', 'Join co-investigator Simone Marchi as he explains how impact experiments are conducted.')).toBe(true);
+  });
+  it('still lets footage through', () => {
+    expect(person('Hurricane Idalia Is Seen from the International Space Station')).toBe(false);
+    expect(person('Soyuz MS-19 Landing')).toBe(false);
+    expect(person('Artemis II Rollout', 'The crawler explains nothing; it just moves.')).toBe(false);
+  });
+});

@@ -4,7 +4,9 @@ import type { PlaybackState } from '../core/types/playback';
 import { INITIAL_PLAYBACK_STATE } from '../core/types/playback';
 import type { DiscoveryHistory, SavedDiscovery } from '../core/types/history';
 import { EMPTY_HISTORY } from '../core/types/history';
-import { loadCatalog, type LoadedCatalog } from '../core/catalog/catalog';
+import { loadCatalog, loadRemoteCatalog, shouldAdopt, type LoadedCatalog } from '../core/catalog/catalog';
+import { REMOTE_CATALOG_URL } from '../core/platform/site';
+import type { Collection } from '../core/catalog/collections';
 import { buildDeck } from '../core/shuffle/engine';
 import { constraintForItem, type ExplorationConstraint } from '../core/shuffle/constraint';
 import { recordVisit, recentIds, applyOutcome, mergeHealth, type LocalHealthMap } from '../core/history/passport';
@@ -297,6 +299,16 @@ export function useFrontier() {
 
         const check = await assertNative();
         if (!check.ok) setNativeWarning(check.message || 'Native player unavailable');
+
+        // New footage without an app update. The bundled catalog is already
+        // playing; this only ever swaps in a newer, healthy one, and only the
+        // pool changes - whatever is on screen keeps playing.
+        const remote = await loadRemoteCatalog(REMOTE_CATALOG_URL);
+        if (cancelled || !remote || !catalogRef.current || !shouldAdopt(catalogRef.current, remote)) return;
+        catalogRef.current = remote;
+        setCatalog(remote);
+        poolRef.current = mergeHealth(remote.eligible, healthRef.current);
+        track('catalog_refreshed', { items: remote.eligible.length, generatedAt: remote.generatedAt });
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load the catalog');
       }
@@ -385,6 +397,26 @@ export function useFrontier() {
     void primeNext();
   }, [primeNext, replenishDeck]);
 
+  /**
+   * Step inside a collection: narrow the universe to exactly its members and
+   * jump straight to one of them. It then plays like the channel does -
+   * shuffled and continuous - and "Go Anywhere" leaves it, as it leaves any
+   * other narrowing.
+   */
+  const exploreCollection = useCallback(async (collection: Collection) => {
+    if (collection.itemIds.length === 0) return;
+    const members = new Set(collection.itemIds);
+    const next: ExplorationConstraint = { kind: 'collection', label: collection.title, value: collection.id, memberIds: members };
+    constraintRef.current = next;
+    setConstraint(next);
+    track('collection_opened', { id: collection.id, size: collection.itemIds.length });
+    const played = new Set(sessionPlayedRef.current);
+    const candidates = poolRef.current.filter((i) => members.has(i.id));
+    const fresh = candidates.filter((i) => !played.has(i.id));
+    const choice = (fresh.length ? fresh : candidates)[Math.floor(Math.random() * (fresh.length || candidates.length))];
+    if (choice) await goTo(choice.id);
+  }, [goTo]);
+
   const goAnywhere = useCallback(() => {
     constraintRef.current = null;
     setConstraint(null);
@@ -420,6 +452,9 @@ export function useFrontier() {
     if (playback.status === 'playing') await FrontierPlayer.pause();
     else await FrontierPlayer.play();
   }, [playback.status]);
+
+  /** An explicit pause, for things that must not accidentally resume playback. */
+  const pause = useCallback(async () => { await FrontierPlayer.pause(); }, []);
 
   const seekBy = useCallback(async (delta: number) => {
     haptics.tap();
@@ -464,10 +499,12 @@ export function useFrontier() {
     goTo,
     setChannel,
     keepExploringHere,
+    exploreCollection,
     goAnywhere,
     toggleSave,
     removeSaved,
     togglePlay,
+    pause,
     seekBy,
     seekTo,
     toggleMute,

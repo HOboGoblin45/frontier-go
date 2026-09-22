@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { recordVisit, recentIds, visitedPlaces, passportTotals, applyOutcome, mergeHealth, EMPTY_HISTORY } from '../history/passport';
-import { toggleSaved, isSaved, shareable, deepLink, parseDeepLink, toSaved } from '../history/saved';
+import { toggleSaved, isSaved, shareable, deepLink, parseDeepLink, toSaved, shareSlug, resolveDiscovery } from '../history/saved';
 import { makeItem } from './fixtures';
 
 describe('discovery passport', () => {
@@ -79,12 +79,23 @@ describe('saved discoveries', () => {
     expect(saved.organization).toBe('NOAA Ocean Exploration');
   });
 
-  it('shares a reference and provenance, never the media file', () => {
-    const item = makeItem({ id: 'a', source: { organization: 'NOAA Ocean Exploration', assetUrl: 'https://oceanexplorer.noaa.gov/multimedia/a/' } });
+  it('shares a link to our own page, never the media file or the agency page', () => {
+    // The share is the growth loop: it has to land somewhere that offers the app.
+    const item = makeItem({ id: 'nasa:0158 35sec Green Run', source: { organization: 'NOAA Ocean Exploration', assetUrl: 'https://oceanexplorer.noaa.gov/multimedia/a/' } });
     const payload = shareable(item);
-    expect(payload.url).toBe('https://oceanexplorer.noaa.gov/multimedia/a/');
+    expect(payload.url).toMatch(/^https:\/\/hobogoblin45\.github\.io\/frontier-go\/d\/nasa-0158-35sec-green-run-[a-z0-9]+\/$/);
     expect(payload.url).not.toContain('.mp4');
+    expect(payload.url).not.toContain('noaa.gov');
     expect(payload.text).toContain('NOAA Ocean Exploration');
+    // The link carries a slug; the app resolves it back against its catalog.
+    const ref = parseDeepLink(payload.url)!;
+    expect(resolveDiscovery([item], ref)?.id).toBe('nasa:0158 35sec Green Run');
+  });
+
+  it('gives every id its own slug, even when the readable part collides', () => {
+    expect(shareSlug('noaa:1:2')).not.toBe(shareSlug('noaa:1-2'));
+    expect(shareSlug('nasa:Café Crème')).toMatch(/^nasa-cafe-creme-[a-z0-9]+$/);
+    expect(shareSlug('x'.repeat(200)).length).toBeLessThan(80);
   });
 
   it('round-trips a deep link', () => {
@@ -94,6 +105,7 @@ describe('saved discoveries', () => {
 
   it('ignores a link that is not one of ours', () => {
     expect(parseDeepLink('https://example.com/nope')).toBeNull();
+    expect(parseDeepLink('https://example.com/d/noaa:1:2')).toBeNull();
     expect(parseDeepLink('not a url')).toBeNull();
   });
 });

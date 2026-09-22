@@ -1,7 +1,7 @@
 {
   "name": "frontier-go",
   "private": true,
-  "version": "4.1.0",
+  "version": "4.2.0",
   "type": "module",
   "description": "A continuously playing window into extraordinary places on Earth and beyond.",
   "scripts": {
@@ -52,6 +52,7 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "globals": "^15.11.0",
+    "jpeg-js": "^0.4.4",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.70.1",

@@ -7,6 +7,78 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.2.0] — 2026-09-22
+
+The first version meant for the public App Store. Direction set the same day:
+**free for users, built to grow an audience and be acquired rather than to
+charge.** Trailer Roulette is retired and frontier go ships in its place. The
+reasoning, the numbers and the roadmap are in `docs/GROWTH-AND-ACQUISITION-PLAN.md`.
+
+### Added
+
+- **Collections.** Explore now has a second view beside the globe: 36
+  collections derived from what the agencies publish — 22 subjects (octopus
+  and squid, Mars, vents and seeps, spacewalks, jellies, Apollo, liftoff,
+  storms from above, engines on the stand...) and 14 whole NOAA expeditions,
+  each with its clip count and running time. A collection plays exactly like
+  the channel, shuffled and continuous, and supersedes the channel because it
+  was chosen. "New this week" appears at the top once the weekly ingest adds
+  footage.
+- **Channels one tap from the player.** Tapping the title at the top of the
+  player opens the channel sheet, which also shows any narrowing in force with
+  its one way out. Channels used to be at the top of Profile, the one place
+  nobody looks while something is playing.
+- **Sleep timer.** The moon button: 15, 30, 60 or 90 minutes, or the end of
+  this clip. Playback pauses where it is. The remaining time shows beside the
+  button.
+- **New footage without an app update.** The app now fetches the newest
+  catalog from the frontier go website after launch and adopts it only if it
+  is newer and not a collapse (under 60% of what is already playable is treated
+  as a fault upstream). It re-runs its own rights and eligibility gates on
+  whatever arrives. The bundled catalog still plays first and offline.
+- **Share links that bring people to the app.** A shared clip now opens a page
+  on the frontier go website that plays it in any browser, with its credit
+  line, a per-clip link preview and an App Store button. Links used to point at
+  the agency's own page, or at `frontier.go`, which is not a domain.
+- **A website**, on GitHub Pages at `hobogoblin45.github.io/frontier-go`:
+  landing, privacy, support, the catalog, and one pre-rendered share page per
+  clip, rebuilt and verified by `deploy-site.yml` whenever the site or catalog
+  changes.
+- **Profile → About**: share the app, support, privacy policy, terms of use,
+  rate on the App Store, and a plain statement that frontier go is not
+  affiliated with or endorsed by NASA or NOAA.
+- `addedAt` on catalog items, carried forward by the ingest from the catalog it
+  replaces, so "new" means new and the launch set is never all "new".
+
+### Fixed
+
+- **Titles written for filing systems.** 106 titles were file names
+  (`Apollo_11_Intro_720p`, `iss060m262481254_Hurricane_Dorian_Live_Views_...`),
+  shouted in capitals, wrapped whole in quotation marks, or — in one case — the
+  entire description glued onto the title. 241 NOAA descriptions ended in a
+  literal `&#8230;`. All cleaned at ingest by `core/catalog/text.ts`, with each
+  rule traced to the titles it was written for; an ordinary title is left
+  exactly as it was.
+- **The NOAA emblem was being used as artwork.** About one NOAA poster in five
+  is the agency's title card — the emblem on black — not a frame of the dive.
+  It was appearing as collection covers, lock-screen art, the letterbox
+  backdrop and link previews, and the emblem is a registered mark that may not
+  be used as a branding device. The ingest now looks at every NOAA poster and
+  flags the 75 title cards; nothing that shows artwork uses them.
+- **Talking heads that slipped through.** "Meet NASA Astronaut...", in-flight
+  media events, "...Answers Student Questions", and captions that say someone
+  "sat down to explain" are now caught.
+- The onboarding footer read "Nature · Science · People". It now says what the
+  app is: free, no account, no ads.
+- The web player shows the agency's frame while a clip loads instead of black.
+
+### Changed
+
+- The Vercel landing-page workflow is replaced by `deploy-site.yml` (GitHub
+  Pages). The Trailer Roulette site on Vercel is left untouched.
+- Catalog: 1,634 items, 104 hours.
+
+
 ## [4.1.0] — 2026-09-22
 
 ### Added

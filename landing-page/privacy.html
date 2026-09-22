@@ -33,7 +33,7 @@
 <div class="wrap">
   <a href="/" style="text-decoration:none"><div class="wordmark">frontier <span>go</span></div></a>
   <h1>Privacy</h1>
-  <p class="date">Last updated 21 September 2026</p>
+  <p class="date">Last updated 22 September 2026</p>
 
   <p class="lead">frontier go collects nothing about you.</p>
   <p>That is the whole policy. The rest of this page explains what it means in practice,
@@ -52,7 +52,8 @@
   <ul>
     <li>which places you have been, and when</li>
     <li>what you have saved</li>
-    <li>your channel, mute and ambient-mode preferences</li>
+    <li>your channel, mute, ambient-mode and sleep-timer preferences</li>
+    <li>the most recent copy of the footage catalog</li>
     <li>a capped list of technical errors, shown read-only in the app</li>
   </ul>
   <p>All of it is stored by iOS on your phone. None of it is transmitted anywhere. Deleting the
@@ -63,8 +64,15 @@
      servers: <strong>oceanexplorer.noaa.gov</strong> and <strong>images-assets.nasa.gov</strong>.
      Those agencies see what any web server sees when a file is requested: an IP address, a time,
      and which file. frontier go sends them nothing else.</p>
-  <p>The catalog of what is available ships inside the app rather than being fetched, so the app
-     does not report what you browse to anyone, including us.</p>
+  <p>A catalog of what is available ships inside the app. Once a launch, the app also asks this
+  website for a newer copy of that catalog, so new footage can arrive without an app update. That
+  request is the same for every user, carries nothing about you, and is not logged by us. The
+    website is hosted by GitHub Pages, which, like any host, sees an IP address and a time.</p>
+  <p>The app does not report what you watch, save or browse to anyone, including us.</p>
+
+  <h2>Shared links</h2>
+  <p>If you share a discovery, the link points to a page on this website that plays the clip in a
+  browser. Opening it is an ordinary web visit. The page sets no cookies and runs no analytics.</p>
 
   <h2>No analytics, no tracking, no advertising</h2>
   <p>There is no analytics SDK, no crash reporter, no advertising identifier, no attribution

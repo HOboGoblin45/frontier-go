@@ -1,6 +1,6 @@
 # Catalog rejection log
 
-Generated 2026-09-22T09:15:06.299Z by `npm run ingest`. Regenerated on every run;
+Generated 2026-09-22T19:04:26.306Z by `npm run ingest`. Regenerated on every run;
 do not hand-edit. Anything listed here is excluded from the production feed.
 
 ## Counts by stage
@@ -10,18 +10,18 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | fetched | 2470 |
 | normalized | 2470 |
 | rightsRejected | 98 |
-| safetyRejected | 143 |
-| qualityRejected | 551 |
+| safetyRejected | 157 |
+| qualityRejected | 550 |
 | duplicatesCollapsed | 31 |
-| published | 1647 |
+| published | 1634 |
 
 ## Counts by reason
 
 | reason | count |
 | --- | --- |
-| `quality:too-long` | 273 |
+| `quality:too-long` | 272 |
 | `quality:no-duration` | 272 |
-| `safety:identifiablePersons` | 142 |
+| `safety:identifiablePersons` | 156 |
 | `rights:unknown` | 98 |
 | `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 90 |
 | `Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this way.` | 8 |
@@ -67,7 +67,7 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | noaa_ocean_exploration | Geology and Biology of the Mid-Atlantic Ridge | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Moytirra Vent Field North of the Azores | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Deep Sea Dialogues: Underwater Robots | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | SeaVision® Laser Scanner | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
+| noaa_ocean_exploration | SeaVision Laser Scanner | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Pram Bug Video | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Dogfish Shark: September 1, 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Mapping the “Ocean” | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
@@ -132,6 +132,7 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Shuttle Endeavour’s Last Flight Was 10 Years Ago | rights:unknown; Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this  |
 | nasa | NASA’s IMAP Arrives at NASA Marshall For Testing in XRCF | rights:unknown; Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this  |
 | nasa | Landsat Helps Feed the Birds: Sacramento Surface Water | rights:unknown; Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this  |
+| noaa_ocean_exploration | eDNA Definition Video | safety:identifiablePersons |
 | noaa_ocean_exploration | Meet the CTD | safety:identifiablePersons |
 | noaa_ocean_exploration | Ships of Discovery - Project Overview: April-May, 2023 | safety:identifiablePersons |
 | noaa_ocean_exploration | Meet the DriX | safety:identifiablePersons |
@@ -144,8 +145,10 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Artemis Media Resource-Interview Soundbites | safety:identifiablePersons |
 | nasa | Firefly Blue Ghost Mission 1 Lunar Landing News Conference – Sunday, March 2, 2025 | safety:identifiablePersons |
 | nasa | Rocket Ranch Podcast-Moogega Cooper | safety:identifiablePersons |
+| nasa | NASA Astronaut Butch Willmore Answers Tennessee Student Questions – Tuesday, June 11, 2024 | safety:identifiablePersons |
 | nasa | Apollo 11 - 20th Anniversary Crew Interviews | safety:identifiablePersons |
 | nasa | Apollo 11 Crew Prelaunch Press Conference | safety:identifiablePersons |
+| nasa | Fireside Chat with Artemis Launch Director Charlie Blackwell Thompson and Apollo 11’s JoAn | safety:identifiablePersons |
 | nasa | Apollo 13 Lunar Landing Abort Press Conference | safety:identifiablePersons |
 | nasa | NASA Picks Next-Generation Spacesuits. Moonwalking, Spacewalking Awards Announcement -June | safety:identifiablePersons |
 | nasa | Artemis I Post-Scrub News Conference: "Media Update on Status of Artemis I" | safety:identifiablePersons |
@@ -153,29 +156,34 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | U.S. Spacewalk Preview News Conference – Tuesday, January 6, 2026 | safety:identifiablePersons |
 | nasa | US Spacewalk Preview News Conference – Monday, March 16, 2026 | safety:identifiablePersons |
 | nasa | U.S. Spacewalk 95 Preview News Conference – Thursday, June 25, 2026 | safety:identifiablePersons |
-| nasa | iss075m262111804_Trio_of_U.S._Spacewalks_Preview_News_Conference_260731 | safety:identifiablePersons |
-| nasa | iss061m262941559_EXP_61_Crew_News_Conference_Meir_Koch_2019_1021 | safety:identifiablePersons |
-| nasa | iss065m262531802_Expedition_65_Spacewalk_77_Briefing_210910 | safety:identifiablePersons |
-| nasa | iss066m263331858-Expedition_66_Spacewalk_78_Preview_Briefing_211129 | safety:identifiablePersons |
+| nasa | Trio of U.S. Spacewalks Preview News Conference | safety:identifiablePersons |
+| nasa | EXP 61 Crew News Conference Meir Koch | safety:identifiablePersons |
+| nasa | Expedition 65 Spacewalk 77 Briefing | safety:identifiablePersons |
+| nasa | Expedition 66 Spacewalk 78 Preview Briefing | safety:identifiablePersons |
 | nasa | Expedition 66 Spacewalk 79-80 Preview Briefing - March 14, 2022 | safety:identifiablePersons |
 | nasa | Vice President Pence and Administrator Bridenstine Talk with Astronauts on Space Station | safety:identifiablePersons |
 | nasa | Axiom Mission 3 Space Station Arrival & Welcome Remarks | safety:identifiablePersons |
-| nasa | Expedition_60_Replay_GCTC_Crew_News_Conference_2019_0628_1220502 | safety:identifiablePersons |
+| nasa | Expedition 60 Replay GCTC Crew News Conference | safety:identifiablePersons |
 | nasa | Expedition 70 NASA’s SpaceX Crew-8 Astronauts, Tracy Dyson Answer Media Questions - Jan. 2 | safety:identifiablePersons |
-| nasa | iss064m263241454_Expedition_64_ISS_Crew_News_Conference_201119 | safety:identifiablePersons |
+| nasa | Expedition 64 ISS Crew News Conference | safety:identifiablePersons |
 | nasa | Expedition 67 - NASA’s SpaceX Crew-3 Talks to Media Before Departing Station - April 15, 2 | safety:identifiablePersons |
 | nasa | Expedition 68 NASA’s SpaceX Crew-4 Space Station Farewell Remarks - Oct. 11, 2022 | safety:identifiablePersons |
-| nasa | iss065m260741459_Expedition_65_Vande_Hei_News_Conference_210315 | safety:identifiablePersons |
-| nasa | iss063m262131443_Expedition_63_Demo-2_In-flght_Crew_News_Conference_200731 | safety:identifiablePersons |
-| nasa | SpaceX_DM1_Network_Interviews_with_Expedition_58_March_7_2019 | safety:identifiablePersons |
+| nasa | Expedition 65 Vande Hei News Conference | safety:identifiablePersons |
+| nasa | Expedition 63 Demo-2 In-flght Crew News Conference | safety:identifiablePersons |
+| nasa | Space X DM1 Network Interviews with Expedition 58 March 7 2019 | safety:identifiablePersons |
 | nasa | NASA's Boeing Crew Flight Test News Conference from Space Station – Wednesday, July 10, 20 | safety:identifiablePersons |
-| nasa | iss065m261161628_Expedition_65_Crew-1_Return_News_Conference-210426 | safety:identifiablePersons |
-| nasa | iss063m261531514_DM-2_Crew_News_Conference_200601 | safety:identifiablePersons |
-| nasa | Expedition 68NASA’s SpaceX Crew-6 Astronauts Answer Media Questions -  Jan. 25, 2023 | safety:identifiablePersons |
-| nasa | iss066m263091629_Expedition_66_Crew-2_Departure_news_Conference_211104 | safety:identifiablePersons |
-| nasa | iss066m263101734_Expedition_66_Change_of_Command_Ceremony_211106 | safety:identifiablePersons |
+| nasa | Expedition 65 Crew-1 Return News Conference | safety:identifiablePersons |
+| nasa | DM-2 Crew News Conference | safety:identifiablePersons |
+| nasa | Expedition 68NASA’s SpaceX Crew-6 Astronauts Answer Media Questions - Jan. 25, 2023 | safety:identifiablePersons |
+| nasa | Expedition 66 Crew-2 Departure news Conference | safety:identifiablePersons |
+| nasa | Expedition 70 Astronaut Andreas Mogensen Answers European Student Questions - Dec. 4, 2023 | safety:identifiablePersons |
+| nasa | Expedition 66 Change of Command Ceremony | safety:identifiablePersons |
+| nasa | Expedition 68 Astronaut Koichi Wakata Answers Japanese Media Questions - Feb. 17, 2023 | safety:identifiablePersons |
 | nasa | ISS Expedition 65 Change of Command Ceremony : October 4, 2021 | safety:identifiablePersons |
+| nasa | Expedition 70 Astronaut Jasmin Moghbeli Answers Pensacola, FL Student Questions - Nov. 15, | safety:identifiablePersons |
 | nasa | Expedition 66 Mark Vande Hei Post-flight News Conference | safety:identifiablePersons |
+| nasa | Expedition 68 Astronaut Sultan Alneyadi Answers Dubai Student, Public Questions - March 21 | safety:identifiablePersons |
+| nasa | Expedition 66 Space Station Crew Answers Ohio Student Questions - March 2, 2022 | safety:identifiablePersons |
 | nasa | NASA Administrator, Astronauts Talk about Historic First Flight of SpaceX Crew Dragon | safety:identifiablePersons |
 | nasa | News Conference After Historic First Launch of SpaceX Crew Dragon Flight Test | safety:identifiablePersons |
 | nasa | After the Launch: NASA and SpaceX Share Updates about Historic #LaunchAmerica Mission | safety:identifiablePersons |
@@ -184,9 +192,10 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | SpaceX Pad Abort Test News Conference | safety:identifiablePersons |
 | nasa | Soyuz MS-24 International Space Station Hatch Opening, Welcome Remarks - Sept. 15, 2023 | safety:identifiablePersons |
 | nasa | NASA / SpaceX Crew-8 Post-Flight News Conference | safety:identifiablePersons |
-| nasa | iss062m261062054_Exp62-63-Change_of_Command_Ceremony_200415 | safety:identifiablePersons |
+| nasa | Exp62-63-Change of Command Ceremony | safety:identifiablePersons |
+| nasa | 2020 ISS Crew Exp64 Resilience Message | safety:identifiablePersons |
 | nasa | JPSS-2 LOFTID Prelaunch News Conference Oct 28, 2022 | safety:identifiablePersons |
-| nasa | iss060m262751319_10-2-19_E60-E61_Change_of_Command_Ceremony | safety:identifiablePersons |
+| nasa | 10-2-19 E60-E61 Change of Command Ceremony | safety:identifiablePersons |
 | nasa | Boeing Orbital Flight Test Launch Team Post-Launch News Conference | safety:identifiablePersons |
 | nasa | NASA's Boeing OFT-2 Postlaunch News Conference | safety:identifiablePersons |
 | nasa | NOAA/NASA GOES-T Prelaunch News Conference | safety:identifiablePersons |
@@ -244,8 +253,9 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | OSIRIS-REx Flight Operations Interviews Sandy Freund | safety:identifiablePersons |
 | nasa | OSIRIS-REx Flight Operations Interviews Dale Howell | safety:identifiablePersons |
 | nasa | OSIRIS-REx Flight Operations Interviews Olivia Billett | safety:identifiablePersons |
-| nasa | OSIRIS-REx_Post-Landing_Press_Conference | safety:identifiablePersons |
+| nasa | OSIRIS-REx Post-Landing Press Conference | safety:identifiablePersons |
 | nasa | NASA Science Live: Psyche’s Journey to a Metal World [Episode 49] | safety:identifiablePersons |
+| nasa | Inside NASA's Psyche Mission to Learn about Collisions and Crater Formation | safety:identifiablePersons |
 | nasa | Media Briefing: Preview of DART Mission's Impact with Asteroid Dimorphos | safety:identifiablePersons |
 | nasa | Live Q&A with NASA Planetary Defender [Episode 2] | safety:identifiablePersons |
 | nasa | Live Q&A with NASA Planetary Defender [Episode 1] | safety:identifiablePersons |
@@ -260,15 +270,19 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Media Briefings: James Webb Space Telescope's First Full-Color Images and Data | safety:identifiablePersons |
 | nasa | NASA Science Live: What’s Next for the James Webb Space Telescope? [Episode 41] | safety:identifiablePersons |
 | nasa | NASA Science Live: Webb’s First Full-Color Images Explained [Episode 44] | safety:identifiablePersons |
+| nasa | A Laser Scientist Answers 5 Questions about LVIS | safety:identifiablePersons |
+| nasa | Expedition63 July4th Message | safety:identifiablePersons |
+| nasa | Meet NASA's 2020 Earth Expeditions | safety:identifiablePersons |
 | nasa | ATom Mission interview clips: Greenhouse Gases | safety:identifiablePersons |
 | nasa | ATom Mission interview clips: Pollution | safety:identifiablePersons |
 | nasa | ATom Mission interview clips: Ozone | safety:identifiablePersons |
 | nasa | ATom Mission interview clips: Snakes | safety:identifiablePersons |
-| nasa | AVATAR MVT interview_GENTRY BARNETT | safety:identifiablePersons |
+| nasa | AVATAR MVT interview GENTRY BARNETT | safety:identifiablePersons |
 | nasa | PACE Prelaunch News Conference | safety:identifiablePersons |
 | nasa | NASA Science Live: Aurora Glow, Electric Flow & the EZIE Mission [Episode #63] | safety:identifiablePersons |
 | nasa | Boeing OFT Prelaunch News Conference | safety:identifiablePersons |
 | nasa | NASA Administrator with Astronauts and KSC Center Director Briefing | safety:identifiablePersons |
+| nasa | Space Station Crew Answers Tucson AZ Student Questions - Tuesday May 14, 2024 | safety:identifiablePersons |
 | nasa | NASA's Underway Recovery Test 12 (URT-12) | safety:sensitiveMilitaryContent |
 | nasa | NASA's SpaceX GOES-U PreLaunch News Conference | safety:identifiablePersons |
 | nasa | GOES-U Prelaunch News Conference - 720p | safety:identifiablePersons |
@@ -312,14 +326,14 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | KSC-05-S-00236 | quality:no-duration |
 | nasa | Mars 2020 Perserverance Rover Post Landing Briefing | quality:too-long |
 | nasa | Mars 2020 Perseverance Landing Coverage with Commentary | quality:too-long |
-| nasa | JPL-20200515-M2020f-0001-Mars 2020 Media Reel Updated | quality:too-long |
+| nasa | Mars 2020 Media Reel Updated | quality:too-long |
 | nasa | NASA Astronaut Chris Williams and Soyuz MS-28 Crew Close Hatch Ahead of Soyuz Undocking –  | quality:too-long |
 | nasa | Soyuz MS-24 Space Station Undocking - Friday, April 5, 2024 | quality:too-long |
 | nasa | NASA Astronaut Loral O'Hara Returns Home to Earth Part 1 - April 6, 2024 | quality:too-long |
 | nasa | NASA Astronaut Don Pettit Soyuz MS-26 Re-entry and Landing – Saturday, April 19, 2025 | quality:too-long |
 | nasa | NASA Astronaut Loral O'Hara Returns Home to Earth Part 2 - April 4, 2024 | quality:too-long |
 | nasa | NASA Astronaut Don Pettit Soyuz MS-26 Space Station Farewells & Hatch Closing - April 19,  | quality:too-long |
-| nasa | NASA Astronaut Don Pettit Soyuz MS-26 Undocking  - Saturday, April 19, 2025 | quality:too-long |
+| nasa | NASA Astronaut Don Pettit Soyuz MS-26 Undocking - Saturday, April 19, 2025 | quality:too-long |
 | nasa | KSC-08-S-00025 | quality:no-duration |
 | nasa | Soyuz MS-23 Spacecraft Deorbit Burn, Kazakhstan Landing - Sept. 27, 2023 | quality:too-long |
 | nasa | NASA Astronaut Chris Williams and Soyuz MS-28 Crew Return to Earth – Sunday, July 26, 2026 | quality:too-long |
@@ -343,10 +357,10 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Apollo 12 Mission Summary and Highlights - featuring Splashdown with President Nixon | quality:too-long |
 | nasa | Apollo 12 Crew Leaves O&C, Arrives at Pad 39A | quality:too-long |
 | nasa | KSC-04-S-00100 | quality:no-duration |
-| nasa | iss059m261072014_Cygnus_CRS-11_Launch_2019_0407 | quality:too-long |
+| nasa | Cygnus CRS-11 Launch | quality:too-long |
 | nasa | Post-launch Status Briefing for Northrup Grumman Mission to Space Station | quality:too-long |
-| nasa | iss059m261072259_Expedition_59_NG_Cygnus-11_Solar_Array_Deployment | quality:too-long |
-| nasa | Exploring the Moon_ Lunar Rovers | quality:too-long |
+| nasa | Expedition 59 NG Cygnus-11 Solar Array Deployment | quality:too-long |
+| nasa | Exploring the Moon Lunar Rovers | quality:too-long |
 | nasa | NASA Marshall Crews Move Artemis III SLS Adapter for Next Phase of Manufacturing | quality:no-artwork |
 | nasa | Intuitive Machines-1 Lunar Landing | quality:too-long |
 | nasa | KSC-09-S-00066 | quality:no-duration |
@@ -359,25 +373,25 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Artemis I - Orion Spacecraft Enters Distant Retrograde Orbit - Nov. 25, 2022 | quality:too-long |
 | nasa | Orion Camera Views of Artemis II Apogee Raise Burn | quality:too-long |
 | nasa | APACHE: Spacewalking in Virtual Reality | quality:too-long |
-| nasa | iss063m261761806_Expedition_63_US_Spacewalk_Preview_Briefing_200624 | quality:too-long |
+| nasa | Expedition 63 US Spacewalk Preview Briefing | quality:too-long |
 | nasa | US Spacewalks 56-60 Overview Briefing | quality:too-long |
-| nasa | iss059m260931759_EVA_54_Briefing_April_2_2019 | quality:too-long |
-| nasa | iss064m260221959_Expedition_64_U.S._Spacewalks_69_and_70_Preview_Briefing_210122 | quality:too-long |
+| nasa | EVA 54 Briefing April 2 2019 | quality:too-long |
+| nasa | Expedition 64 U.S. Spacewalks 69 and 70 Preview Briefing | quality:too-long |
 | nasa | KSC-06-S-00183 | quality:no-duration |
-| nasa | iss064m260551858_Expedition_64_EVA_71_and_72_Preview_Briefing_210224 | quality:too-long |
-| nasa | iss061m263161959_EXP_61_AMS_Spacewalk_Briefing_2019_1112 | quality:too-long |
+| nasa | Expedition 64 EVA 71 and 72 Preview Briefing | quality:too-long |
+| nasa | EXP 61 AMS Spacewalk Briefing | quality:too-long |
 | nasa | KSC-06-S-00189 | quality:no-duration |
 | nasa | KSC-04-S-00338 | quality:no-duration |
 | nasa | Prelaunch Briefing for Northrup Grumman's 14th Cargo Resupply Mission to Space Station | quality:too-long |
 | nasa | Expedition 69 NASA’s SpaceX Crew-6 Relocates Crew Dragon Capsule on Space Station - May 6, | quality:too-long |
 | nasa | SpaceX DM1 Hatch Closing March 7, 2019 | quality:too-long |
-| nasa | iss064m260950959_Expedition_64_Crew_Dragon_Resilience_Port_Relocation_210405 | quality:too-long |
+| nasa | Expedition 64 Crew Dragon Resilience Port Relocation | quality:too-long |
 | nasa | NASA's SpaceX Crew 9 Rendezvous and Docking - Sunday, Sept. 9, 2024 | quality:too-long |
-| nasa | NEXT SPACE STATION CREW, EXPEDITION 61, UNDERGOES FINAL TRAINING OUTSIDE MOSCOW | quality:too-long |
+| nasa | Next Space Station Crew, Expedition 61, Undergoes Final Training Outside Moscow | quality:too-long |
 | nasa | NASA’s SpaceX Crew-10 Flight Day 1 Highlights | quality:too-long |
-| nasa | iss064m263141814_Expedition_64_Crew-1_Virtual_Media_Engagement_201109 | quality:too-long |
-| nasa | CREW-8 ASTRONAUTS UNDOCK FROM THE INTERNATIONAL SPACE STATION | quality:too-long |
-| nasa | STATION CREW MEMBERS CLOSE THE DRAGON ENDEAVOUR HATCH | quality:too-long |
+| nasa | Expedition 64 Crew-1 Virtual Media Engagement | quality:too-long |
+| nasa | Crew-8 Astronauts Undock from the International Space Station | quality:too-long |
+| nasa | Station Crew Members Close the Dragon Endeavour Hatch | quality:too-long |
 | nasa | KSC-05-S-00185 | quality:no-duration |
 | nasa | KSC-05-S-00188 | quality:no-duration |
 | nasa | NASA's SpaceX CRS-22 What's On Board Science Briefing | quality:too-long |
@@ -392,47 +406,33 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nasa | Progress 94 Cargo Spacecraft Docking – Tuesday, March 24, 2026 | quality:too-long |
 | nasa | Expedition 70 Progress 86 Cargo Ship Docks to International Space Station - Dec. 3, 2023 | quality:too-long |
 | nasa | NASAs SpaceX 31st Cargo Resupply Services Rendezvous and Docking – Tuesday, November 5, 20 | quality:too-long |
-| nasa | iss063m262051659_Expedition 63_Progress_76_Docking_200723 | quality:too-long |
+| nasa | Expedition 63 Progress 76 Docking | quality:too-long |
 | nasa | Expedition 66 Progress 80 Cargo Ship Docks to International Space Station - Feb. 17, 202 | quality:too-long |
 | nasa | Expedition 69 Progress 85 Cargo Ship Docks to Space Station - Aug. 24, 2023 | quality:too-long |
 | nasa | Expedition 67 - Progress 81 Cargo Ship Docks to International Space Station - June 3, 2022 | quality:too-long |
 | nasa | Expedition 68 - Progress 83 Cargo Ship Docks to International Space Station Feb. 11, 2023 | quality:too-long |
 | nasa | Expedition 68 Progress 82 Cargo Ship Docks to International Space Station - Oct. 27, 2022 | quality:too-long |
-| nasa | PROGRESS 88 CARGO SPACECRAFT DOCKS TO SPACE STATION | quality:too-long |
+| nasa | Progress 88 Cargo Spacecraft Docks to Space Station | quality:too-long |
 | nasa | Expedition 69 - Progress 84 Cargo Ship Docks to International Space Station May 24, 2023 | quality:too-long |
 | nasa | Expedition 68 SpaceX Dragon CRS-27 Cargo Ship Space Station Docking -March 16, 2023 | quality:too-long |
 | nasa | Expedition 70 SpaceX Dragon CRS-29 Cargo Ship Space Station Docking - Nov. 9, 2023 | quality:too-long |
 | nasa | Expedition 67 SpaceX Dragon CRS-25 Cargo Ship Docks to International Space Station - July  | quality:too-long |
 | nasa | Expedition 69 SpaceX Dragon CRS-28 Cargo Ship Space Station Docking - June 6, 2023 | quality:too-long |
-| nasa | iss066m263030044_Expedition_66_Progress_79_Docking_211029 | quality:too-long |
-| nasa | iss066m263560759_Expedition_66_SpaceX_CRS-24_Docking_211222 | quality:too-long |
+| nasa | Expedition 66 Progress 79 Docking | quality:too-long |
+| nasa | Expedition 66 Space X CRS-24 Docking | quality:too-long |
 | nasa | Expedition 66 Progress 80 Cargo Ship Launch from Baikonur Cosmodrome - Feb. 14, 2022 | quality:too-long |
-| nasa | iss066m262950329_Expedition_66_Redocking_of_Progress_78_211022 | quality:too-long |
+| nasa | Expedition 66 Redocking of Progress 78 | quality:too-long |
 | nasa | Expedition 68 Progress 83 Cargo Ship Launch from Baikonur Cosmodrome - Feb. 9, 2023 | quality:too-long |
 | nasa | Expedition 67 - Progress 81 Cargo Ship Launch from Baikonur Cosmodrome - June 3, 2022 | quality:too-long |
-| nasa | iss063m262051358_Expedition_63_Progress_76_launch_200723 | quality:too-long |
-| nasa | iss061m263400914_Progress_74_Launch_12.6.19 | quality:too-long |
-| nasa | iss066m263002344_Expedition_66_Progress_79_Cargo_Launch_211027 | quality:too-long |
-| nasa | iss065m261830013_Expedition_65_Progress_78_Docking_210701 | quality:too-long |
-| nasa | iss065m261802257_Expedition_65_Progress_78_Launch_210629 | quality:too-long |
+| nasa | Expedition 63 Progress 76 launch | quality:too-long |
+| nasa | Progress 74 Launch 12.6.19 | quality:too-long |
+| nasa | Expedition 66 Progress 79 Cargo Launch | quality:too-long |
+| nasa | Expedition 65 Progress 78 Docking | quality:too-long |
+| nasa | Expedition 65 Progress 78 Launch | quality:too-long |
 | nasa | Expedition 69 Progress 85 Cargo Ship Launch from Baikonur Cosmodrome - Aug. 22, 2023 | quality:too-long |
 | nasa | Expedition 69 - Progress 84 Cargo Ship Launch from Baikonur Cosmodrome - May 24, 2023 | quality:too-long |
-| nasa | iss064m263421729_Expedition_64_SpaceX_CRS-20_Automated_Docking_201207 | quality:too-long |
+| nasa | Expedition 64 Space X CRS-20 Automated Docking | quality:too-long |
 | nasa | Progress 90 Cargo Ship Launch – November 21, 2024 | quality:too-long |
 | nasa | Progress 92 Cargo Spacecraft Launches To Space Station – Thursday, July 3, 2025 | quality:too-long |
-| nasa | Progress 89 Cargo Ship Launch – Wednesday, August 15, 2024 | quality:too-long |
-| nasa | Progress 91 Cargo Ship Launch - Thursday, February 27, 2025 | quality:too-long |
-| nasa | Progress 88 Cargo Ship Launch from Baikonur Cosmodrome – Friday, May 30, 2024 | quality:too-long |
-| nasa | NASA’s SpaceX Crew-9 Dragon Spacecraft Port Relocation – Sunday, November 3, 2024 | quality:too-long |
-| nasa | Live Coverage of SpaceX Crew Dragon’s First Launch on Demo-1 Mission | quality:too-long |
-| nasa | SpaceX DM-2 Flight Day Highlights - May 30, 2020 | quality:too-long |
-| nasa | SpaceX Demonstrates Astronaut Escape Capability for Crew Dragon Spacecraft | quality:too-long |
-| nasa | iss065m262021029_Expedition_65_Crew-2_Port_Relocation_210721 | quality:too-long |
-| nasa | President Trump Speaks after Historic SpaceX Launch | quality:too-long |
-| nasa | SpaceX DM-2 Flight Day Highlights - May 31, 2020 | quality:too-long |
-| nasa | SpaceX Demo-1 Post Flight Readiness Review Demo-1 Mission Overview Briefing | quality:too-long |
-| nasa | SpaceX In-Flight Abort Test: Post-Test Media Conference | quality:too-long |
-| nasa | SpaceX DM-2  - Post Docking Briefing - May 31, 2020 | quality:too-long |
-| nasa | iss063m261521921_DM_2_Post_Docking_Briefing_200531 | quality:too-long |
 
-_392 further rejections omitted._
+_405 further rejections omitted._

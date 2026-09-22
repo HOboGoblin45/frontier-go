@@ -9,7 +9,8 @@ export type IconName =
   | 'play' | 'pause' | 'shuffle' | 'back-10' | 'forward-10'
   | 'airplay' | 'pip' | 'captions' | 'expand' | 'info'
   | 'bookmark' | 'bookmark-filled' | 'share' | 'globe' | 'home'
-  | 'person' | 'sound-on' | 'sound-off' | 'more' | 'arrow-right' | 'compass';
+  | 'person' | 'sound-on' | 'sound-off' | 'more' | 'arrow-right' | 'compass'
+  | 'moon' | 'stack' | 'link';
 
 const PATHS: Record<IconName, JSX.Element> = {
   'chevron-down': <path d="M6 9.5 12 15.5 18 9.5" />,
@@ -38,6 +39,9 @@ const PATHS: Record<IconName, JSX.Element> = {
   more: <><circle cx="6" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none" /><circle cx="18" cy="12" r="1.3" fill="currentColor" stroke="none" /></>,
   'arrow-right': <path d="M4.5 12h14M13.5 6.5 19 12l-5.5 5.5" />,
   compass: <><circle cx="12" cy="12" r="8.6" /><path d="m15.4 8.6-1.9 5-5 1.9 1.9-5Z" /></>,
+  moon: <path d="M19.2 14.6A7.8 7.8 0 0 1 9.4 4.8a7.8 7.8 0 1 0 9.8 9.8Z" />,
+  stack: <><rect x="4" y="9" width="16" height="11" rx="1.6" /><path d="M6.5 6h11M9 3.5h6" /></>,
+  link: <><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.2 1.2" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.2-1.2" /></>,
 };
 
 export function Icon({ name, size = 22, className }: { name: IconName; size?: number; className?: string }) {

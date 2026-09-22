@@ -22,3 +22,4 @@ ios/App/DerivedData/
 
 # Vite/Vitest transient config timestamp files
 *.timestamp-*.mjs
+site-dist/

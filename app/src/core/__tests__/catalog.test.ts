@@ -179,3 +179,60 @@ describe('client catalog indexing', () => {
     expect(loaded.byId.get('bad')).toBeTruthy();
   });
 });
+
+describe('stampAddedAt', () => {
+  const item = (id: string, addedAt?: string) => ({ id, addedAt } as unknown as import('../types/media').FrontierMediaItem);
+  it('stamps only what the previous catalog did not have', async () => {
+    const { stampAddedAt } = await import('../catalog/pipeline');
+    const out = stampAddedAt([item('a'), item('b'), item('c')], { items: [item('a'), item('b', '2026-09-01T00:00:00Z')] }, '2026-09-29T06:17:00Z');
+    expect(out.map((i) => i.addedAt)).toEqual([undefined, '2026-09-01T00:00:00Z', '2026-09-29T06:17:00Z']);
+  });
+  it('stamps nothing when there is no previous catalog, so the launch set is not all "new"', async () => {
+    const { stampAddedAt } = await import('../catalog/pipeline');
+    expect(stampAddedAt([item('a', 'x')], null, 'now').map((i) => i.addedAt)).toEqual([undefined]);
+  });
+});
+
+describe('remote catalog', () => {
+  const loaded = (generatedAt: string, n: number) => ({ generatedAt, eligible: new Array(n).fill(null) } as unknown as import('../catalog/catalog').LoadedCatalog);
+
+  it('adopts a newer catalog of similar size', async () => {
+    const { shouldAdopt } = await import('../catalog/catalog');
+    expect(shouldAdopt(loaded('2026-09-22T00:00:00Z', 1600), loaded('2026-09-29T00:00:00Z', 1650))).toBe(true);
+  });
+
+  it('refuses an older or identical one', async () => {
+    const { shouldAdopt } = await import('../catalog/catalog');
+    expect(shouldAdopt(loaded('2026-09-22T00:00:00Z', 1600), loaded('2026-09-22T00:00:00Z', 1700))).toBe(false);
+    expect(shouldAdopt(loaded('2026-09-22T00:00:00Z', 1600), loaded('2026-09-01T00:00:00Z', 1700))).toBe(false);
+  });
+
+  it('refuses a newer catalog that collapsed, so one broken ingest cannot gut every phone', async () => {
+    const { shouldAdopt } = await import('../catalog/catalog');
+    expect(shouldAdopt(loaded('2026-09-22T00:00:00Z', 1600), loaded('2026-09-29T00:00:00Z', 400))).toBe(false);
+  });
+
+  it('returns null rather than throwing on a bad response, and re-gates what it accepts', async () => {
+    const { loadRemoteCatalog } = await import('../catalog/catalog');
+    const reply = (body: unknown, ok = true) => (async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
+    expect(await loadRemoteCatalog('x', reply({}, false))).toBeNull();
+    expect(await loadRemoteCatalog('x', reply({ version: 2, items: [], generatedAt: 'x' }))).toBeNull();
+    expect(await loadRemoteCatalog('x', (async () => { throw new Error('offline'); }) as unknown as typeof fetch)).toBeNull();
+    const bad = { id: 'x', rights: { classification: 'unknown' } };
+    const got = await loadRemoteCatalog('x', reply({ version: 1, generatedAt: '2026-09-29T00:00:00Z', items: [bad], stats: {} }));
+    expect(got?.items.length).toBe(1);
+    expect(got?.eligible.length).toBe(0);
+  });
+
+  it('lists what arrived recently, newest first, and nothing from the launch set', async () => {
+    const { recentlyAdded } = await import('../catalog/catalog');
+    const now = Date.parse('2026-10-10T00:00:00Z');
+    const items = [
+      { id: 'launch' },
+      { id: 'old', addedAt: '2026-09-01T00:00:00Z' },
+      { id: 'a', addedAt: '2026-10-01T00:00:00Z' },
+      { id: 'b', addedAt: '2026-10-08T00:00:00Z' },
+    ] as unknown as import('../types/media').FrontierMediaItem[];
+    expect(recentlyAdded(items, now).map((i) => i.id)).toEqual(['b', 'a']);
+  });
+});
