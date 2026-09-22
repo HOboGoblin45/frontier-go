@@ -60,3 +60,13 @@ test('every screenshot folder exists with six PNGs of the right size', () => {
     }
   }
 });
+
+test('analytics summary sums counts per event and ignores text columns', async () => {
+  const { summarise } = await import('./asc-analytics.mjs');
+  const tsv = 'Date\tApp Name\tEvent\tCounts\tUnique Counts\n2026-10-01\tx\tImpression\t10\t8\n2026-10-02\tx\tImpression\t5\t5\n2026-10-02\tx\tPage view\t3\t2\n';
+  assert.deepEqual(summarise(tsv), {
+    rows: 3,
+    totals: { Impression: { Counts: 15, 'Unique Counts': 13 }, 'Page view': { Counts: 3, 'Unique Counts': 2 } },
+  });
+  assert.deepEqual(summarise(''), { rows: 0, totals: {} });
+});

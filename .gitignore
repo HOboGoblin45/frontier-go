@@ -41,3 +41,9 @@ TrailerRoulette-v*-complete-*.zip
 # Local browser inspection artifacts (can contain request URLs).
 .playwright-cli/
 store-listing/screenshots/_raw/
+
+# Private App Store analytics pulled by .github/scripts/asc-analytics.mjs.
+# This repository is public; the numbers are not.
+/metrics/
+/_deploy/
+*.bundle

@@ -14,13 +14,14 @@ the research passes that were not re-checked are marked **[R]**.
 | | |
 | --- | --- |
 | Public users | **0.** Nothing has ever been released on this App Store record. |
-| App Store record | Trailer Roulette 1.0, approved, `PENDING_DEVELOPER_RELEASE` **[V]** |
-| Latest build | frontier go 4.1.0 (79), TestFlight, `VALID` **[V]** |
-| Catalog | 1,647 clips, 107 hours, 12 environments, rights fail closed |
-| Public website | Still Trailer Roulette. The frontier go site in the repo was never deployed **[V]** |
-| Weekly catalog refresh | **Has never run.** Scheduled workflows only run on the default branch, which is `main` (Trailer Roulette) **[V]** |
-| Share links | Point at NASA's and NOAA's web pages, or at `frontier.go`, which is not a real domain **[V]** |
-| Analytics | Buffered on device, never leaves it. Nothing measures real use yet. |
+| App Store record | Trailer Roulette 1.0, approved, `PENDING_DEVELOPER_RELEASE` **[V]**. Blocks both a new version and a transfer until withdrawn |
+| Latest build | frontier go 4.2.0 (80), `VALID` in App Store Connect **[V]** |
+| Catalog | 1,634 clips, 104 hours, 12 environments, rights fail closed |
+| Public website | `hobogoblin45.github.io/frontier-go`: landing, privacy, support, share pages, live catalog **[V]** |
+| Weekly catalog refresh | Runs: `frontier-go` is now the default branch **[V]** |
+| Share links | Land on a web page that plays the clip, with an App Store button **[V]** |
+| Store listing | Kept in `store-listing/` and applied by `store-listing.yml`; a read-only run against the live account passed **[V]** |
+| Analytics | App Store Connect Analytics Reports request active since 2026-09-22 **[V]**; pulled monthly to a private folder (`docs/data-room/METRICS.md`) |
 
 ## 2. The hard truth about selling it
 
@@ -119,7 +120,7 @@ Not Linked to You".
 
 ## 8. Phase 3 — package and approach (months 6–12)
 
-- **Data room**: analytics screenshots, a rights memo (17 U.S.C. §105, NASA and
+- **Data room**: started in `docs/data-room/` — analytics screenshots, a rights memo (17 U.S.C. §105, NASA and
   NOAA terms, the insignia and identifiable-person policies, the rejection
   log), architecture and pipeline runbook, transfer checklist.
 - **Transfer hygiene**: TestFlight builds and testers removed, no Sign in with
@@ -141,6 +142,18 @@ Not Linked to You".
 - Do not reintroduce YouTube, for any reason.
 
 ## 10. What needs Charlie
+
+- **Withdraw Trailer Roulette 1.0**: App Store Connect → the 1.0 version →
+  "Reject this version". Apple has no API for it. Then run
+  `store-listing.yml` with `submit`, or ask a session to.
+- **App Privacy**: confirm "Data Not Collected" in App Store Connect → App
+  Privacy (not in the API). The answers are in `docs/PRIVACY-NUTRITION-LABEL.md`.
+- **Press Release** once 4.2.0 is approved and has been tried on a phone.
+- **The repository is public** (GitHub Pages on a free plan needs that). That
+  is fine for the website and the docs, but it gives the code away to anyone
+  who looks. Before approaching buyers, either move the site to a host that
+  serves from a private repository or pay for GitHub Pro (private Pages), then
+  make the repository private.
 
 - **Paid/Free agreements** must be current in App Store Connect → Business for
   submission and, later, transfer.

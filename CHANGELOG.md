@@ -7,6 +7,27 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+### Added
+
+- **The App Store listing is applied from the repository.**
+  `.github/scripts/asc-store.mjs` makes App Store Connect match
+  `store-listing/`: name, subtitle, description, keywords, promotional text,
+  URLs, categories, the 4+ age rating, both screenshot sets, review notes and
+  the build. `plan` is read-only; `apply` writes; `submit` also submits for
+  review. Release stays manual. `store-listing.yml` runs it from GitHub with the
+  existing API key secrets. Screenshots it replaces are downloaded first and
+  kept as a workflow artifact.
+- **The listing is tested.** CI parses `store-listing/` and fails if a field
+  exceeds Apple's limit, the keywords go over 100 bytes, an agency name appears
+  in the name, subtitle or keywords, or a screenshot is the wrong size.
+- **Apple's analytics, kept.** An ongoing App Store Connect Analytics Reports
+  request is active from 2026-09-22. `.github/scripts/asc-analytics.mjs pull`
+  downloads each month's reports, verifies their checksums and writes a
+  summary. It runs on the owner's machine because this repository is public.
+- **Data room** (`docs/data-room/`): one-pager, rights memo, metrics log,
+  technology and operations, app-transfer checklist checked against the live
+  account, buyers and partners.
+
 ## [4.2.0] — 2026-09-22
 
 The first version meant for the public App Store. Direction set the same day:
