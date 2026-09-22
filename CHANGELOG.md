@@ -7,6 +7,37 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.0.1] — 2026-09-22
+
+### Fixed
+
+- **The interface was covering the video.** On device, 4.0.0 (74) played sound
+  with a white screen; the picture only appeared in Picture in Picture, which
+  is its own render path. The player layer was working the whole time — the web
+  view above it was opaque.
+
+  `isOpaque = false` and a clear `backgroundColor` are not sufficient on iOS 15
+  and later. `WKWebView.underPageBackgroundColor` is a third surface: WebKit
+  paints it *behind* the document, derives it from the page, and defaults it to
+  white. A page with a transparent `html` background still gets an opaque
+  under-page colour, so the web view stayed a white sheet over the video
+  regardless of the CSS.
+
+  All three are now set, and re-set: at attach, at five points across the
+  launch window, on every app activation, and on every `load`. Capacitor
+  configures the web view during its own view lifecycle, which can run after
+  the plugin's does, and WebKit re-derives the colour when the first document
+  paints — one application at attach time was what made this look fixed in a
+  compile and broken on a phone.
+
+### Added
+
+- **Profile → Diagnostics → Video surface.** Reads `transparent · video
+  visible` or `OPAQUE · the interface is covering the video`. This failure is
+  invisible to every gate that does not involve a screen — it compiles, it
+  passes every test, it plays audio — so it now has a line of its own next to
+  the native-player check.
+
 ## [4.0.0] — 2026-09-21
 
 ### frontier go

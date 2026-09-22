@@ -47,6 +47,7 @@ import UIKit
 import AVFoundation
 import AVKit
 import MediaPlayer
+import WebKit
 import Capacitor
 
 // MARK: - Item description passed across the bridge
@@ -136,6 +137,8 @@ final class FrontierPlaybackEngine: NSObject {
     private let backdropBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let backdropDim = UIView(frame: .zero)
     private var backdropTask: URLSessionDataTask?
+    private weak var hostWebView: UIView?
+    private(set) var webViewIsTransparent = false
     private var routePicker: AVRoutePickerView?
     private var pipController: AVPictureInPictureController?
 
@@ -218,20 +221,63 @@ final class FrontierPlaybackEngine: NSObject {
             container.bottomAnchor.constraint(equalTo: host.bottomAnchor),
         ])
 
-        // Without this the web view paints an opaque white (or black) page over
-        // the video and the whole arrangement looks like a broken player.
-        if let web = webView {
-            web.backgroundColor = .clear
-            web.isOpaque = false
-            if let scroll = web.subviews.compactMap({ $0 as? UIScrollView }).first {
-                scroll.backgroundColor = .clear
+        hostWebView = webView
+        if let web = webView { host.bringSubviewToFront(web) }
+        makeWebViewTransparent()
+
+        // Capacitor configures the web view during its own view lifecycle,
+        // which can run after this does, and WebKit re-derives the under-page
+        // colour when the first document paints. One application at attach
+        // time was not enough: the first device build came up with the whole
+        // interface composited over white, with the video playing underneath
+        // where nobody could see it. Re-apply across the launch window.
+        for delay in [0.1, 0.4, 1.0, 2.0, 4.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.makeWebViewTransparent()
             }
-            host.bringSubviewToFront(web)
         }
 
         setupRoutePicker(in: host)
         setupPiP()
         layoutLayer()
+    }
+
+    /// Make the web view see-through so the player layer behind it is visible.
+    ///
+    /// Three properties matter and only two of them are obvious:
+    ///
+    ///   isOpaque              - stops UIKit filling the view's rect
+    ///   backgroundColor       - the view's own fill
+    ///   underPageBackgroundColor - iOS 15+, the colour WebKit paints BEHIND
+    ///                           the page, derived from the document and
+    ///                           defaulting to white
+    ///
+    /// The third is the one that bites. A page with a transparent `html`
+    /// background still gets an opaque under-page colour, so the web view
+    /// stays a white sheet over the video no matter what the CSS says.
+    /// Idempotent and cheap; call it as often as necessary.
+    func makeWebViewTransparent() {
+        guard let web = hostWebView else { return }
+        web.isOpaque = false
+        web.backgroundColor = .clear
+        if let wk = web as? WKWebView {
+            wk.scrollView.isOpaque = false
+            wk.scrollView.backgroundColor = .clear
+            if #available(iOS 15.0, *) {
+                wk.underPageBackgroundColor = .clear
+            }
+        } else if let scroll = web.subviews.compactMap({ $0 as? UIScrollView }).first {
+            scroll.isOpaque = false
+            scroll.backgroundColor = .clear
+        }
+        // Whatever the web view sits in must not paint white either.
+        web.superview?.backgroundColor = UIColor(red: 0.043, green: 0.059, blue: 0.055, alpha: 1.0)
+
+        let clear = !web.isOpaque && (web.backgroundColor?.cgColor.alpha ?? 1) == 0
+        if clear != webViewIsTransparent {
+            webViewIsTransparent = clear
+            emit?("onVideoSurfaceChanged", ["webViewTransparent": clear])
+        }
     }
 
     func layoutLayer() {
@@ -789,6 +835,9 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
     @objc private func applicationDidBecomeActive() {
         DispatchQueue.main.async { [weak self] in
             self?.attachIfNeeded()
+            // Unguarded by `attached`: the point is to re-assert transparency
+            // that something else may have reset while we were away.
+            self?.engine?.makeWebViewTransparent()
             self?.engine?.layoutLayer()
         }
     }
@@ -811,6 +860,7 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         let autoplay = call.getBool("autoplay") ?? true
         DispatchQueue.main.async {
             self.attachIfNeeded()
+            self.engine?.makeWebViewTransparent()
             self.engine?.load(item, autoplay: autoplay)
             call.resolve(["loaded": true, "itemId": item.id])
         }
@@ -893,9 +943,14 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
     /// fell back to the web implementation.
     @objc func getDiagnostics(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
+            // `webViewTransparent` is the one line that explains a build where
+            // the sound plays and the picture does not: if it is false, the web
+            // view is a sheet over the video.
+            self.engine?.makeWebViewTransparent()
             call.resolve([
                 "native": true,
                 "attached": self.attached,
+                "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,
                 "state": self.engine?.stateDictionary() ?? [:],

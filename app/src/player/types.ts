@@ -14,6 +14,12 @@ export interface PlayableItem {
 export interface PlayerDiagnostics {
   native: boolean;
   attached?: boolean;
+  /**
+   * False means the web view is painting over the player layer: sound plays,
+   * picture does not, and Picture in Picture is the only way to see anything.
+   * It is the single most diagnostic line in the app.
+   */
+  webViewTransparent?: boolean;
   pipSupported?: boolean;
   audioSessionCategory?: string;
   implementation: 'native-avfoundation' | 'web-video-element';
@@ -22,7 +28,7 @@ export interface PlayerDiagnostics {
 export type PlayerEvent =
   | 'onLoading' | 'onReady' | 'onPlaying' | 'onPaused' | 'onBuffering'
   | 'onEnded' | 'onError' | 'onItemChanged' | 'onItemReady' | 'onTransitioning'
-  | 'onRouteChanged' | 'onAirPlayChanged' | 'onPiPChanged'
+  | 'onRouteChanged' | 'onAirPlayChanged' | 'onPiPChanged' | 'onVideoSurfaceChanged'
   | 'onTimeUpdate' | 'onStateChanged' | 'onQueueStarved' | 'onRemoteCommand';
 
 export interface FrontierPlayerPlugin {

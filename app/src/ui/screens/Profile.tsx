@@ -124,6 +124,13 @@ export function Profile({
             <dd style={{ color: diag?.native ? 'var(--text-secondary)' : 'var(--accent-secondary)' }}>
               {diag ? (diag.native ? 'Native AVFoundation · active' : 'Web fallback · native NOT bound') : 'checking'}
             </dd>
+            <dt>Video surface</dt>
+            <dd style={{ color: diag && diag.native && !diag.webViewTransparent ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
+              {!diag ? 'checking'
+                : !diag.native ? 'n/a'
+                  : diag.webViewTransparent ? 'transparent \u00b7 video visible'
+                    : 'OPAQUE \u00b7 the interface is covering the video'}
+            </dd>
             <dt>Picture in Picture</dt><dd>{diag?.pipSupported ? 'supported' : 'unavailable'}</dd>
             <dt>Audio session</dt><dd>{diag?.audioSessionCategory || 'n/a'}</dd>
           </dl>
