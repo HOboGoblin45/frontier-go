@@ -86,6 +86,12 @@ export function useFrontier() {
   const constraintRef = useRef<ExplorationConstraint | null>(null);
   const historyRef = useRef<DiscoveryHistory>(EMPTY_HISTORY);
   const healthRef = useRef<LocalHealthMap>({});
+  /**
+   * True while something else (Dive Replay) owns the transport. The channel's
+   * event handlers stand down so a dive's segments are never mistaken for, or
+   * replaced by, channel items.
+   */
+  const suspendedRef = useRef(false);
 
   const pool = useMemo(() => {
     if (!catalog) return [];
@@ -206,7 +212,7 @@ export function useFrontier() {
           firstFrameSentRef.current = true;
           track('time_to_first_frame', { ms: Date.now() - openedAtRef.current });
         }
-        track('playback_started', { itemId: currentRef.current?.id ?? '' });
+        if (!suspendedRef.current) track('playback_started', { itemId: currentRef.current?.id ?? '' });
       });
       await on('onPaused', mirror);
       await on('onReady', mirror);
@@ -231,6 +237,7 @@ export function useFrontier() {
       // The transport moved on. Work out to what, close out the old item, and
       // prepare the next one. Nothing user-visible waits on this.
       await on('onItemChanged', (d) => {
+        if (suspendedRef.current) return;
         const id = String(d.itemId ?? '');
         const items = poolRef.current;
         const next = items.find((i) => i.id === id) || null;
@@ -253,6 +260,7 @@ export function useFrontier() {
       });
 
       await on('onQueueStarved', () => {
+        if (suspendedRef.current) return;
         // The queue emptied — usually the last prepared item finished while the
         // deck was rebuilding. Recover by loading a fresh item rather than
         // leaving a frozen frame on someone's television.
@@ -472,6 +480,30 @@ export function useFrontier() {
     void set(KEYS.MUTED, next);
   }, [playback.muted]);
 
+  /** Hand the transport to something else (Dive Replay). The item on screen is closed out. */
+  const suspend = useCallback(async () => {
+    if (suspendedRef.current) return;
+    closeOutCurrent('jump');
+    suspendedRef.current = true;
+    deckRef.current = [];
+    await FrontierPlayer.clearQueue({ keepCurrent: false });
+  }, [closeOutCurrent]);
+
+  /** Take the transport back and carry on with the channel where it left off. */
+  const resume = useCallback(async () => {
+    if (!suspendedRef.current) return;
+    suspendedRef.current = false;
+    const item = currentRef.current || takeNext();
+    if (!item) return;
+    currentRef.current = item;
+    setCurrent(item);
+    positionRef.current = 0;
+    durationRef.current = item.stream.durationSeconds ?? 0;
+    await FrontierPlayer.load({ item: toPlayable(item), autoplay: true });
+    replenishDeck();
+    void primeNext();
+  }, [primeNext, replenishDeck, takeNext]);
+
   const presentAirPlay = useCallback(async () => { await FrontierPlayer.presentRoutePicker(); }, []);
   const enterPiP = useCallback(async () => { await FrontierPlayer.enterPiP(); }, []);
 
@@ -505,6 +537,8 @@ export function useFrontier() {
     removeSaved,
     togglePlay,
     pause,
+    suspend,
+    resume,
     seekBy,
     seekTo,
     toggleMute,

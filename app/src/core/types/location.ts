@@ -22,6 +22,7 @@ export type FrontierCelestialBody = 'earth' | 'moon' | 'mars' | 'other';
 export type FrontierLocationAccuracy =
   | 'exact'       // surveyed coordinates for this footage
   | 'approximate' // a point within the operating area
+  | 'site'        // the published position of the dive or operation the footage came from
   | 'region'      // a published reference point for a named region
   | 'mission'     // no point; the mission itself is the location
   | 'unknown';
@@ -96,6 +97,7 @@ export function accuracyNote(loc: FrontierLocation | undefined): string | null {
   switch (loc.accuracy) {
     case 'exact': return null;
     case 'approximate': return 'Approximate position';
+    case 'site': return 'Dive site';
     case 'region': return 'Region reference point';
     case 'mission': return 'Mission location';
     default: return 'Position not recorded';

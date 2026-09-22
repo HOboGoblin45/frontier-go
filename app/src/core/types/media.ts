@@ -49,6 +49,12 @@ export interface FrontierSource {
   expedition?: string;
   mission?: string;
   vessel?: string;
+  /**
+   * The whole ROV dive this clip was cut from ("EX2104-DIVE05"), when the
+   * agency's own text names the expedition and the dive and the dive index
+   * has it. Opens Dive Replay from the clip.
+   */
+  diveId?: string;
 }
 
 export interface FrontierHealthMetadata {

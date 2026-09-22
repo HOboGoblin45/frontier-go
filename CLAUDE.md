@@ -15,7 +15,7 @@ decisions.
 - Bundle id `app.trailerroulette.ios` · Apple ID 6764209094 · repo `github.com/HOboGoblin45/frontier-go` (renamed 2026-09-22 from `trailer-roulette-ios`; GitHub redirects the old name)
 - Reoriented from **Trailer Roulette** at v3.4.3 (`main`). Version series restarts at **v4.0.0**.
 - **Trailer Roulette is retired (decided by Charlie, 2026-09-22).** Its approved-but-never-released 1.0 is withdrawn and frontier go ships as the first public release on the same App Store record. `release/public-3.5` is closed and kept only as history; `frontier-go` is the default branch.
-- **Business direction (Charlie, 2026-09-22): free for users, no ads, no IAP — built to grow an audience and be acquired.** `docs/GROWTH-AND-ACQUISITION-PLAN.md` is the plan. Every change is judged on whether it grows a provable, engaged audience. Apple will not transfer an app until a version has been released, so shipping publicly came first.
+- **Business direction (Charlie, 2026-09-22): free for users, no ads, no IAP — built to be acquired by a larger company, with a product that is novel and valuable to one.** `docs/ACQUISITION-THESIS.md` is the thesis (the dive index, Dive Replay and the Deep Atlas); `docs/GROWTH-AND-ACQUISITION-PLAN.md` keeps the measurement and milestones. Every change is judged on whether it grows a provable, engaged audience. Apple will not transfer an app until a version has been released, so shipping publicly came first.
 - The reasoning this product rests on is in `docs/decisions-evidence/`, written on that branch the day before: there is no lawful non-YouTube trailer catalogue, and every lawful source hands you a direct MP4 or HLS URL.
 - The full audit, migration classification and the open decisions are in `docs/FRONTIER-GO-MIGRATION.md`. Read it before proposing structural change.
 
@@ -70,9 +70,22 @@ decisions.
 | App Store listing (source of truth + apply) | `store-listing/`, `.github/scripts/asc-store.mjs`, `.github/workflows/store-listing.yml` |
 | Analytics pull (run locally; repo is public) | `.github/scripts/asc-analytics.mjs`, `docs/data-room/METRICS.md` |
 | Data room for buyers | `docs/data-room/` |
+| Dive index (NOAA ROV dives: track, sightings, segments, stills) | `tools/dives/crawl.ts`, parsers `src/providers/noaaDives/`, data `app/data/dives/`, workflow `dive-index.yml` |
+| Dive model, telemetry clock, groups, links | `src/core/dives/` (`types`, `telemetry`, `groups`, `atlas`, `link`, `remote`) |
+| Dive Replay (app) | `src/state/useDiveReplay.ts`, `ui/screens/DiveScreen.tsx`, `ui/components/DepthScrubber.tsx`, `DivesList.tsx` |
+| Deep Atlas (website) | `tools/site/atlas.ts`, stills `tools/dives/stills.ts` (cache `app/.cache/stills`) |
+| Dive footage mirror | `tools/dives/mirror.ts`, `tools/dives/sigv4.ts`, workflow `mirror-dives.yml` (needs MIRROR_* secrets) |
 | Site URLs (one place) | `core/platform/site.ts` — `https://hobogoblin45.github.io/frontier-go` |
 
 ## Verification status
+
+At v4.3.0: **262 vitest tests passing**, typecheck and lint clean. The dive
+index covers 528 dives, 2,428 h of main-camera video and 22,866 sightings. In
+the browser harness Dive Replay played two real EX2104 dive 5 segments
+(transcoded to VP9 for headless Chromium), with the gauges following
+playback, the sighting chip changing, and "Next" crossing into the next
+segment. The mirror ran end to end against a local S3 stand-in. **Not
+verified:** the mirror against real R2/S3, and Dive Replay on a device.
 
 At v4.2.0: **220 vitest tests passing**, `tsc --noEmit` clean, `eslint` clean,
 `vite build` green, catalog gates re-verified against the committed file. The
@@ -154,6 +167,15 @@ decoder and its proxy will not pass large media.
    `images-api.nasa.gov/search?q=...&media_type=video` before adding it; a
    query that returns 0 hits looks identical in the code to one that works.
 
-6. **Dive-level coordinates.** NOAA publishes per-dive positions outside the
-   WordPress API. Adding them would raise those items from `accuracy: 'region'`
-   to `'exact'` and make the globe genuinely precise.
+6. **Dive footage.** Dive Replay needs the main-camera segments published
+   (NOAA's archive is zipped and cannot be streamed). Charlie creates the
+   storage (Cloudflare R2 recommended: no egress fees), adds the MIRROR_*
+   secrets, then runs `mirror-dives.yml` with dry_run first. Dives light up in
+   the app from the next site deploy, no app update needed.
+7. **Dive data gotchas.** Track depth is negative from 2021 and positive
+   before; 2018-19 annotations use a different export with the lineage in the
+   description; some cruises publish dive summaries as `noaa_*_DS*.pdf` with
+   the dive number only inside the PDF. All handled in
+   `providers/noaaDives/parse.ts` and `tools/dives/crawl.ts`, with tests.
+   Never carry the science team's names through; they are dropped at parse
+   time and a test checks it.

@@ -9,6 +9,6 @@ export default defineConfig({
       reporter: ['text', 'html'],
       exclude: ['**/node_modules/**', '**/dist/**', '**/ios/**', '**/__tests__/**', 'vite.config.js', 'vitest.config.js', 'eslint.config.js'],
     },
-    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+    include: ['src/**/*.test.{js,jsx,ts,tsx}', 'tools/**/*.test.ts'],
   },
 });

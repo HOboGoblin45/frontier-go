@@ -17,7 +17,8 @@ export type AnalyticsEvent =
   | 'globe_location_selected' | 'discovery_saved' | 'discovery_shared'
   | 'info_opened' | 'airplay_started' | 'pip_started' | 'playback_failure'
   | 'buffer_event' | 'channel_changed' | 'session_end' | 'catalog_refreshed'
-  | 'collection_opened' | 'sleep_timer_set' | 'sleep_timer_fired';
+  | 'collection_opened' | 'sleep_timer_set' | 'sleep_timer_fired'
+  | 'dive_opened' | 'dive_sighting_jump' | 'dives_opened';
 
 export interface AnalyticsRecord {
   event: AnalyticsEvent;

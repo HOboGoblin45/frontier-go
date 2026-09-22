@@ -6,6 +6,7 @@ import { buildCollections, type Collection } from '../../core/catalog/collection
 import type { ExplorationConstraint } from '../../core/shuffle/constraint';
 import { FrontierGlobe, type GlobeMarker } from '../globe/FrontierGlobe';
 import { CollectionsList } from '../components/CollectionsList';
+import { DivesList } from '../components/DivesList';
 import { thumbnailFor } from '../../core/catalog/artwork';
 import { Icon } from '../components/Icon';
 
@@ -39,10 +40,10 @@ function matchesFilter(item: FrontierMediaItem, filter: GlobeFilter): boolean {
   }
 }
 
-type ExploreView = 'globe' | 'collections';
+type ExploreView = 'globe' | 'collections' | 'dives';
 
 export function GlobeScreen({
-  pool, current, visited, reducedMotion, active, constraint, onGoTo, onOpenCollection,
+  pool, current, visited, reducedMotion, active, constraint, onGoTo, onOpenCollection, onOpenDive,
 }: {
   pool: FrontierMediaItem[];
   current: FrontierMediaItem | null;
@@ -52,6 +53,7 @@ export function GlobeScreen({
   constraint: ExplorationConstraint | null;
   onGoTo: (itemId: string) => void;
   onOpenCollection: (c: Collection) => void;
+  onOpenDive: (diveId: string) => void;
 }) {
   const [view, setView] = useState<ExploreView>('globe');
   const collections = useMemo(() => buildCollections(pool), [pool]);
@@ -102,8 +104,25 @@ export function GlobeScreen({
       <button type="button" role="tab" className="segmented__item" aria-selected={view === 'collections'} onClick={() => { setView('collections'); setSearching(false); }}>
         Collections{collections.length ? ` \u00b7 ${collections.length}` : ''}
       </button>
+      <button type="button" role="tab" className="segmented__item" aria-selected={view === 'dives'} onClick={() => { setView('dives'); setSearching(false); }}>
+        Dives
+      </button>
     </div>
   );
+
+  if (view === 'dives') {
+    return (
+      <div className="screen">
+        <header className="screen__header">
+          <h1 className="screen__title">Explore</h1>
+        </header>
+        {tabs}
+        <div className="screen__body" style={{ padding: 'var(--space-4) var(--gutter) 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <DivesList onOpen={onOpenDive} />
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'collections') {
     return (

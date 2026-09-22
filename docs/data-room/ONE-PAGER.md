@@ -1,7 +1,16 @@
 # frontier go
 
-**A free, ad-free, always-on channel of real exploration footage: deep-ocean
-ROV dives and space missions. Open it and something is already playing.**
+**Every deep-sea dive NOAA's exploration ship has made, replayable to the
+second: the robot's camera, its depth and position, and every animal the
+scientists named as it appeared, on one clock. Plus a free, ad-free,
+always-on channel of real exploration footage.**
+
+| The dive index | |
+| --- | --- |
+| Dives | 528 (2011-2025), each with a site, position, 1 Hz track and maximum depth |
+| Camera footage indexed | 2,428 hours, segment by segment, on each dive's clock |
+| Logged sightings | 22,866, each timed to the second, with depth and water temperature |
+| Public face | The Deep Atlas: a web page per dive and per group of animals |
 
 | | |
 | --- | --- |
@@ -23,13 +32,16 @@ Source: App Store Connect Analytics. See `METRICS.md`.
 
 ## What makes it defensible
 
-1. **Zero-decision playback.** No browsing and no choosing. It plays like a
+1. **The dive index and the engine that builds it.** No one else lines up
+   the raw record, the vehicle's instruments and the science log. The engine
+   rebuilds all of it from public sources in minutes. See `../ACQUISITION-THESIS.md`.
+2. **Zero-decision playback.** No browsing and no choosing. It plays like a
    channel and shuffles to somewhere deliberately different.
-2. **A rights pipeline that fails closed.** Automated ingest from two agencies.
+3. **A rights pipeline that fails closed.** Automated ingest from two agencies.
    Unknown rights are a rejection. It is licensable on its own.
-3. **Built for the television.** A native player, AirPlay, Ambient mode and a
+4. **Built for the television.** A native player, AirPlay, Ambient mode and a
    sleep timer.
-4. **A privacy position** that competitors with ads cannot match.
+5. **A privacy position** that competitors with ads cannot match.
 
 ## What it is not
 

@@ -30,12 +30,14 @@ function coordinates(item: FrontierMediaItem): string | undefined {
  * position is the one thing this product must never do.
  */
 export function InfoSheet({
-  item, open, onClose, onShare,
+  item, open, onClose, onShare, onOpenDive,
 }: {
   item: FrontierMediaItem | null;
   open: boolean;
   onClose: () => void;
   onShare: () => void;
+  /** Present when the clip is tied to a whole dive in the dive log. */
+  onOpenDive?: (diveId: string) => void;
 }) {
   if (!open || !item) return null;
   const l = item.location;
@@ -83,6 +85,11 @@ export function InfoSheet({
           </dl>
 
           <div style={{ display: 'grid', gap: 'var(--space-3)', marginTop: 'var(--space-6)' }}>
+            {item.source.diveId && onOpenDive ? (
+              <button type="button" className="btn btn--block" onClick={() => onOpenDive(item.source.diveId!)}>
+                <Icon name="dive" size={18} /> The whole dive this came from
+              </button>
+            ) : null}
             <button type="button" className="btn btn--secondary btn--block" onClick={onShare}>
               <Icon name="share" size={18} /> Share this discovery
             </button>

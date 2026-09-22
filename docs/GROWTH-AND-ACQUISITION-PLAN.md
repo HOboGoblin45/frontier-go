@@ -1,7 +1,10 @@
 # frontier go — growth and acquisition plan
 
 Written 2026-09-22. Direction set by Charlie the same day: **free for users,
-oriented to be acquired rather than to charge.** Trailer Roulette is retired;
+oriented to be acquired rather than to charge.** Revised the same day: aim for
+acquisition by a **larger company**, with a novel product. The product thesis
+is now `ACQUISITION-THESIS.md`; this plan keeps the measurement, milestones and
+rules. Trailer Roulette is retired;
 frontier go ships as the first public release on the existing App Store record.
 
 Facts marked **[V]** were checked against a primary source by hand. Figures from

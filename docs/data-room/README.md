@@ -10,6 +10,7 @@ audience evidence (§3) is filled in monthly once the app is live.
 
 | # | Document | Status |
 | --- | --- | --- |
+| 0 | [Acquisition thesis](../ACQUISITION-THESIS.md) | Ready. What is novel, who buys it, and why. |
 | 1 | [One-page summary](ONE-PAGER.md) | Ready. Refresh the numbers row monthly. |
 | 2 | [Rights memo](RIGHTS-MEMO.md) | Ready. Not legal advice; a buyer's counsel will re-check it. |
 | 3 | [Metrics log](METRICS.md) | Template. First row after one full month live. |

@@ -7,6 +7,51 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.3.0] — 2026-09-22
+
+Direction from Charlie the same day: aim for acquisition by a larger company,
+with a product that is novel and valuable to one. The thesis is in
+`docs/ACQUISITION-THESIS.md`. This release is its first build.
+
+### Added
+
+- **The dive index.** Every ROV dive NOAA Ship Okeanos Explorer has archived
+  since 2011 (528 dives): its position, its 1 Hz depth and position track, the
+  site named in its dive summary, every living thing the science team logged
+  (22,866 sightings, each with its second, depth and, from 2021, water
+  temperature), the main camera's recording segment by segment (2,428 hours),
+  and the framegrabs the team saved. Built by `tools/dives/crawl.ts` from
+  NOAA's public archive over HTTP range requests (it reads a 20 GB zip's table
+  of contents in two small requests), with parsers tested against every file
+  format NOAA used from 2011 to 2025. The science team's names are dropped at
+  parse time.
+- **Dive Replay.** Explore now has a Dives view. Open a dive and its camera
+  (once published), the vehicle's depth, the water temperature, its position
+  and the animal just logged all run on one clock; a depth profile with every
+  sighting marked is how you move through the dive, and "Next" jumps to the
+  next animal. Dives without published footage open in the same screen with
+  the instruments and log following the profile.
+- **Clips tied to their dives.** 110 NOAA clips that name their expedition and
+  dive now carry that dive's site as their place (a new accuracy level, "Dive
+  site") and open the whole dive from the information sheet.
+- **The Deep Atlas on the website**: a page per dive (depth profile, photo
+  strip, every sighting as logged, a map of the expedition), a page per group
+  of animals across all dives ("Octopus: 94 sightings on 36 dives"), a map of
+  every dive, a sitemap and structured data. 566 pages and 1,816 of the ROV's
+  own framegrabs, cut from NOAA's archive and cached between deploys.
+- **Dive footage mirror.** `tools/dives/mirror.ts` and `mirror-dives.yml`
+  publish the main camera's segments to S3-compatible storage (remuxed for
+  streaming, no re-encode, no audio) and mark them for the app. SigV4 signing
+  is checked against the AWS test suite. Waiting on a storage account.
+- **Weekly dive index** (`dive-index.yml`), which adds new dives and re-links
+  clips; the site redeploys after it.
+
+### Changed
+
+- The channel hands the player to Dive Replay and takes it back afterwards
+  (`suspend` / `resume` in `useFrontier`), so dive segments are never mistaken
+  for channel items.
+
 ### Added
 
 - **The App Store listing is applied from the repository.**

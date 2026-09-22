@@ -10,11 +10,14 @@ export type IconName =
   | 'airplay' | 'pip' | 'captions' | 'expand' | 'info'
   | 'bookmark' | 'bookmark-filled' | 'share' | 'globe' | 'home'
   | 'person' | 'sound-on' | 'sound-off' | 'more' | 'arrow-right' | 'compass'
-  | 'moon' | 'stack' | 'link';
+  | 'moon' | 'stack' | 'link' | 'chevron-left' | 'skip-next' | 'dive';
 
 const PATHS: Record<IconName, JSX.Element> = {
   'chevron-down': <path d="M6 9.5 12 15.5 18 9.5" />,
   'chevron-right': <path d="M9.5 6 15.5 12 9.5 18" />,
+  'chevron-left': <path d="M14.5 6 8.5 12 14.5 18" />,
+  'skip-next': <><path d="M6 5.6 15 12 6 18.4Z" /><path d="M18 5.5v13" /></>,
+  dive: <><path d="M3 6.5c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 4.5 0 3 1.3 4.5 0" /><path d="M12 9.5v10" /><path d="m8.5 16 3.5 3.5 3.5-3.5" /></>,
   close: <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />,
   search: <><circle cx="11" cy="11" r="6.2" /><path d="M15.6 15.6 20 20" /></>,
   pin: <><path d="M12 21c4-4.6 6-7.9 6-10.5A6 6 0 0 0 6 10.5C6 13.1 8 16.4 12 21Z" /><circle cx="12" cy="10.4" r="2.2" /></>,

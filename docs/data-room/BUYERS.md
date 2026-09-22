@@ -1,8 +1,10 @@
 # Buyers and partners
 
 Who would pay for frontier go, what each one would be buying, and how to
-start. Approach only once the milestones in the plan §5 are met; before that,
-the right conversation is a partnership, not a sale.
+start. The thesis behind this list, and the stock-footage and AI-data
+buyers that the dive index adds, is in `../ACQUISITION-THESIS.md` §4.
+Approach only once the milestones in the plan §5 are met; before that, the
+right conversation is a partnership, not a sale.
 
 Facts marked **[V]** were checked against a primary source; **[R]** are from
 research passes and not re-checked.

@@ -1,0 +1,71 @@
+name: Dive index
+
+# Adds new NOAA Okeanos Explorer ROV dives to the dive index (app/data/dives)
+# and ties published clips to the dives they came from. Past dives do not
+# change, so a run only reads what is new: a quiet week is a two-minute job.
+#
+# The commit it makes is picked up by "Deploy site" (workflow_run), which
+# publishes the Deep Atlas and the dive data the app reads.
+
+on:
+  schedule:
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Rebuild every dive, not just new ones'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dive-data
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # pdftotext reads the site names out of NOAA's dive summaries.
+      - name: Install poppler
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+
+      - name: Install
+        working-directory: app
+        run: npm ci
+
+      - name: Build the dive index
+        working-directory: app
+        run: npx tsx tools/dives/crawl.ts ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+
+      - name: Tie clips to their dives
+        working-directory: app
+        run: npx tsx tools/dives/link-catalog.ts
+
+      - name: Re-verify the dive parsers and the shipped catalog
+        working-directory: app
+        run: npm run test -- src/providers/__tests__/noaaDives.test.ts src/core/__tests__/dives.test.ts src/core/__tests__/shipped-catalog.test.ts
+
+      - name: Commit if anything changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/data/dives app/public/catalog
+          if git diff --staged --quiet; then
+            echo "Dive index unchanged."
+            exit 0
+          fi
+          DIVES=$(node -e "console.log(require('./app/data/dives/index.json').dives.length)")
+          git commit -m "dives: index update ($DIVES dives)"
+          git push

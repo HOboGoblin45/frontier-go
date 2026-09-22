@@ -15,6 +15,8 @@ import type { FrontierCatalog, FrontierMediaItem } from '../../src/core/types/me
 import { isAgencyTitleCard } from '../../src/core/catalog/artwork';
 import jpeg from 'jpeg-js';
 import { ADAPTERS } from '../../src/providers/index';
+import type { DiveIndex } from '../../src/core/dives/types';
+import { linkClipsToDives } from '../../src/core/dives/link';
 import type { FrontierProviderAdapter } from '../../src/providers/types';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -112,6 +114,15 @@ async function main() {
   catalog.items = stampAddedAt(catalog.items, previous, catalog.generatedAt);
   const arrived = catalog.items.filter((i) => i.addedAt === catalog.generatedAt).length;
   console.log(`  new since the previous catalog: ${arrived}`);
+
+  // Clips that name their expedition and dive get that dive's site and a
+  // link to the whole dive. The dive index is built by tools/dives/crawl.ts.
+  try {
+    const index = JSON.parse(await readFile(resolve(HERE, '../../data/dives/index.json'), 'utf8')) as DiveIndex;
+    console.log(`  clips linked to their dive: ${linkClipsToDives(catalog.items, index.dives)}`);
+  } catch {
+    console.log('  dive index not found; clips keep their region-level places');
+  }
 
   if (!skipProbe) {
     const cards = await auditPosters(catalog.items.filter((i) => i.provider === 'noaa_ocean_exploration'));

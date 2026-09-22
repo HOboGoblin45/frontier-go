@@ -1,8 +1,9 @@
 name: Deploy site
 
 # The frontier go website on GitHub Pages: the landing page, privacy and
-# support, one pre-rendered share page per clip, and the catalog the app
-# fetches for new footage.
+# support, one pre-rendered share page per clip, the catalog the app fetches
+# for new footage, and the Deep Atlas (a page per dive and per group of
+# animals, plus the dive data Dive Replay reads).
 #
 # It has to follow the catalog. The weekly ingest commits with the workflow
 # token, and pushes made with that token do not trigger other workflows, so
@@ -14,12 +15,15 @@ on:
     paths:
       - 'landing-page/**'
       - 'app/public/catalog/**'
+      - 'app/data/dives/**'
       - 'app/tools/site/**'
+      - 'app/tools/dives/stills.ts'
+      - 'app/src/core/dives/**'
       - 'app/src/core/history/saved.ts'
       - 'app/src/core/platform/site.ts'
       - '.github/workflows/deploy-site.yml'
   workflow_run:
-    workflows: ['Ingest catalog']
+    workflows: ['Ingest catalog', 'Dive index', 'Mirror dive footage']
     types: [completed]
   workflow_dispatch:
 
@@ -36,11 +40,19 @@ jobs:
   build:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: frontier-go
+
+      # Dive photographs are cut from NOAA's archive and shrunk once; the
+      # cache keeps them between deploys so only new ones are fetched.
+      - uses: actions/cache@v4
+        with:
+          path: app/.cache/stills
+          key: dive-stills-${{ hashFiles('app/data/dives/index.json') }}
+          restore-keys: dive-stills-
 
       - uses: actions/setup-node@v4
         with:
@@ -87,4 +99,7 @@ jobs:
           curl -sfI "$BASE/catalog/frontier-catalog.json" | grep -i '^access-control-allow-origin: \*'
           curl -sf "$BASE/privacy" | grep -q 'Privacy'
           curl -sf "$BASE/support/" | grep -q 'Support'
+          curl -sf "$BASE/dives/" | grep -q 'The Deep Atlas'
+          curl -sf "$BASE/dives/data/index.json" | head -c 200; echo
+          curl -sf "$BASE/sitemap.xml" | grep -q '/dives/'
           echo "site verified at $BASE"

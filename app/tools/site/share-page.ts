@@ -35,6 +35,12 @@ function placeLine(item: FrontierMediaItem): string {
 
 export function shell(opts: {
   title: string; description: string; image?: string; canonical?: string; body: string; type?: string;
+  /** Extra CSS for pages that need more than the share layout. */
+  css?: string;
+  /** Wider content column (atlas pages). */
+  wide?: boolean;
+  /** JSON-LD structured data. */
+  jsonLd?: unknown;
 }): string {
   const image = opts.image || `${SITE_URL}/og-cover.png`;
   return `<!doctype html>
@@ -81,7 +87,10 @@ ${opts.canonical ? `<meta property="og:url" content="${esc(opts.canonical)}">` :
   footer{margin-top:40px;font-size:12px;line-height:1.6;color:rgba(215,201,187,.5)}
   footer a{color:rgba(215,201,187,.7)}
   @media (min-width:800px){.stage{margin:22px 0 0;border-radius:14px;overflow:hidden}}
+  ${opts.wide ? '.wrap{max-width:1040px}' : ''}
+  ${opts.css || ''}
 </style>
+${opts.jsonLd ? `<script type="application/ld+json">${JSON.stringify(opts.jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
 </head>
 <body>
 <div class="wrap">
@@ -99,11 +108,11 @@ ${opts.canonical ? `<meta property="og:url" content="${esc(opts.canonical)}">` :
 `;
 }
 
-export function getTheApp(openLink?: string): string {
+export function getTheApp(openLink?: string, message?: string): string {
   return `
   <div class="cta">
-    <p>This is one of more than a thousand places in <strong>frontier go</strong>: deep-ocean dives,
-      spacewalks, launches and Mars, playing continuously. Free, no account, no ads.</p>
+    <p>${message || `This is one of more than a thousand places in <strong>frontier go</strong>: deep-ocean dives,
+      spacewalks, launches and Mars, playing continuously. Free, no account, no ads.`}</p>
     <div class="row">
       <a class="badge" href="${APP_STORE_URL}" rel="noopener" aria-label="Download frontier go on the App Store">
         <img src="${BADGE}" alt="Download on the App Store" width="150" height="50">

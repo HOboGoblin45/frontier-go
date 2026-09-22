@@ -3,6 +3,9 @@ import { App as CapApp } from '@capacitor/app';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 import { useFrontier } from './state/useFrontier';
+import { useDiveReplay } from './state/useDiveReplay';
+import { parseDiveLink } from './core/dives/atlas';
+import { DiveScreen } from './ui/screens/DiveScreen';
 import { constraintForItem } from './core/shuffle/constraint';
 import { isSaved as isSavedIn, shareable, parseDeepLink, resolveDiscovery } from './core/history/saved';
 import { get, set, KEYS } from './core/platform/storage';
@@ -55,6 +58,17 @@ export default function App() {
   const [sleepOpen, setSleepOpen] = useState(false);
   const [sleep, setSleep] = useState<{ kind: 'off' } | { kind: 'minutes'; endsAt: number } | { kind: 'clip'; itemId: string }>({ kind: 'off' });
   const [clock, setClock] = useState(() => Date.now());
+  const [diveOpen, setDiveOpen] = useState(false);
+  const replay = useDiveReplay(frontier);
+  const openDive = useCallback((diveId: string, at?: number) => {
+    setInfoOpen(false);
+    setDiveOpen(true);
+    void replay.open(diveId, at);
+  }, [replay]);
+  const closeDive = useCallback(() => {
+    setDiveOpen(false);
+    void replay.close();
+  }, [replay]);
 
   useEffect(() => {
     void get<boolean>(KEYS.ONBOARDED).then((v) => setOnboarded(!!v));
@@ -75,12 +89,14 @@ export default function App() {
   useEffect(() => {
     let handle: { remove: () => void } | null = null;
     void CapApp.addListener('appUrlOpen', ({ url }) => {
+      const diveId = parseDiveLink(url, SITE_URL);
+      if (diveId) { openDive(diveId); return; }
       const ref = parseDeepLink(url);
       const item = ref ? resolveDiscovery(frontier.state.pool, ref) : undefined;
       if (item) { setTab('watch'); void frontier.goTo(item.id); }
     }).then((h) => { handle = h; });
     return () => { handle?.remove(); };
-  }, [frontier]);
+  }, [frontier, openDive]);
 
   const showToast = useCallback((message: string) => {
     setToast(message);
@@ -198,6 +214,20 @@ export default function App() {
     );
   }
 
+  if (diveOpen) {
+    return (
+      <>
+        <DiveScreen
+          replay={replay.state}
+          onClose={closeDive}
+          onSeek={(t) => { void replay.seek(t); }}
+          onTogglePlay={() => { void replay.togglePlay(); }}
+        />
+        {toast ? <div className="toast">{toast}</div> : null}
+      </>
+    );
+  }
+
   return (
     <>
       {tab === 'watch' ? (
@@ -232,6 +262,7 @@ export default function App() {
           reducedMotion={reducedMotion}
           active={tab === 'globe'}
           constraint={state.constraint}
+          onOpenDive={(id) => { track('dives_opened'); openDive(id); }}
           onOpenCollection={(c) => {
             setTab('watch');
             void frontier.exploreCollection(c);
@@ -287,6 +318,7 @@ export default function App() {
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
         onShare={handleShare}
+        onOpenDive={(id) => openDive(id)}
       />
 
       <ChannelSheet

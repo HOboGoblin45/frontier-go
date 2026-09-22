@@ -48,7 +48,7 @@ export function metadataCompleteness(item: FrontierMediaItem): number {
   else if (item.description) score += 0.12;
   if (item.imagery.posterUrl || item.imagery.thumbnailUrl) score += 0.15;
   if (item.location && item.location.type !== 'unknown') score += 0.2;
-  if (item.location?.accuracy === 'exact' || item.location?.accuracy === 'approximate') score += 0.1;
+  if (item.location?.accuracy === 'exact' || item.location?.accuracy === 'approximate' || item.location?.accuracy === 'site') score += 0.1;
   if (item.tags.length >= 2) score += 0.1;
   if (item.source.expedition || item.source.mission) score += 0.1;
   if (item.captionsUrl) score += 0.1;
