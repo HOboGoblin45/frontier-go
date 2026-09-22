@@ -1,0 +1,64 @@
+name: Store listing (App Store Connect)
+
+# Makes App Store Connect match store-listing/. Run "plan" first: it is
+# read-only and prints exactly what "apply" would change. "submit" applies and
+# then submits the version for App Review. Release stays manual either way.
+#
+# Steps Apple does not expose in its API, and so this cannot do: withdrawing
+# an approved version (Developer Reject), the App Privacy questionnaire, and
+# accepting agreements.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: plan, apply or submit
+        required: true
+        default: plan
+        type: choice
+        options: [plan, apply, submit]
+      build_number:
+        description: CFBundleVersion to attach (blank = newest VALID build)
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: store-listing
+  cancel-in-progress: false
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check the listing before touching App Store Connect
+        run: node --test .github/scripts/asc-store.test.mjs
+
+      - name: ${{ inputs.mode }}
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
+          BACKUP_DIR: ${{ runner.temp }}/replaced-screenshots
+        run: node .github/scripts/asc-store.mjs "${{ inputs.mode }}"
+
+      # Screenshots of the retired product are removed from App Store Connect,
+      # so they are kept here first.
+      - name: Keep replaced screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: replaced-screenshots
+          path: ${{ runner.temp }}/replaced-screenshots
+          if-no-files-found: ignore
+          retention-days: 90

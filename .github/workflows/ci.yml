@@ -48,6 +48,9 @@ jobs:
         working-directory: app
         run: npm run test
 
+      - name: Store listing parses and fits Apple's limits
+        run: node --test .github/scripts/asc-store.test.mjs
+
       - name: Build (Vite)
         working-directory: app
         run: npm run build
