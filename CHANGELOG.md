@@ -7,6 +7,26 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The player could end up holding no web view at all.** `attach()` read
+  `bridge.webView` once and kept whatever it got. Capacitor does not guarantee
+  that is non-nil at that moment, and when it was nil the engine held a nil
+  reference for the life of the process: every subsequent attempt to make the
+  web view transparent returned at its guard, so the interface stayed an opaque
+  sheet over the video with no path back and nothing recorded anywhere.
+
+  A web view that turns up late is now adopted, and `getDiagnostics` forces
+  that check before it reports. This is a second, independent cause of the
+  symptom 4.0.1 addressed, not a second attempt at the same fix.
+
+### Added
+
+- `webViewBound` in the player diagnostics, and a matching state on the Profile
+  screen's *Video surface* row. "Bound but opaque" and "never bound" look
+  identical on a phone and have different fixes; the row now names which.
+
+
 ## [4.0.1] — 2026-09-22
 
 ### Fixed
