@@ -1,138 +1,116 @@
 # App Store listing — frontier go
 
-## Name (30 chars)
+Everything below is what is in App Store Connect. Written 2026-09-22 for the
+first public release (4.2.0). The reasoning is in
+`docs/GROWTH-AND-ACQUISITION-PLAN.md` §6.
+
+Rules this copy follows:
+
+- **No "NASA" or "NOAA" in the name, subtitle or keywords.** NASA's advertising
+  guidelines prohibit its name alongside a product name, Apple forbids
+  company names in keywords (2.3.7), and "nasa" is owned by NASA's own app
+  anyway. The agencies are credited, factually, in the description.
+- **No implied endorsement**, and a plain statement that there is none.
+- **Terms and privacy links at the end of the description**, because the app
+  uses Apple's standard licence agreement, which App Store product pages do not
+  link on their own.
+
+## Name (30) — 29
 
 ```
-frontier go
+frontier go: Deep Sea & Space
 ```
 
-## Subtitle (30 chars)
+The home-screen name stays `frontier go`; the App Store name carries the two
+strongest search terms.
+
+## Subtitle (30) — 28
 
 ```
-Real places. Bigger perspective.
-```
-_31 characters — trim to:_
-```
-Real places, bigger perspective
+Ambient ocean & Earth videos
 ```
 
-## Promotional text (170 chars)
+## Keywords (100 bytes) — 97
 
 ```
-Open it and you are already three kilometres down a Pacific seamount. Tap Shuffle and you are watching a rocket test, or a hurricane from orbit. Go somewhere extraordinary.
+tv,screensaver,relaxing,slow,nature,underwater,rov,dive,iss,mars,moon,rocket,launch,sleep,science
+```
+
+Chosen from the research pass on which searches are winnable: the top results
+for "ambient tv", "slow tv", "screensaver", "ocean videos", "earth from space"
+and "relaxing videos" have a few hundred ratings or fewer, where "nasa",
+"space" and "documentary" are owned by NASA, games and PBS. Apple combines
+words across name, subtitle and keywords, so "deep sea videos", "space
+screensaver", "ocean tv" and "earth from space" are all covered without
+repeating a word.
+
+## Promotional text (170) — 158
+
+```
+New footage every week. Open it and you are three kilometres down a Pacific seamount. Tap Shuffle and you are over a hurricane, seen from orbit. Free, no ads.
 ```
 
 ## Description
 
 ```
-frontier go is a continuously playing window into extraordinary places on Earth
-and beyond.
+frontier go is a continuously playing window into extraordinary places on Earth and beyond.
 
-Open the app and you are already somewhere. A remotely operated vehicle three
-kilometres down a Pacific seamount. A hydrothermal vent field. A rocket engine
-on a test stand in Mississippi. A hurricane seen from the International Space
-Station.
+Open it and you are already somewhere: a remotely operated vehicle three kilometres down a Pacific seamount, a hydrothermal vent field, a rocket engine firing on a test stand, a hurricane seen from orbit. Tap Shuffle and you are somewhere else.
 
-Tap Shuffle and the globe carries you somewhere else.
+Free. No ads. No account. Nothing about you leaves your phone.
 
 NO DECISIONS REQUIRED
-There is no catalog to browse, no search box, no categories to pick, no account
-to make. The first thing frontier go shows you is footage. It keeps playing by
-itself, like a channel, for as long as you leave it on.
+There is no catalog to browse and no account to make. The first thing you see is footage, and it keeps playing by itself, like a channel, for as long as you leave it on.
 
 SHUFFLE IS TRANSPORTATION
-Every jump is somewhere genuinely different. A deep-sea octopus, then a rocket
-test, then Antarctic research, then an EVA outside the station. The app
-deliberately puts distance between one place and the next.
+Every jump is somewhere genuinely different: a deep-sea octopus, then a launch, then Greenland ice, then Mars. The app deliberately puts distance between one place and the next.
 
-KEEP EXPLORING HERE
-Found somewhere you would rather stay? One tap narrows everything to that
-expedition, that mission or that region. One tap widens it again.
+COLLECTIONS
+When you want more of something, stay a while. Whole deep-sea expeditions, Mars up close, vents and seeps, jellies, Apollo, liftoff, storms from above, engines on the test stand. New footage arrives every week.
 
 THE GLOBE
-An interactive Earth showing where there is something to watch, where you have
-been, and where you are right now. Turn it, pick a place, go there.
+An interactive Earth showing where there is something to watch and where you have been. Every pin is where the footage was actually shot.
+
+MADE FOR THE TELEVISION
+AirPlay to the big screen, Picture in Picture, lock-screen controls and background audio. Turn on Ambient mode to hide everything but the picture, and set the sleep timer to fall asleep three kilometres down.
 
 YOUR DISCOVERY PASSPORT
-A quiet record of the places you have been. No points. No streaks. No badges.
+A quiet record of the places you have been. No points, no streaks, no badges.
 
-MADE FOR A TELEVISION
-AirPlay it to the big screen, or turn on Ambient mode and leave it running.
-Picture in Picture, lock screen controls and background audio all work the way
-they should, because playback is native rather than a web page pretending.
+WHERE THE FOOTAGE COMES FROM
+Every clip is public-domain footage published by NOAA Ocean Exploration or NASA, shown with its credit line and a link to its source. Anything whose rights could not be confirmed is left out. frontier go is an independent app and is not affiliated with, sponsored by or endorsed by NASA, NOAA or any government agency.
 
-REAL FOOTAGE, PROPERLY CREDITED
-Every clip is public-domain or openly licensed material published by NOAA Ocean
-Exploration and NASA. Each one shows you where it came from, who recorded it,
-how certain the location is, and the terms it is offered under. Anything whose
-rights could not be confirmed is left out.
-
-PRIVATE BY CONSTRUCTION
-No account. No tracking. No advertising. frontier go never asks for your
-location — the geography belongs to the footage, not to you. What you have
-watched and saved stays on your phone.
-
-Go somewhere extraordinary.
+Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://hobogoblin45.github.io/frontier-go/privacy
 ```
 
-## Keywords (100 chars)
+## URLs
 
-```
-ocean,space,nasa,noaa,deep sea,exploration,nature,relax,ambient,science,documentary,earth,globe
-```
+- Support: https://hobogoblin45.github.io/frontier-go/support
+- Marketing: https://hobogoblin45.github.io/frontier-go/
+- Privacy policy: https://hobogoblin45.github.io/frontier-go/privacy
 
-## What's New (v4.0.0)
+## Categories
 
-```
-frontier go.
+- Primary: **Entertainment** — it is watched like television.
+- Secondary: **Education**.
 
-This app began as Trailer Roulette. It has become something else: a continuously
-playing window into real, extraordinary places — deep-ocean dives, orbital
-views, rocket tests, polar research — from NOAA and NASA.
+## Age rating
 
-Playback is now fully native, so AirPlay, Picture in Picture and lock screen
-controls work properly, there are no advertisements between clips, and Shuffle
-is instant because the next place is already loaded.
+4+. Documentary footage of places, animals and machines. No violence, no
+mature themes, no user-generated content, no unrestricted web access (links
+open in Safari), no gambling, no purchases.
 
-New: the Frontier Globe, Keep Exploring Here, the Discovery Passport, and
-Ambient mode for a television.
-```
+## App Privacy
 
-## Support and marketing URLs
-
-- Support: https://trailer-roulette.vercel.app/ (retitle the landing page before release)
-- Privacy: https://trailer-roulette.vercel.app/privacy
-
-## Review notes
-
-```
-frontier go plays public-domain and openly licensed video published by U.S.
-federal agencies: NOAA Ocean Exploration and NASA.
-
-- All media is streamed directly from the publishing agency's own servers over
-  HTTPS. Nothing is re-hosted and nothing is cached to disk.
-- Every item in the app carries its rights classification, its credit line and a
-  link to the publisher's usage terms, visible in the information sheet behind
-  the (i) button on the Watch screen.
-- There is no user-generated content, no uploads, no comments, no accounts, no
-  messaging and no social features of any kind.
-- The app does not request location permission.
-- Items whose rights could not be confirmed from the publisher's own metadata
-  are excluded from the app at build time, not filtered at runtime.
-
-This app previously shipped as Trailer Roulette, which embedded YouTube. All
-YouTube code, the embedding proxy and the movie-metadata dependency have been
-removed; this version plays only the agency-published files described above.
-```
+**Data Not Collected.** The app has no account, no analytics SDK, no
+advertising identifier and no server of its own. Its only network requests are
+for the video being played (agency servers) and for the public catalog file
+(GitHub Pages), neither of which carries anything about the user.
 
 ## Screenshots
 
-**The existing screenshots in `store-listing/` are Trailer Roulette's and must
-be recaptured.** Six frames, matching the design board:
-
-1. Onboarding — "Go somewhere extraordinary."
-2. Watch — deep-sea footage with the title, place and depth overlay
-3. The Globe — markers across the Pacific
-4. Keep Exploring Here
-5. Discovery Passport
-6. Ambient mode
+`store-listing/screenshots/iphone-6.9/` (1320 x 2868) and
+`store-listing/screenshots/ipad-13/` (2064 x 2752), six each, generated from the
+real app by `app/tools/screenshots/capture.mjs`. No agency insignia or emblem,
+no recognisable astronaut, no agency name in a caption.

@@ -40,3 +40,4 @@ app/preview.*.txt
 TrailerRoulette-v*-complete-*.zip
 # Local browser inspection artifacts (can contain request URLs).
 .playwright-cli/
+store-listing/screenshots/_raw/

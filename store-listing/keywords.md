@@ -1,21 +1,5 @@
-# App Store keywords — frontier go
+# Keywords
 
-100 characters, comma-separated, no spaces after commas, no words already in the
-app name or subtitle.
-
-```
-ocean,space,nasa,noaa,deep sea,exploration,nature,relax,ambient,science,documentary,earth,globe
-```
-_94 characters._
-
-## Why these
-
-- **ocean, deep sea, space, nasa, noaa** — what is actually in it. NASA and
-  NOAA are searched by name and the app genuinely carries their footage.
-- **relax, ambient** — the real use case. It plays on a television for hours.
-- **nature, science, documentary, exploration** — the category people reach for.
-- **earth, globe** — the defining feature.
-
-Deliberately not used: *trailer*, *movie*, *film*, *roulette* (the previous
-product), and *4K*, *HD*, *free* (Apple discourages them and they attract the
-wrong install).
+Moved into `description.md`, which holds the whole listing in one place. The
+previous list here used "nasa" and "noaa"; those are out, because Apple does
+not allow company names in keywords (2.3.7) and NASA's own app owns the term.
