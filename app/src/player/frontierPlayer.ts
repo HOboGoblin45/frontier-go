@@ -32,6 +32,20 @@ export function toPlayable(item: FrontierMediaItem): PlayableItem {
   };
 }
 
+/**
+ * Report how much of the picture plane the interface is covering.
+ *
+ * Fire-and-forget: a player that has not attached yet rejects, and the next
+ * measurement will land. Never let a layout hint break playback.
+ */
+export function setVideoInsets(top: number, bottom: number, animated = true): void {
+  void FrontierPlayer.setVideoInsets({
+    top: Math.max(0, Math.round(top)),
+    bottom: Math.max(0, Math.round(bottom)),
+    animated,
+  }).catch(() => undefined);
+}
+
 export async function diagnostics(): Promise<PlayerDiagnostics> {
   const raw = await FrontierPlayer.getDiagnostics();
   const native = raw.native === true;

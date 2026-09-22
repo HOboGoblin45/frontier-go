@@ -230,6 +230,19 @@ export class WebFrontierPlayer extends WebPlugin implements FrontierPlayerPlugin
   }
 
   async presentRoutePicker() { return { presented: false }; }
+
+  /**
+   * The web half of the same contract. The native player insets its layer;
+   * here the stage carries the numbers as custom properties and the CSS puts
+   * the video element inside them.
+   */
+  async setVideoInsets({ top, bottom }: { top: number; bottom: number; animated?: boolean }) {
+    const el = stage();
+    el.style.setProperty('--video-inset-top', `${Math.max(0, top)}px`);
+    el.style.setProperty('--video-inset-bottom', `${Math.max(0, bottom)}px`);
+    return { top, bottom };
+  }
+
   async getState() { return this.snapshot() as never; }
   async setNowPlayingMetadata() { return { applied: false }; }
   async getDiagnostics() {

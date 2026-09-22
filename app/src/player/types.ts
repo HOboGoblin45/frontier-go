@@ -58,6 +58,14 @@ export interface FrontierPlayerPlugin {
   presentRoutePicker(): Promise<{ presented: boolean }>;
   getState(): Promise<Partial<PlaybackState> & { status: string; queueDepth?: number; failedIds?: string[] }>;
   setNowPlayingMetadata(options: { title: string; place: string; organization: string; artworkUrl?: string }): Promise<{ applied: boolean }>;
+  /**
+   * Inset the picture so it is not drawn underneath the interface.
+   *
+   * The player fits the frame inside whatever rect it is given, so the caller
+   * reports the space its own chrome occupies in CSS pixels and the picture
+   * moves clear of it. The caller measures; nothing here assumes a layout.
+   */
+  setVideoInsets(options: { top: number; bottom: number; animated?: boolean }): Promise<{ top: number; bottom: number }>;
   getDiagnostics(): Promise<Record<string, unknown>>;
   addListener(event: PlayerEvent, cb: (data: Record<string, unknown>) => void): Promise<{ remove: () => Promise<void> }>;
 }

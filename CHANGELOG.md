@@ -7,6 +7,47 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.0.3] — 2026-09-22
+
+### Fixed
+
+- **The interface was sitting on the picture.** The player fits the frame
+  inside whatever rect it is given, and it was given the whole screen. A 16:9
+  clip centred in an upright phone therefore lands exactly where the title, the
+  place and the transport are drawn — so the reading matter sat on the footage,
+  and on NOAA material directly on top of the expedition card burned into the
+  opening seconds of the clip. Two titles in two typefaces, overlapping.
+
+  `Watch` now measures its own chrome and reports it to the player, which
+  insets the picture to match: picture above, reading matter below, never both
+  in one place. When the chrome idles out the insets go to zero and the picture
+  takes the whole screen, which is the point of idling.
+
+  Measured, not assumed — the block's height depends on how long the title
+  wraps, whether there is an accuracy note, the safe area and the orientation.
+  The measurement runs from the block's **top edge to the bottom of the
+  viewport**, not the block's own height, because the tab bar sits below it over
+  the same plane; subtracting the block alone would leave the frame overlapping
+  the bar by exactly the bar's height.
+
+  Verified in Chromium at 430x932: chrome visible → picture `0–448`, chrome
+  block starts at `448`, zero overlap; chrome idle → picture `0–932`.
+
+- **The web video ignored its bottom inset.** A `<video>` is a replaced
+  element: with `height: auto` the used height is the *intrinsic* height and the
+  `bottom` offset is discarded as over-constrained, so the element stayed at its
+  default 300x150 while every number involved looked correct. It now carries an
+  explicit `calc()` height. Caught by measuring the live element rather than
+  trusting the stylesheet.
+
+### Added
+
+- `setVideoInsets` on the player contract, implemented natively against the
+  layer's constraints and on the web against the stage's custom properties.
+- `chromeInset`, extracted so the arithmetic is testable, with seven cases
+  covering the tab-bar near-miss, idle, rotation and the degenerate inputs.
+
+
 ## [4.0.2] — 2026-09-22
 
 ### Fixed

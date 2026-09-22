@@ -133,6 +133,8 @@ final class FrontierPlaybackEngine: NSObject {
     /// parent, so z-order is explicit instead of depending on whether a
     /// sublayer was added before or after a subview.
     private let videoView = FrontierVideoView(frame: .zero)
+    private var videoTopInset = NSLayoutConstraint()
+    private var videoBottomInset = NSLayoutConstraint()
     private let backdropView = UIImageView(frame: .zero)
     private let backdropBlur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
     private let backdropDim = UIView(frame: .zero)
@@ -186,7 +188,9 @@ final class FrontierPlaybackEngine: NSObject {
         backdropView.clipsToBounds = true
         backdropView.alpha = 0
         backdropDim.backgroundColor = UIColor.black.withAlphaComponent(0.52)
-        for view in [backdropView, backdropBlur, backdropDim, videoView] {
+        // The backdrop fills the whole surface: it is the room the picture
+        // hangs in, and it should reach every edge whatever the insets say.
+        for view in [backdropView, backdropBlur, backdropDim] {
             view.translatesAutoresizingMaskIntoConstraints = false
             container.addSubview(view)
             NSLayoutConstraint.activate([
@@ -196,6 +200,21 @@ final class FrontierPlaybackEngine: NSObject {
                 view.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             ])
         }
+
+        // The picture itself is inset, because the interface is drawn over
+        // this same plane by the web view above. `resizeAspect` centres the
+        // frame in whatever rect it is given, so shrinking the rect is what
+        // moves the picture clear of the text rather than under it.
+        videoView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(videoView)
+        videoTopInset = videoView.topAnchor.constraint(equalTo: container.topAnchor)
+        videoBottomInset = container.bottomAnchor.constraint(equalTo: videoView.bottomAnchor)
+        NSLayoutConstraint.activate([
+            videoView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            videoView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            videoTopInset,
+            videoBottomInset,
+        ])
         videoView.backgroundColor = .clear
         videoView.layer.addSublayer(playerLayer)
         videoView.onLayout = { [weak self] in self?.layoutLayer() }
@@ -331,6 +350,38 @@ final class FrontierPlaybackEngine: NSObject {
         if clear != webViewIsTransparent {
             webViewIsTransparent = clear
             emit?("onVideoSurfaceChanged", ["webViewTransparent": clear])
+        }
+    }
+
+    /// Move the picture clear of the interface.
+    ///
+    /// The web view draws the title, the place and the transport over this
+    /// same plane. With the video centred in the full surface, a 16:9 frame on
+    /// an upright phone lands exactly where the text block is, so the reading
+    /// matter sat on the footage - and, with NOAA material, directly on top of
+    /// the expedition title card burned into the first seconds of the clip.
+    ///
+    /// The web layer measures its own chrome and reports it here. Nothing is
+    /// assumed about how tall the interface is or which way the phone is held.
+    func setVideoInsets(top: CGFloat, bottom: CGFloat, animated: Bool) {
+        let top = max(0, top)
+        let bottom = max(0, bottom)
+        guard videoTopInset.constant != top || videoBottomInset.constant != bottom else { return }
+        videoTopInset.constant = top
+        videoBottomInset.constant = bottom
+
+        let apply = { [weak self] in
+            self?.container.layoutIfNeeded()
+            self?.layoutLayer()
+        }
+        if animated {
+            // Matches the scrim's own fade, so the picture and the interface
+            // read as one movement rather than two.
+            UIView.animate(withDuration: 0.42, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState]) {
+                apply()
+            }
+        } else {
+            apply()
         }
     }
 
@@ -856,6 +907,7 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "presentRoutePicker", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setNowPlayingMetadata", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setVideoInsets", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getDiagnostics", returnType: CAPPluginReturnPromise),
     ]
 
@@ -1004,6 +1056,16 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
     /// Surfaced on the About screen. "Native player: active" is the one line
     /// that distinguishes a working build from one where the bridge silently
     /// fell back to the web implementation.
+    @objc func setVideoInsets(_ call: CAPPluginCall) {
+        let top = CGFloat(call.getDouble("top") ?? 0)
+        let bottom = CGFloat(call.getDouble("bottom") ?? 0)
+        let animated = call.getBool("animated") ?? true
+        DispatchQueue.main.async {
+            self.engine?.setVideoInsets(top: top, bottom: bottom, animated: animated)
+            call.resolve(["top": Double(top), "bottom": Double(bottom)])
+        }
+    }
+
     @objc func getDiagnostics(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             // `webViewTransparent` is the one line that explains a build where

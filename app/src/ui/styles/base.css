@@ -70,10 +70,27 @@ body {
   background: var(--surface-primary);
 }
 #frontier-stage video {
-  position: relative;
+  /*
+    Inset, not full-bleed. The interface is drawn over this same plane, and a
+    16:9 frame centred in an upright phone lands exactly where the title and
+    the transport are. `Watch` measures its own chrome and reports it; these
+    two properties are where the numbers land. The native player does the same
+    thing to its layer's constraints.
+  */
+  position: absolute;
+  top: var(--video-inset-top, 0px);
+  left: 0;
   z-index: 1;
+  /*
+    An explicit height, not `bottom`. A <video> is a replaced element: when its
+    height is `auto` the used value is the INTRINSIC height, and the `bottom`
+    offset is discarded as over-constrained. Setting top and bottom therefore
+    left the element at its default 300x150 while every number involved looked
+    correct. Measured in Chromium before this line was written.
+  */
   width: 100%;
-  height: 100%;
+  height: calc(100% - var(--video-inset-top, 0px) - var(--video-inset-bottom, 0px));
+  transition: top var(--dur-base) var(--ease-standard), height var(--dur-base) var(--ease-standard);
   /*
     `contain`, not `cover`. Almost everything in this catalog is 16:9 and
     almost every viewer is holding a phone upright: cropping to fill would

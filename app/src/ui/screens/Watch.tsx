@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FrontierMediaItem } from '../../core/types/media';
 import type { PlaybackState } from '../../core/types/playback';
 import { accuracyNote, locationHeadline } from '../../core/types/location';
 import type { ExplorationConstraint } from '../../core/shuffle/constraint';
 import { Icon } from '../components/Icon';
 import { Scrubber } from '../components/Scrubber';
+import { setVideoInsets } from '../../player/frontierPlayer';
 
 /**
  * Watch is the television.
@@ -13,9 +14,40 @@ import { Scrubber } from '../components/Scrubber';
  * few idle seconds and come back on a tap, so the steady state is roughly nine
  * parts picture to one part interface. The eyebrow, title and place are the
  * only text that earns permanent space; everything else is one tap away.
+ *
+ * The scrims and the picture share a plane, and the player centres the frame in
+ * whatever rect it is given. Left alone, a 16:9 clip on an upright phone lands
+ * exactly under the text block - the title was sitting on the footage, and on
+ * NOAA material directly over the expedition card burned into the opening
+ * seconds. So this screen measures its own chrome and hands the numbers to the
+ * player: picture above, reading matter below, never both in one place. When
+ * the chrome fades the insets go to zero and the picture takes the whole
+ * screen, which is the point of idling in the first place.
  */
 
 const IDLE_MS = 4200;
+
+/**
+ * How much of the picture plane the interface is covering, in CSS pixels.
+ *
+ * Measured from the chrome block's TOP EDGE to the bottom of the viewport, not
+ * from the block's own height. The picture plane is the whole window; the tab
+ * bar sits below the block and is painted over that same plane. Subtracting the
+ * block alone leaves the frame overlapping the tab bar by exactly the bar's
+ * height, which is the kind of near-miss that looks like a rounding error and
+ * is not one.
+ *
+ * Idle chrome covers nothing: the picture takes the screen, which is the point
+ * of idling.
+ */
+export function chromeInset(
+  rect: { top: number } | null | undefined,
+  viewportHeight: number,
+  idle: boolean,
+): number {
+  if (idle || !rect) return 0;
+  return Math.max(0, viewportHeight - rect.top);
+}
 
 function eyebrowFor(item: FrontierMediaItem): string {
   switch (item.environment) {
@@ -56,6 +88,7 @@ export function Watch({
 }) {
   const [idle, setIdle] = useState(false);
   const timer = useRef<number | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const wake = () => {
     setIdle(false);
@@ -69,11 +102,50 @@ export function Watch({
     // Re-arm whenever the item or transport changes.
   }, [item?.id, playback.status]);
 
+  /**
+   * Measure, do not guess. The block's height depends on how long the title
+   * wraps, whether there is an accuracy note, how tall the safe area is and
+   * which way the phone is held - none of which is knowable from here.
+   *
+   * The top scrim is a light wash rather than a panel, so the picture is only
+   * dimmed under it, not hidden; insetting for it too would shrink the frame
+   * for no gain. Only the bottom block is subtracted.
+   */
+  const report = useCallback((animated: boolean) => {
+    const rect = bottomRef.current?.getBoundingClientRect();
+    setVideoInsets(0, chromeInset(rect, window.innerHeight, idle), animated);
+  }, [idle]);
+
+  useLayoutEffect(() => { report(true); }, [report, item?.id]);
+
+  useLayoutEffect(() => {
+    const el = bottomRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    // A title that rewraps changes the height without changing any prop.
+    const observer = new ResizeObserver(() => report(false));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [report]);
+
+  useEffect(() => {
+    const onResize = () => report(false);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, [report]);
+
+  // The picture belongs to the app, not to this screen: leaving Watch must not
+  // leave the frame squeezed into the top half behind whatever comes next.
+  useEffect(() => () => setVideoInsets(0, 0, false), []);
+
   if (!item) {
     return (
       <div className="watch" onPointerDown={wake}>
         <div />
-        <div className="watch__bottom">
+        <div className="watch__bottom" ref={bottomRef}>
           <div className="eyebrow">Frontier</div>
           <h1 className="display watch__title">Finding somewhere to go</h1>
         </div>
@@ -93,7 +165,7 @@ export function Watch({
           </div>
           <div className="ambient__tag">Real places. A wilder you.</div>
         </div>
-        <div className={idle ? 'watch__bottom' : 'watch__bottom'} style={{ opacity: idle ? 0 : 1, transition: 'opacity var(--dur-base)' }}>
+        <div className="watch__bottom" ref={bottomRef} style={{ opacity: idle ? 0 : 1, transition: 'opacity var(--dur-base)' }}>
           <div className="eyebrow">{item.location?.displayName || item.source.organization}</div>
           <h1 className="display watch__title" style={{ fontSize: 'var(--step-2)' }}>{item.title}</h1>
           <Scrubber
@@ -138,7 +210,7 @@ export function Watch({
         </button>
       </div>
 
-      <div className="watch__bottom">
+      <div className="watch__bottom" ref={bottomRef}>
         <div className="eyebrow watch__eyebrow">{eyebrowFor(item)}</div>
         <h1 className="display watch__title">{item.title}</h1>
 
