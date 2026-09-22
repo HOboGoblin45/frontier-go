@@ -176,6 +176,6 @@ for (const deviceKey of Object.keys(DEVICES)) {
   for (const frame of FRAMES) {
     const raw = await captureRaw(deviceKey, frame);
     const out = await compose(deviceKey, frame, raw);
-    console.log(deviceKey, frame.key, '->', out.replace(`${OUT}/`, ''));
+    process.stdout.write(`${deviceKey} ${frame.key} -> ${out.replace(`${OUT}/`, '')}\n`);
   }
 }

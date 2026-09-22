@@ -13,7 +13,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/**/*.{ts,tsx}', 'tools/**/*.ts'],
+    files: ['src/**/*.{ts,tsx}', 'tools/**/*.ts', 'tools/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
