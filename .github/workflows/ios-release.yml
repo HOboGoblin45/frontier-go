@@ -117,6 +117,7 @@ jobs:
           BUILD="${{ github.event.inputs.build_number || github.run_number }}"
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" App/Info.plist
           echo "Set CFBundleVersion to $BUILD"
+          echo "BUILD_NUMBER=$BUILD" >> "$GITHUB_ENV"
 
       - name: Set marketing version
         working-directory: app/ios/App
@@ -242,12 +243,52 @@ jobs:
           mkdir -p "$API_KEY_DIR"
           echo -n "$APP_STORE_CONNECT_API_KEY_BASE64" | base64 --decode > "$API_KEY_DIR/AuthKey_$APP_STORE_CONNECT_API_KEY_ID.p8"
 
-          # Upload
-          xcrun altool --upload-app \
-            --type ios \
-            --file "$EXPORT_PATH/$IPA_NAME" \
-            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-            --apiIssuer "$APP_STORE_CONNECT_API_KEY_ISSUER_ID"
+          # altool's exit status is not trustworthy on its own. Build 76 hit
+          #   RETRIEVE UPLOAD OPERATIONS (ASSET_UPLOAD): received status code 502
+          # and altool still exited 0, so this workflow reported a green
+          # release for a build that never reached App Store Connect. Nobody
+          # found out until the tester said the bug was still there - on the
+          # previous build, because that was the newest one that existed.
+          #
+          # So: capture the output, treat Apple's transport errors as failures
+          # whatever the exit status says, and retry. The verification step
+          # after this one is the real gate.
+          attempt=1
+          max=3
+          while [ "$attempt" -le "$max" ]; do
+            echo "--- upload attempt $attempt of $max ---"
+            set +e
+            out=$(xcrun altool --upload-app \
+              --type ios \
+              --file "$EXPORT_PATH/$IPA_NAME" \
+              --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+              --apiIssuer "$APP_STORE_CONNECT_API_KEY_ISSUER_ID" 2>&1)
+            status=$?
+            set -e
+            echo "$out"
+
+            if [ "$status" -eq 0 ] && ! printf '%s' "$out" \
+              | grep -Eqi 'status code (4|5)[0-9][0-9]|bad gateway|service unavailable|ERROR ITMS|Unable to upload|The request timed out'; then
+              echo "altool reported success with no transport errors."
+              break
+            fi
+
+            echo "Upload attempt $attempt failed (exit $status)."
+            if [ "$attempt" -eq "$max" ]; then
+              echo "::error::altool could not deliver the build after $max attempts."
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            sleep 60
+          done
+
+      - name: Verify the build reached App Store Connect
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_API_KEY_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          BUNDLE_ID: app.trailerroulette.ios
+        run: node .github/scripts/verify-build-uploaded.mjs
 
       - name: Upload archive as artifact (for debugging if upload fails)
         if: failure()

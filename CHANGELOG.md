@@ -7,25 +7,60 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.0.2] — 2026-09-22
+
 ### Fixed
+
+- **4.0.1 was never released.** The release workflow reported success for a
+  build that does not exist. `xcrun altool --upload-app` hit
+
+      RETRIEVE UPLOAD OPERATIONS (ASSET_UPLOAD): received status code 502;
+      bad gateway. (HAMJOEHVQUGHNZETHTV6CKXEVA)
+
+  printed Apple's HTML error page, and **exited 0**. The job went green, the
+  tag looked shipped, and App Store Connect's newest build stayed 4.0.0 (74).
+  The fix was tested against the build it was meant to fix and appeared not to
+  work, because the tester was running the old one.
+
+  The upload step now captures altool's output, treats Apple's transport
+  errors as failures whatever the exit status claims, and retries three times.
+  A new step then asks App Store Connect whether the build with this
+  `CFBundleVersion` actually exists, polling for up to ten minutes, and fails
+  the release if it never appears. A green release run now means a delivered
+  build.
+
+- **The video surface was living inside the web view.**
+  `CAPBridgeViewController.loadView()` ends with `view = webView`, and the
+  method is `final`. The bridge's "view controller view" is therefore the
+  `WKWebView` itself, so attaching the player surface to it put the
+  `AVPlayerLayer` inside WebKit's own view hierarchy — under a view whose
+  ordering, clipping and compositing WebKit owns and can redo at any time,
+  with nothing in our code able to notice.
+
+  The surface is now mounted one level up, as a sibling of the web view in the
+  window and ordered below it: the same pixels, with nothing of ours inside
+  WebKit. It falls back to the old position only while the window does not
+  exist yet, and is re-mounted from the same points that re-assert
+  transparency.
 
 - **The player could end up holding no web view at all.** `attach()` read
   `bridge.webView` once and kept whatever it got. Capacitor does not guarantee
   that is non-nil at that moment, and when it was nil the engine held a nil
-  reference for the life of the process: every subsequent attempt to make the
-  web view transparent returned at its guard, so the interface stayed an opaque
-  sheet over the video with no path back and nothing recorded anywhere.
-
-  A web view that turns up late is now adopted, and `getDiagnostics` forces
-  that check before it reports. This is a second, independent cause of the
-  symptom 4.0.1 addressed, not a second attempt at the same fix.
+  reference for the life of the process: every later attempt to make the web
+  view transparent returned at its guard, so the interface stayed an opaque
+  sheet over the video with no path back and nothing recorded. A web view that
+  turns up late is now adopted.
 
 ### Added
 
-- `webViewBound` in the player diagnostics, and a matching state on the Profile
-  screen's *Video surface* row. "Bound but opaque" and "never bound" look
-  identical on a phone and have different fixes; the row now names which.
+- `webViewBound` and `surfaceDetached` in the player diagnostics, with
+  matching rows on the Profile screen. "Bound but opaque", "never bound" and
+  "mounted inside WebKit" are one symptom on a phone and three different
+  fixes; the screen now names which one.
 
+- `.github/scripts/verify-build-uploaded.mjs` — signs an ES256 App Store
+  Connect assertion with Node's own crypto, no dependencies, and fails the
+  release unless the build is really there.
 
 ## [4.0.1] — 2026-09-22
 

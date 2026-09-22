@@ -26,6 +26,13 @@ export interface PlayerDiagnostics {
    * from "never bound", which have different causes and different fixes.
    */
   webViewBound?: boolean;
+  /**
+   * True when the video surface is a sibling of the web view rather than a
+   * subview of it. Capacitor's view controller uses the WKWebView as its own
+   * `view`, so the naive attachment puts the player layer inside WebKit's
+   * hierarchy, where WebKit owns the ordering. False means it is still there.
+   */
+  surfaceDetached?: boolean;
   pipSupported?: boolean;
   audioSessionCategory?: string;
   implementation: 'native-avfoundation' | 'web-video-element';

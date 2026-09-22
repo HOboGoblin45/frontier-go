@@ -132,6 +132,12 @@ export function Profile({
                     : diag.webViewBound === false ? 'NOT BOUND \u00b7 the player never got the web view'
                       : 'OPAQUE \u00b7 the interface is covering the video'}
             </dd>
+            <dt>Surface layer</dt>
+            <dd style={{ color: diag && diag.native && diag.surfaceDetached === false ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
+              {!diag || !diag.native ? 'n/a'
+                : diag.surfaceDetached ? 'sibling of the web view'
+                  : 'INSIDE the web view'}
+            </dd>
             <dt>Picture in Picture</dt><dd>{diag?.pipSupported ? 'supported' : 'unavailable'}</dd>
             <dt>Audio session</dt><dd>{diag?.audioSessionCategory || 'n/a'}</dd>
           </dl>

@@ -212,16 +212,10 @@ final class FrontierPlaybackEngine: NSObject {
 
     /// Insert the video surface beneath the (now transparent) web view.
     func attach(to host: UIView, webView: UIView?) {
-        container.translatesAutoresizingMaskIntoConstraints = false
-        host.insertSubview(container, at: 0)
-        NSLayoutConstraint.activate([
-            container.leadingAnchor.constraint(equalTo: host.leadingAnchor),
-            container.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-            container.topAnchor.constraint(equalTo: host.topAnchor),
-            container.bottomAnchor.constraint(equalTo: host.bottomAnchor),
-        ])
-
-        if let web = webView { adoptWebView(web, bringingToFrontOf: host) }
+        if let web = webView { hostWebView = web }
+        fallbackHost = host
+        mountSurface()
+        makeWebViewTransparent()
 
         // Capacitor configures the web view during its own view lifecycle,
         // which can run after this does, and WebKit re-derives the under-page
@@ -231,6 +225,7 @@ final class FrontierPlaybackEngine: NSObject {
         // where nobody could see it. Re-apply across the launch window.
         for delay in [0.1, 0.4, 1.0, 2.0, 4.0] {
             DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.mountSurface()
                 self?.makeWebViewTransparent()
             }
         }
@@ -239,6 +234,50 @@ final class FrontierPlaybackEngine: NSObject {
         setupPiP()
         layoutLayer()
     }
+
+    /// Where the surface goes when the web view has no superview yet.
+    private weak var fallbackHost: UIView?
+
+    /// Put the video surface where it can actually be seen.
+    ///
+    /// `CAPBridgeViewController.loadView()` ends with `view = webView`, and
+    /// that method is declared `final`. The bridge's "view controller view" is
+    /// therefore the WKWebView itself, so inserting the player surface into it
+    /// buries the layer inside WebKit's own view hierarchy - underneath a view
+    /// whose ordering, clipping and compositing WebKit owns and can redo at any
+    /// time. It draws, but only at WebKit's pleasure, and nothing in our code
+    /// would notice if it stopped.
+    ///
+    /// The surface belongs one level up: a sibling of the web view in the
+    /// window, ordered below it. The same pixels, with nothing of ours living
+    /// inside WebKit.
+    ///
+    /// Idempotent. The window is not guaranteed to exist when the plugin first
+    /// runs, so this is retried from the same places the transparency pass is.
+    func mountSurface() {
+        let parent: UIView? = hostWebView?.superview ?? fallbackHost
+        guard let parent, container.superview !== parent else { return }
+
+        // Constraints die with the old superview; remount cleanly.
+        container.removeFromSuperview()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        parent.insertSubview(container, at: 0)
+        NSLayoutConstraint.activate([
+            container.leadingAnchor.constraint(equalTo: parent.leadingAnchor),
+            container.trailingAnchor.constraint(equalTo: parent.trailingAnchor),
+            container.topAnchor.constraint(equalTo: parent.topAnchor),
+            container.bottomAnchor.constraint(equalTo: parent.bottomAnchor),
+        ])
+        if let web = hostWebView, web.superview === parent {
+            parent.bringSubviewToFront(web)
+        }
+        surfaceIsSiblingOfWebView = parent !== hostWebView
+        layoutLayer()
+    }
+
+    /// False means the surface is still inside the web view - the fallback
+    /// position, taken only when the window was not available yet.
+    private(set) var surfaceIsSiblingOfWebView = false
 
     /// True while no web view has been bound. Every call to
     /// `makeWebViewTransparent()` is a silent no-op in that state, so the
@@ -251,9 +290,9 @@ final class FrontierPlaybackEngine: NSObject {
     /// moment the video surface is inserted. If it was nil then, the old code
     /// left `hostWebView` nil for the life of the process and the interface
     /// stayed an opaque sheet over the footage with no way back.
-    func adoptWebView(_ web: UIView, bringingToFrontOf host: UIView? = nil) {
+    func adoptWebView(_ web: UIView) {
         hostWebView = web
-        (host ?? web.superview)?.bringSubviewToFront(web)
+        mountSurface()
         makeWebViewTransparent()
     }
 
@@ -850,8 +889,9 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
     @objc private func applicationDidBecomeActive() {
         DispatchQueue.main.async { [weak self] in
             self?.attachIfNeeded()
-            // Unguarded by `attached`: the point is to re-assert transparency
-            // that something else may have reset while we were away.
+            // Unguarded by `attached`: the point is to re-assert placement and
+            // transparency that something else may have reset while we were away.
+            self?.engine?.mountSurface()
             self?.engine?.makeWebViewTransparent()
             self?.engine?.layoutLayer()
         }
@@ -882,6 +922,7 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         let autoplay = call.getBool("autoplay") ?? true
         DispatchQueue.main.async {
             self.attachIfNeeded()
+            self.engine?.mountSurface()
             self.engine?.makeWebViewTransparent()
             self.engine?.load(item, autoplay: autoplay)
             call.resolve(["loaded": true, "itemId": item.id])
@@ -969,11 +1010,13 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
             // the sound plays and the picture does not: if it is false, the web
             // view is a sheet over the video.
             self.attachIfNeeded()
+            self.engine?.mountSurface()
             self.engine?.makeWebViewTransparent()
             call.resolve([
                 "native": true,
                 "attached": self.attached,
                 "webViewBound": !(self.engine?.hostWebViewIsMissing ?? true),
+                "surfaceDetached": self.engine?.surfaceIsSiblingOfWebView ?? false,
                 "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,

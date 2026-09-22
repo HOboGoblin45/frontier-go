@@ -40,6 +40,7 @@ export async function diagnostics(): Promise<PlayerDiagnostics> {
     attached: raw.attached as boolean | undefined,
     webViewTransparent: raw.webViewTransparent as boolean | undefined,
     webViewBound: raw.webViewBound as boolean | undefined,
+    surfaceDetached: raw.surfaceDetached as boolean | undefined,
     pipSupported: raw.pipSupported as boolean | undefined,
     audioSessionCategory: raw.audioSessionCategory as string | undefined,
     implementation: native ? 'native-avfoundation' : 'web-video-element',
