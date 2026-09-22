@@ -19,6 +19,32 @@ import { safetyIsClear } from '../types/safety';
 
 export const CATALOG_VERSION = 1;
 
+/**
+ * Simultaneous HEAD requests during the health pass. Eight is brisk against a
+ * CDN and nowhere near enough to look like abuse of a public agency endpoint.
+ */
+const PROBE_CONCURRENCY = 8;
+
+/** Bounded-parallel map that preserves input order. */
+async function mapWithConcurrency<T, R>(
+  input: readonly T[],
+  concurrency: number,
+  fn: (value: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(input.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, input.length) }, async () => {
+    for (;;) {
+      const i = next;
+      next += 1;
+      if (i >= input.length) return;
+      results[i] = await fn(input[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 export interface StreamProbe {
   (url: string): Promise<{ ok: boolean; status?: number; bytes?: number; contentType?: string }>;
 }
@@ -103,16 +129,26 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
   stats.duplicatesCollapsed = collapsed;
 
   // Health: confirm the stream is actually there before publishing it.
+  //
+  // Probed in parallel, folded in order. One HEAD per item is a few hundred
+  // milliseconds; serially that is most of an hour once the catalog is a few
+  // thousand items, and the scheduled ingest has to finish. The fold is kept
+  // sequential so the published order, the counters and the rejection log do
+  // not depend on which response came back first.
+  const probeResults = opts.probe
+    ? await mapWithConcurrency(kept, PROBE_CONCURRENCY, (item) => opts.probe!(item.stream.url))
+    : null;
+
   const published: FrontierMediaItem[] = [];
-  for (const item of kept) {
+  kept.forEach((item, index) => {
     const health = {
       ...(item.health || {}),
       lastValidatedAt: new Date(now).toISOString(),
       productionEligible: true,
     } as NonNullable<FrontierMediaItem['health']>;
 
-    if (opts.probe) {
-      const res = await opts.probe(item.stream.url);
+    const res = probeResults?.[index];
+    if (res) {
       health.streamReachable = res.ok;
       if (!res.ok) {
         health.productionEligible = false;
@@ -122,7 +158,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
           id: item.id, title: item.title, provider: item.provider,
           reasons: [`health:unreachable:${res.status ?? 'error'}`],
         });
-        continue;
+        return;
       }
       if (typeof res.bytes === 'number' && res.bytes > 0) {
         // Recompute bitrate from what the CDN actually serves, which is more
@@ -135,7 +171,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
     published.push({ ...item, health });
     stats.byProvider[item.provider] = (stats.byProvider[item.provider] || 0) + 1;
     stats.byChannel[item.channel] = (stats.byChannel[item.channel] || 0) + 1;
-  }
+  });
 
   stats.published = published.length;
   log?.info(`published ${published.length} items`);

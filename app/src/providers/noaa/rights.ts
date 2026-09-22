@@ -65,18 +65,38 @@ export function noaaRights(
  * predation clip, not violence — so the flags stay narrow and specific rather
  * than a keyword dragnet that would empty the catalog.
  */
-const PERSON_CUES = [
-  'interview', 'interviews', 'q&a', 'ask me anything', 'meet the', 'principal investigator',
-  'scientist profile', 'explorer profile', 'intern', 'mission team member', 'webinar',
-  'presentation', 'press conference', 'briefing', 'panel discussion', 'talks about',
+/**
+ * Cues that name the FORMAT, and so are only trusted in the title.
+ *
+ * In a caption these describe the narration, not the picture. "Dr X talks
+ * about the armored searobin" is a fish on the seafloor with a voice over it,
+ * and the first version of this list threw it away along with "Meet the CTD",
+ * "Nereus" and a run of other discovery clips - the exact material the product
+ * exists to show. A NOAA title names what the piece is; a caption describes
+ * what is in the water.
+ */
+const PERSON_TITLE_CUES = [
+  'interview', 'interviews', 'meet the', 'scientist profile', 'explorer profile',
+  'presentation', 'talks about', 'panel discussion', 'webinar',
+];
+
+/**
+ * Cues that mean a person is on camera wherever they appear. A caption is not
+ * going to mention a press conference about footage that is not one.
+ */
+const PERSON_ANY_CUES = [
+  'q&a', 'ask me anything', 'press conference', 'news conference', 'briefing',
+  'principal investigator', 'mission team member',
 ];
 const GRAPHIC_CUES = ['dissection', 'necropsy', 'carcass', 'decomposing', 'whale fall'];
 
 export function noaaSafety(title: string, description: string, tags: string[]): FrontierSafetyMetadata {
+  const lowerTitle = title.toLowerCase();
   const blob = `${title} ${description} ${tags.join(' ')}`.toLowerCase();
   return {
     ...SAFE_DEFAULTS,
-    identifiablePersons: PERSON_CUES.some((c) => blob.includes(c)),
+    identifiablePersons: PERSON_TITLE_CUES.some((c) => lowerTitle.includes(c))
+      || PERSON_ANY_CUES.some((c) => blob.includes(c)),
     graphicContent: GRAPHIC_CUES.some((c) => blob.includes(c)),
   };
 }

@@ -26,8 +26,33 @@ const catalog = JSON.parse(
 describe('shipped catalog', () => {
   it('is present and non-trivial', () => {
     expect(catalog.version).toBe(1);
-    expect(catalog.items.length).toBeGreaterThan(50);
+    // The floor is a fraction of what ships, not a target: it is here to catch
+    // a truncated or half-failed ingest being committed, which has happened.
+    expect(catalog.items.length).toBeGreaterThan(1200);
     expect(catalog.stats.published).toBe(catalog.items.length);
+  });
+
+  it('holds enough footage to be worth leaving on', () => {
+    const hours = catalog.items
+      .reduce((sum, i) => sum + (i.stream.durationSeconds || 0), 0) / 3600;
+    expect(hours).toBeGreaterThan(80);
+  });
+
+  it('is not one subject wearing a channel as a hat', () => {
+    // 76% of the first catalog was deep ocean, which made every third shuffle
+    // feel like the same dive. No single environment owns more than half.
+    const byEnv = new Map<string, number>();
+    for (const i of catalog.items) byEnv.set(i.environment, (byEnv.get(i.environment) || 0) + 1);
+    const biggest = Math.max(...byEnv.values());
+    expect(biggest / catalog.items.length).toBeLessThan(0.5);
+    expect(byEnv.size).toBeGreaterThan(6);
+  });
+
+  it('knows where its footage was taken', () => {
+    // 'unknown' is an honest answer and reads as "Somewhere else" on screen.
+    // It should be the exception, not a third of the catalog.
+    const unknown = catalog.items.filter((i) => i.environment === 'unknown');
+    expect(unknown.length / catalog.items.length).toBeLessThan(0.15);
   });
 
   it('contains more than one provider, so the channel is not one archive', () => {
@@ -83,7 +108,12 @@ describe('shipped catalog', () => {
   });
 
   it('has enough plotted places to make a globe worth opening', () => {
-    expect(globePoints(catalog.items).length).toBeGreaterThan(3);
+    const points = globePoints(catalog.items);
+    // Distinct named places, not items. Deliberately not large: a NASA centre
+    // is only plotted when the footage was actually shot there, so most of the
+    // catalog carries no coordinates and appears on no pin.
+    expect(points.length).toBeGreaterThan(20);
+    expect(points.reduce((sum, p) => sum + p.count, 0)).toBeGreaterThan(300);
   });
 
   it('can build a varied deck from the real data', () => {

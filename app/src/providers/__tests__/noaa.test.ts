@@ -42,6 +42,28 @@ describe('NOAA safety', () => {
   it('leaves ordinary dive footage alone', () => {
     expect(noaaSafety('Dumbo Octopus', 'An octopus on the seafloor.', ['Invertebrates']).identifiablePersons).toBe(false);
   });
+
+  it('keeps a creature clip whose caption merely has someone narrating it', () => {
+    // These are the picture. A voice over the top does not make them a talk,
+    // and reading 'talks about' out of the caption threw a run of them away.
+    expect(noaaSafety(
+      'Armored Searobin',
+      'Expedition scientist Dr. Kim talks about the armored searobin seen during Dive 04.',
+      ['Fishes'],
+    ).identifiablePersons).toBe(false);
+    expect(noaaSafety(
+      'Discovery of a Ferromanganese Nodule Field',
+      'The science team gives a short presentation on what the nodules mean.',
+      ['Geology'],
+    ).identifiablePersons).toBe(false);
+  });
+
+  it('still catches the formats themselves', () => {
+    expect(noaaSafety('Meet the Science Team', '', []).identifiablePersons).toBe(true);
+    expect(noaaSafety('Deep-Sea Dialogues: Bioluminescence', 'A panel discussion with three researchers.', []).identifiablePersons).toBe(false);
+    expect(noaaSafety('Panel Discussion: Bioluminescence', '', []).identifiablePersons).toBe(true);
+    expect(noaaSafety('Dive Recap', 'Recorded at the post-dive press conference.', []).identifiablePersons).toBe(true);
+  });
 });
 
 describe('depth extraction', () => {

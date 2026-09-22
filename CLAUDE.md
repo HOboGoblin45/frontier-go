@@ -64,17 +64,27 @@ decisions.
 
 ## Verification status
 
-At the reorientation commit: **165 vitest tests passing**, `tsc --noEmit` clean,
-`eslint` clean, `vite build` green, catalog gates re-verified against the
-committed file. The Swift plugin is **syntax-checked** (`swiftc -frontend
--parse`) and its item parser is **compiled and run** under Linux Swift 5.10 via
+At v4.1.0: **184 vitest tests passing**, `tsc --noEmit` clean, `eslint` clean,
+`vite build` green, catalog gates re-verified against the committed file. The
+shipped catalog is **1,647 items / 107 hours** across 12 environments, none
+above a quarter of the whole. Shuffle latency measured at 48-139 ms in Chromium
+against the full catalog, so the <300 ms target survives the larger file
+(4.9 MB, 545 KB over the wire, 93 ms to load).
+
+The Swift plugin is **typechecked against the real iOS SDK on macOS** by
+`ios-check.yml`, which runs on every push to `frontier-go` and is the gate that
+matters; it is additionally syntax-checked locally (`swiftc -frontend -parse`)
+and its item parser is **compiled and run** under Linux Swift 5.10 via
 `ios/Tests/extract-and-run.sh`, which diffs its extracted copy against the
 source so a stale harness fails rather than passes.
 
-**Not verified:** anything that needs a device or a simulator. AirPlay routing,
-Picture in Picture, the lock-screen controls, the transparent-web-view overlay,
-the native letterbox backdrop, background audio, and AVFoundation/UIKit
-typechecking are all first-run-on-device items. The browser harness verified
+**Device-verified** as of 4.0.3 (build 78): native AVFoundation playback, the
+transparent web view over the player layer, and the Watch layout with the
+picture inset clear of the interface.
+
+**Not verified:** AirPlay routing, Picture in Picture round-trip, the
+lock-screen controls, the native letterbox backdrop, background audio, haptics,
+rotation, iPad and VoiceOver are all still first-run-on-device items. The browser harness verified
 layout, the state machine, queue handoff and shuffle latency (85-112 ms) against
 a local HTTPS server, because the sandbox's headless Chromium has no H.264
 decoder and its proxy will not pass large media.
@@ -116,6 +126,17 @@ decoder and its proxy will not pass large media.
    Prelinger, US government films and NASA. Library of Congress and Prelinger
    are the next two adapters; National Park Service, USGS and DVIDS after. Live HLS feeds are
    modelled (`availability: 'live'`) and deliberately out of launch scope.
-5. **Dive-level coordinates.** NOAA publishes per-dive positions outside the
+
+   NOAA is now exhausted: its media library holds 1,569 video attachments
+   across 575 parent posts, which is 451 publishable items and will not grow
+   except as NOAA posts more. Further volume has to come from a new provider.
+
+5. **NASA query tuning.** `NASA_QUERIES` in `providers/nasa/adapter.ts` is 96
+   one- and two-word queries because NASA's search ANDs every term - a
+   descriptive phrase matches nothing. Measure any new query against
+   `images-api.nasa.gov/search?q=...&media_type=video` before adding it; a
+   query that returns 0 hits looks identical in the code to one that works.
+
+6. **Dive-level coordinates.** NOAA publishes per-dive positions outside the
    WordPress API. Adding them would raise those items from `accuracy: 'region'`
    to `'exact'` and make the globe genuinely precise.

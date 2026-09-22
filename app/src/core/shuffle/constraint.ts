@@ -87,6 +87,7 @@ export function environmentLabel(env: string): string {
     case 'martian': return 'Mars';
     case 'deep_space': return 'deep space';
     case 'laboratory': return 'the lab';
+    case 'launch_site': return 'the pad';
     default: return 'here';
   }
 }

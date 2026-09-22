@@ -115,4 +115,5 @@ export type FrontierEnvironment =
   | 'martian'
   | 'deep_space'
   | 'laboratory'
+  | 'launch_site'
   | 'unknown';

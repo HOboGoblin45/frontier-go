@@ -7,6 +7,79 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.1.0] — 2026-09-22
+
+### Added
+
+- **Nearly three times the catalog: 1,647 items, 107 hours.** Was 581 items and
+  30 hours, of which 76% was deep ocean, so the third shuffle already felt like
+  the second. Deep ocean is now 22% of the catalog and no environment holds more
+  than a quarter: 364 deep ocean, 342 in orbit, 184 further out, 159 under test,
+  108 lunar, 89 wild earth, 86 polar, 70 on the pad, 44 volcanic, 43 martian,
+  39 on station.
+
+- `launch_site` as an environment, shown as "On the pad". Stacking, rollout,
+  countdown and liftoff are a different place from a clean room and were
+  previously either mislabelled or unlabelled.
+
+### Fixed
+
+- **The NASA query set was matching almost nothing.** NASA's search ANDs every
+  term, so the descriptive phrases this list was written in collapsed on
+  contact: "Hubble Webb telescope imagery" matches 0 videos, "Hubble" matches
+  165; "Falcon Atlas Delta launch" matches 0, "Atlas launch" matches 272. 31 of
+  70 queries returned nothing at all. Rewritten as 96 one- and two-word queries,
+  every one measured against the live endpoint before it was added. NASA went
+  from 139 items to 1,196.
+
+- **The harvest only ever read the first page.** Each query contributed at most
+  one page of candidates regardless of how many matched. It now walks pages
+  until the query is drained, and resolves each item's two asset requests with
+  bounded concurrency rather than serially.
+
+- **A NASA centre is where an asset is FILED, not where it was shot.**
+  `AVAIL:Location` names the holding centre, and reading it as a position put
+  296 items on a pin in Greenbelt, Maryland — Hubble servicing spacewalks, Webb,
+  lunar orbiter data, Greenland ice flights, a desert field test — making
+  Goddard Space Flight Center the largest place on the globe by a factor of two.
+  The address now stands only where the footage is plausibly at the facility: a
+  clean room, a test stand, a pad. Off Earth it becomes a mission location; on
+  Earth it keeps no coordinates at all. Goddard is down to 8 items and the globe
+  reads Atlantic Ocean, Pacific Ocean, Gulf of Mexico, Papahanaumokuakea,
+  Mariana Region, Puerto Rico Trench.
+
+  The title is also read before the metadata now, because the title describes
+  the footage and the metadata describes the filing cabinet.
+
+- **Two out of five items were "Somewhere else".** The environment classifier
+  had no rule for most of what the wider harvest brought in, so 39% of the
+  catalog landed on `unknown`. The material was not mysterious — it was
+  spacecraft being stacked, encapsulated and rolled out, servicing EVAs, and
+  experiments on the station. Rules written against the titles that actually
+  landed there bring it to 7%.
+
+- **The talking-head filter was eating the subject.** Cues were read from
+  descriptions as well as titles, so "Dr X talks about the armored searobin"
+  was classified as a person on camera and the fish was discarded, along with
+  "Meet the CTD", "Nereus", "Discovery of a Ferromanganese Nodule Field" and a
+  run of other discovery clips. Format cues are now read from the title, which
+  names what a piece is; only unambiguous ones (press conference, briefing) are
+  read from anywhere. A bare `panel` cue was also taking "Orion Crew Module Cone
+  Panel" — real hardware footage — and is now `panel discussion`. Safety
+  rejections fell from 358 to 143 with no loss of actual talking heads.
+
+- The health pass probed streams one at a time, which does not survive a
+  catalog this size in CI. Probes now run eight at a time; the fold stays
+  sequential so ordering, counters and the rejection log are unchanged.
+
+### Changed
+
+- The shipped-catalog guard now asserts a real floor — 1,200 items, 80 hours,
+  no environment above half, `unknown` below 15% — rather than "more than 50".
+  It caught a truncated dry run during this work, which is the point of it.
+- Scheduled ingest raised from 900 items per provider to 4,000.
+
+
 ## [4.0.3] — 2026-09-22
 
 ### Fixed

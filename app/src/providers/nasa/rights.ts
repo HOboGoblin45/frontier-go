@@ -103,22 +103,38 @@ export function nasaRights(
  * camera is flagged out of the default feed. That filter happens to align
  * exactly with the product: Frontier Go wants the place, not the podium.
  */
-const PERSON_FORMATS = [
-  'nasa science live', 'press conference', 'briefing', 'news conference', 'town hall',
-  'interview', 'q&a', 'ask nasa', 'panel', 'ceremony', 'award', 'swearing-in',
-  'administrator', 'testimony', 'hearing', 'welcome remarks', 'keynote', 'address',
-  'podcast', 'webinar', 'career', 'profile:', 'meet the', 'we are nasa',
-  'downlink', 'in-flight event', 'educational downlink', 'public affairs',
+/**
+ * Talking-head formats. These name what the piece IS, so they are read from
+ * the title; a description that happens to mention a briefing is usually
+ * describing when the footage was shown, not what is in it.
+ *
+ * `panel` used to be here bare and took "Orion Crew Module Cone Panel" with
+ * it - hardware footage, killed by a substring. Anything that is also a piece
+ * of spacecraft gets its qualifier.
+ */
+const PERSON_TITLE_FORMATS = [
+  'nasa science live', 'town hall', 'interview', 'q&a', 'ask nasa',
+  'panel discussion', 'ceremony', 'award', 'swearing-in', 'administrator',
+  'testimony', 'hearing', 'welcome remarks', 'keynote', 'welcome address',
+  'podcast', 'webinar', 'profile:', 'meet the', 'we are nasa',
+  'in-flight event', 'educational downlink', 'public affairs', 'soundbites',
+];
+
+/** Unambiguous wherever they appear. */
+const PERSON_ANY_FORMATS = [
+  'press conference', 'news conference', 'post-flight news', 'media briefing',
 ];
 const MILITARY_CUES = ['weapon', 'missile defense', 'warfighter', 'combat', 'classified payload'];
 
 export function nasaSafety(
   opts: { title: string; description: string; keywords: string[] },
 ): FrontierSafetyMetadata {
+  const lowerTitle = opts.title.toLowerCase();
   const blob = `${opts.title} ${opts.description} ${opts.keywords.join(' ')}`.toLowerCase();
   return {
     ...SAFE_DEFAULTS,
-    identifiablePersons: PERSON_FORMATS.some((c) => blob.includes(c)),
+    identifiablePersons: PERSON_TITLE_FORMATS.some((c) => lowerTitle.includes(c))
+      || PERSON_ANY_FORMATS.some((c) => blob.includes(c)),
     sensitiveMilitaryContent: MILITARY_CUES.some((c) => blob.includes(c)),
   };
 }
@@ -141,6 +157,13 @@ const NOT_FOOTAGE = [
   // Marketing and housekeeping.
   'trailer', 'teaser', 'promo', 'logo', 'graphics package', 'b-roll package',
   'audio only', 'public service announcement', 'social media',
+  // Someone standing in front of a thing, describing the thing. Found in the
+  // catalog rather than imagined: "Keith Higginbotham Discusses the Launch
+  // Vehicle Stage Adapter", "X-59 Team Reflects on Completing First Flight",
+  // "A message from NASA Administrator...", "Procter & Gamble Works With NASA
+  // Glenn Research Center", "NASA Puts Football Through Same Paces as...".
+  'discusses', 'reflects on', 'talks with', 'a message from', 'looks back',
+  'works with nasa', 'celebrates', 'anniversary of',
 ];
 
 /**

@@ -62,6 +62,7 @@ function eyebrowFor(item: FrontierMediaItem): string {
     case 'deep_space': return 'Further out';
     case 'wilderness': return 'Wild earth';
     case 'laboratory': return 'Under test';
+    case 'launch_site': return 'On the pad';
     default: return 'Somewhere else';
   }
 }

@@ -39,6 +39,33 @@ describe('NASA safety', () => {
   it('leaves footage of a place alone', () => {
     expect(nasaSafety({ title: 'Earth Views from the International Space Station', description: '', keywords: [] }).identifiablePersons).toBe(false);
   });
+
+  it('does not mistake a piece of spacecraft for a talking head', () => {
+    // 'panel' used to be a bare cue, and this is real hardware footage.
+    expect(nasaSafety({ title: 'Orion Crew Module Cone Panel', description: '', keywords: [] }).identifiablePersons).toBe(false);
+    expect(nasaSafety({ title: 'Solar Panel Deployment Test', description: '', keywords: [] }).identifiablePersons).toBe(false);
+  });
+
+  it('still catches an actual panel discussion', () => {
+    expect(nasaSafety({ title: 'Artemis Panel Discussion', description: '', keywords: [] }).identifiablePersons).toBe(true);
+  });
+
+  it('reads formats from the title, not from a passing mention in the caption', () => {
+    // The caption says when the footage was released; the footage is a launch.
+    expect(nasaSafety({
+      title: 'Artemis I Launch',
+      description: 'Footage shown during the post-launch town hall for employees.',
+      keywords: [],
+    }).identifiablePersons).toBe(false);
+  });
+
+  it('catches a press conference wherever it is named', () => {
+    expect(nasaSafety({
+      title: 'Mission Update',
+      description: 'Highlights from the post-landing press conference.',
+      keywords: [],
+    }).identifiablePersons).toBe(true);
+  });
 });
 
 describe('what counts as footage', () => {
@@ -162,6 +189,8 @@ describe('NASA normalisation', () => {
     const item = adapter.normalize(raw as never)!;
     expect(item.location?.displayName).toBe('Stennis Space Center');
     expect(item.location?.accuracy).toBe('approximate');
+    // A static fire is under test, not on the pad, even though it happens
+    // outdoors at a launch-adjacent facility.
     expect(item.environment).toBe('laboratory');
     expect(adapter.validateRights(item)).toBe(true);
   });
@@ -211,5 +240,63 @@ describe('rights evidence in asset filenames', () => {
       thumbnailUrl: 'https://images-assets.nasa.gov/video/MAF_20190917_Core_Stage_Join~large.jpg',
     } as never)!;
     expect(item.rights.classification).toBe('government_work');
+  });
+});
+
+describe('NASA facility addresses', () => {
+  const base = {
+    nasaId: 'x', description: '', keywords: [] as string[], center: 'GSFC',
+    dateCreated: '2020-01-01T00:00:00Z', channel: 'space' as const, queryTags: [] as string[],
+    streamUrl: 'https://images-assets.nasa.gov/video/x/x~medium.mp4',
+    thumbnailUrl: 'https://images-assets.nasa.gov/video/x/x~thumb.jpg',
+    durationSeconds: 120, width: 1920, height: 1080, bitrate: 3_000_000,
+    fetchedAt: '2026-09-22T00:00:00Z',
+  };
+  const adapter = new NasaAdapter();
+
+  it('does not put orbital footage on the campus that filed it', () => {
+    // AVAIL:Location names where the asset is HELD. Read literally it pinned
+    // 296 items, Hubble servicing EVAs among them, to Greenbelt, Maryland.
+    const item = adapter.normalize({
+      ...base,
+      title: 'Slow Look at HST 1',
+      description: 'A spacewalk during the servicing mission.',
+      metadataLocation: 'Goddard Space Flight Center',
+    } as never);
+    expect(item).not.toBeNull();
+    expect(item!.environment).toBe('orbit');
+    expect(item!.location?.type).toBe('earth_orbit');
+    expect(item!.location?.latitude).toBeUndefined();
+    expect(item!.location?.accuracy).toBe('mission');
+    expect(item!.location?.coordinateSource).toMatch(/held/i);
+  });
+
+  it('does not pin Earth footage to the campus that filed it either', () => {
+    // "Greenland Ice Flights" stamped Goddard: polar footage, Maryland pin.
+    const item = adapter.normalize({
+      ...base,
+      title: 'Greenland Ice Flights',
+      description: 'Airborne survey over the ice sheet.',
+      metadataLocation: 'Goddard Space Flight Center',
+      channel: 'wild_earth' as const,
+    } as never);
+    expect(item).not.toBeNull();
+    expect(item!.environment).toBe('polar');
+    expect(item!.location?.displayName).not.toBe('Goddard Space Flight Center');
+    expect(item!.location?.latitude).toBeUndefined();
+  });
+
+  it('keeps the facility when the footage really is at the facility', () => {
+    const item = adapter.normalize({
+      ...base,
+      title: 'RS-25 Engine Test',
+      description: 'A hot fire on the test stand.',
+      metadataLocation: 'Stennis Space Center',
+      channel: 'field_science' as const,
+    } as never);
+    expect(item).not.toBeNull();
+    expect(item!.environment).toBe('laboratory');
+    expect(item!.location?.displayName).toBe('Stennis Space Center');
+    expect(typeof item!.location?.latitude).toBe('number');
   });
 });

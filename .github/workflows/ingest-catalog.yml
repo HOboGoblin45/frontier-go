@@ -16,7 +16,7 @@ on:
       limit:
         description: 'Maximum items per provider'
         required: false
-        default: '900'
+        default: '4000'
       providers:
         description: 'Comma-separated provider filter (blank = all)'
         required: false
@@ -45,7 +45,7 @@ jobs:
       - name: Run ingestion
         working-directory: app
         run: |
-          ARGS="--limit ${{ github.event.inputs.limit || '900' }}"
+          ARGS="--limit ${{ github.event.inputs.limit || '4000' }}"
           if [ -n "${{ github.event.inputs.providers }}" ]; then
             ARGS="$ARGS --providers ${{ github.event.inputs.providers }}"
           fi
