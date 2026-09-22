@@ -219,9 +219,12 @@ async function editableVersion(versionString) {
 
 async function pickBuild() {
   const filter = process.env.BUILD_NUMBER ? `&filter[version]=${encodeURIComponent(process.env.BUILD_NUMBER)}` : '';
-  const { data } = await get(`/v1/builds?filter[app]=${APP_ID}&filter[processingState]=VALID&filter[expired]=false${filter}&sort=-uploadedDate&limit=1&include=preReleaseVersion`);
+  const { data } = await get(`/v1/builds?filter[app]=${APP_ID}&filter[processingState]=VALID&filter[expired]=false${filter}&sort=-uploadedDate&limit=1`);
   if (!data.length) throw new Error(process.env.BUILD_NUMBER ? `Build ${process.env.BUILD_NUMBER} is not VALID yet.` : 'No VALID build.');
-  return data[0];
+  // The marketing version lives on the build's preReleaseVersion. Asked for
+  // directly, because `include` on a filtered build list comes back empty.
+  const pre = await get(`/v1/builds/${data[0].id}/preReleaseVersion`);
+  return { ...data[0], marketingVersion: pre.data.attributes.version };
 }
 
 async function stepAppInfo(listing) {
@@ -270,7 +273,7 @@ async function stepContentRights() {
 }
 
 async function stepVersion(version, build, listing) {
-  const versionString = build.included?.find((x) => x.type === 'preReleaseVersions')?.attributes.version;
+  const versionString = build.marketingVersion;
   const a = version.attributes;
   const want = diff(a, { versionString, releaseType: 'MANUAL' });
   if (Object.keys(want).length) {
@@ -459,7 +462,7 @@ async function main() {
   }
   const listing = readListing();
   const build = await pickBuild();
-  const buildVersion = build.included?.find((x) => x.type === 'preReleaseVersions')?.attributes.version;
+  const buildVersion = build.marketingVersion;
   console.log(`mode=${MODE} build=${build.attributes.version} (${buildVersion})`);
 
   let version = null;
