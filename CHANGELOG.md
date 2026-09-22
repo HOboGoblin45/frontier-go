@@ -7,6 +7,21 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.3.1] — 2026-09-22
+
+### Fixed
+
+- **Text over the picture (reported on device, TestFlight).** Upright, the
+  picture was centred in the whole window whenever the controls idled, and
+  when they came back the title and description were drawn over it before the
+  picture moved clear, if it moved at all. The picture now has a fixed frame
+  of its own under the top bar and the text sits below it on a solid panel, so
+  the two never share space and the picture never moves. Titles clamp at three
+  lines. Sideways, the picture still takes the whole window with the controls
+  floating over it and fading when idle. The picture's position is also re-sent
+  to the native player every second, so a report that arrives before the
+  player is ready corrects itself.
+
 ## [4.3.0] — 2026-09-22
 
 Direction from Charlie the same day: aim for acquisition by a larger company,

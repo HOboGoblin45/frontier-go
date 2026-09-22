@@ -165,8 +165,41 @@
   background: var(--scrim-heavy);
   transition: opacity var(--dur-base) var(--ease-standard);
 }
-.watch.is-idle .watch__top,
-.watch.is-idle .watch__bottom { opacity: 0; pointer-events: none; }
+/*
+ * Upright: the top bar, then the picture in a frame of its own, then the
+ * reading matter. Nothing is drawn over the picture and the picture never
+ * moves. Sideways (below) the picture takes the window and the chrome floats
+ * over it, fading when idle.
+ */
+.watch__stage {
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 46vh;
+}
+@media (orientation: portrait) {
+  .watch { justify-content: flex-start; }
+  .watch__top { background: var(--surface-primary); }
+  .watch__bottom {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-top: var(--space-4);
+    background: var(--surface-primary);
+  }
+  .watch__title {
+    font-size: var(--step-2);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+@media (orientation: landscape) {
+  .watch__stage { display: none; }
+  .watch.is-idle .watch__top,
+  .watch.is-idle .watch__bottom { opacity: 0; pointer-events: none; }
+}
 
 .watch__eyebrow { margin-bottom: var(--space-2); }
 .watch__title { font-size: var(--step-3); margin-bottom: var(--space-2); }

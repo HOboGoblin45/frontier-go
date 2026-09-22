@@ -49,6 +49,33 @@ export function chromeInset(
   return Math.max(0, viewportHeight - rect.top);
 }
 
+/**
+ * Where the picture goes, as insets from the top and bottom of the window.
+ *
+ * Upright, the picture has a frame of its own under the top bar and the
+ * reading matter sits below it; the picture never moves, so a tap or a new
+ * clip never slides footage under text. (It used to: the frame centred in
+ * the whole window whenever the chrome idled, and the text came back over it
+ * before the picture had moved out of the way.) Sideways there is no room for
+ * both, so the picture takes the window and the chrome floats over it, as
+ * before.
+ */
+export function pictureInsets(opts: {
+  stage: { top: number; bottom: number } | null | undefined;
+  chrome: { top: number } | null | undefined;
+  viewportHeight: number;
+  idle: boolean;
+}): { top: number; bottom: number } {
+  const { stage, chrome, viewportHeight, idle } = opts;
+  if (stage && stage.bottom > stage.top) {
+    return {
+      top: Math.max(0, Math.round(stage.top)),
+      bottom: Math.max(0, Math.round(viewportHeight - stage.bottom)),
+    };
+  }
+  return { top: 0, bottom: chromeInset(chrome, viewportHeight, idle) };
+}
+
 function eyebrowFor(item: FrontierMediaItem): string {
   switch (item.environment) {
     case 'deep_ocean': return 'Into the deep';
@@ -97,6 +124,7 @@ export function Watch({
   const [idle, setIdle] = useState(false);
   const timer = useRef<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const stageRef = useRef<HTMLDivElement | null>(null);
 
   const wake = () => {
     setIdle(false);
@@ -120,11 +148,26 @@ export function Watch({
    * for no gain. Only the bottom block is subtracted.
    */
   const report = useCallback((animated: boolean) => {
-    const rect = bottomRef.current?.getBoundingClientRect();
-    setVideoInsets(0, chromeInset(rect, window.innerHeight, idle), animated);
+    const stageEl = stageRef.current;
+    const stage = stageEl && stageEl.offsetParent !== null ? stageEl.getBoundingClientRect() : null;
+    const insets = pictureInsets({
+      stage,
+      chrome: bottomRef.current?.getBoundingClientRect(),
+      viewportHeight: window.innerHeight,
+      idle,
+    });
+    setVideoInsets(insets.top, insets.bottom, animated);
   }, [idle]);
 
   useLayoutEffect(() => { report(true); }, [report, item?.id]);
+
+  // Re-send on a slow heartbeat. The call is a no-op when nothing changed, and
+  // it means a report that reached the player before it was attached, or was
+  // lost on the way, is corrected within a second instead of never.
+  useEffect(() => {
+    const t = window.setInterval(() => report(false), 1000);
+    return () => window.clearInterval(t);
+  }, [report]);
 
   useLayoutEffect(() => {
     const el = bottomRef.current;
@@ -238,6 +281,9 @@ export function Watch({
           </button>
         </div>
       </div>
+
+      {/* The picture's own frame. Transparent: the video is drawn behind it. */}
+      <div className="watch__stage" ref={stageRef} aria-hidden="true" />
 
       <div className="watch__bottom" ref={bottomRef}>
         <div className="eyebrow watch__eyebrow">{eyebrowFor(item)}</div>

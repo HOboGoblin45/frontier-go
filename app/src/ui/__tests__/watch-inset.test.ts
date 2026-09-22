@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chromeInset } from '../screens/Watch';
+import { chromeInset, pictureInsets } from '../screens/Watch';
 
 /**
  * The bug this guards: the picture was drawn under the text, so the title sat
@@ -42,5 +42,30 @@ describe('chromeInset', () => {
   it('follows the viewport, not a fixed screen size', () => {
     // Rotation, a different device, or the keyboard shrinking the viewport.
     expect(chromeInset({ top: 300 }, 430, false)).toBe(130);
+  });
+});
+
+describe('pictureInsets', () => {
+  const VIEWPORT = 932;
+
+  it('upright, puts the picture in its own frame under the top bar', () => {
+    // Top bar ends at 110; a 16:9 frame on a 430pt-wide screen is 242 tall.
+    expect(pictureInsets({ stage: { top: 110, bottom: 352 }, chrome: { top: 352 }, viewportHeight: VIEWPORT, idle: false }))
+      .toEqual({ top: 110, bottom: 580 });
+  });
+
+  it('upright, does not move the picture when the chrome idles', () => {
+    const awake = pictureInsets({ stage: { top: 110, bottom: 352 }, chrome: { top: 352 }, viewportHeight: VIEWPORT, idle: false });
+    const idle = pictureInsets({ stage: { top: 110, bottom: 352 }, chrome: { top: 352 }, viewportHeight: VIEWPORT, idle: true });
+    expect(idle).toEqual(awake);
+  });
+
+  it('sideways, falls back to floating chrome over a full-window picture', () => {
+    expect(pictureInsets({ stage: null, chrome: { top: 300 }, viewportHeight: 430, idle: false })).toEqual({ top: 0, bottom: 130 });
+    expect(pictureInsets({ stage: null, chrome: { top: 300 }, viewportHeight: 430, idle: true })).toEqual({ top: 0, bottom: 0 });
+  });
+
+  it('ignores a collapsed frame', () => {
+    expect(pictureInsets({ stage: { top: 200, bottom: 200 }, chrome: { top: 500 }, viewportHeight: VIEWPORT, idle: false })).toEqual({ top: 0, bottom: 432 });
   });
 });
