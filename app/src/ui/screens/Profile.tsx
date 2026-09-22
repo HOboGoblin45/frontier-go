@@ -129,7 +129,8 @@ export function Profile({
               {!diag ? 'checking'
                 : !diag.native ? 'n/a'
                   : diag.webViewTransparent ? 'transparent \u00b7 video visible'
-                    : 'OPAQUE \u00b7 the interface is covering the video'}
+                    : diag.webViewBound === false ? 'NOT BOUND \u00b7 the player never got the web view'
+                      : 'OPAQUE \u00b7 the interface is covering the video'}
             </dd>
             <dt>Picture in Picture</dt><dd>{diag?.pipSupported ? 'supported' : 'unavailable'}</dd>
             <dt>Audio session</dt><dd>{diag?.audioSessionCategory || 'n/a'}</dd>

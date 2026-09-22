@@ -20,6 +20,12 @@ export interface PlayerDiagnostics {
    * It is the single most diagnostic line in the app.
    */
   webViewTransparent?: boolean;
+  /**
+   * False means no web view was ever bound to the player, so every attempt to
+   * make it transparent was a silent no-op. Distinguishes "bound but opaque"
+   * from "never bound", which have different causes and different fixes.
+   */
+  webViewBound?: boolean;
   pipSupported?: boolean;
   audioSessionCategory?: string;
   implementation: 'native-avfoundation' | 'web-video-element';

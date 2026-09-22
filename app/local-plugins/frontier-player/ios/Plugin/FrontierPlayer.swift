@@ -221,9 +221,7 @@ final class FrontierPlaybackEngine: NSObject {
             container.bottomAnchor.constraint(equalTo: host.bottomAnchor),
         ])
 
-        hostWebView = webView
-        if let web = webView { host.bringSubviewToFront(web) }
-        makeWebViewTransparent()
+        if let web = webView { adoptWebView(web, bringingToFrontOf: host) }
 
         // Capacitor configures the web view during its own view lifecycle,
         // which can run after this does, and WebKit re-derives the under-page
@@ -240,6 +238,23 @@ final class FrontierPlaybackEngine: NSObject {
         setupRoutePicker(in: host)
         setupPiP()
         layoutLayer()
+    }
+
+    /// True while no web view has been bound. Every call to
+    /// `makeWebViewTransparent()` is a silent no-op in that state, so the
+    /// plugin re-checks this and rebinds if the bridge produces one later.
+    var hostWebViewIsMissing: Bool { hostWebView == nil }
+
+    /// Bind - or rebind - the web view that floats over the player layer.
+    ///
+    /// Capacitor's bridge does not guarantee `webView` is non-nil at the
+    /// moment the video surface is inserted. If it was nil then, the old code
+    /// left `hostWebView` nil for the life of the process and the interface
+    /// stayed an opaque sheet over the footage with no way back.
+    func adoptWebView(_ web: UIView, bringingToFrontOf host: UIView? = nil) {
+        hostWebView = web
+        (host ?? web.superview)?.bringSubviewToFront(web)
+        makeWebViewTransparent()
     }
 
     /// Make the web view see-through so the player layer behind it is visible.
@@ -845,7 +860,14 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
     /// Idempotent, and retried from several entry points: the bridge's view
     /// controller is not guaranteed to exist when `load()` runs.
     private func attachIfNeeded() {
-        guard !attached, let engine, let host = bridge?.viewController?.view else { return }
+        guard let engine else { return }
+        if attached {
+            if engine.hostWebViewIsMissing, let web = bridge?.webView {
+                engine.adoptWebView(web)
+            }
+            return
+        }
+        guard let host = bridge?.viewController?.view else { return }
         engine.attach(to: host, webView: bridge?.webView)
         attached = true
     }
@@ -946,10 +968,12 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
             // `webViewTransparent` is the one line that explains a build where
             // the sound plays and the picture does not: if it is false, the web
             // view is a sheet over the video.
+            self.attachIfNeeded()
             self.engine?.makeWebViewTransparent()
             call.resolve([
                 "native": true,
                 "attached": self.attached,
+                "webViewBound": !(self.engine?.hostWebViewIsMissing ?? true),
                 "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,
