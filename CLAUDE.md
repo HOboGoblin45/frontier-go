@@ -7,15 +7,19 @@ of truth for what this project is and the rules of the road. Deeper detail:
 ## What this app is
 
 **frontier go** — an iOS app (Capacitor 7 + React 18 + TypeScript + Vite 5) that
-plays a continuous channel of real exploration footage: NOAA deep-ocean ROV
-dives, NASA orbital and mission footage. Open it and something is already
-playing. Tap Shuffle and you are somewhere else. No account, no search, no
-decisions.
+plays a continuous channel of real public-domain footage, every clip placed
+on the globe: national parks (wildlife, plants, landscapes, landmarks,
+historic sites), early film and government film from the Library of
+Congress, NOAA deep-ocean ROV dives, NASA orbital and mission footage. Open it
+and something is already playing. Tap Shuffle and you are somewhere else.
+Choose a place on the globe to see everything filmed there and nearby.
+No account.
 
 - Bundle id `app.trailerroulette.ios` · Apple ID 6764209094 · repo `github.com/HOboGoblin45/frontier-go` (renamed 2026-09-22 from `trailer-roulette-ios`; GitHub redirects the old name)
 - Reoriented from **Trailer Roulette** at v3.4.3 (`main`). Version series restarts at **v4.0.0**.
 - **Trailer Roulette is retired (decided by Charlie, 2026-09-22).** Its approved-but-never-released 1.0 is withdrawn and frontier go ships as the first public release on the same App Store record. `release/public-3.5` is closed and kept only as history; `frontier-go` is the default branch.
 - **Business direction (Charlie, 2026-09-22): free for users, no ads, no IAP — built to be acquired by a larger company, with a product that is novel and valuable to one.** `docs/ACQUISITION-THESIS.md` is the thesis (the dive index, Dive Replay and the Deep Atlas); `docs/GROWTH-AND-ACQUISITION-PLAN.md` keeps the measurement and milestones. Every change is judged on whether it grows a provable, engaged audience. Apple will not transfer an app until a version has been released, so shipping publicly came first.
+- **Content scope (Charlie, 2026-09-23):** nature (animals by group: mammals, birds, reptiles and amphibians, fish, sea life, insects; plants), landmarks and human history as well as the deep sea and space - "National Geographic, Science Channel, History and Discovery all in one" from public-domain or stock footage - with everything placed where it is on the globe, so footage can be found by location. Built in 4.4.0 (NPS and Library of Congress providers, subjects, place search).
 - The reasoning this product rests on is in `docs/decisions-evidence/`, written on that branch the day before: there is no lawful non-YouTube trailer catalogue, and every lawful source hands you a direct MP4 or HLS URL.
 - The full audit, migration classification and the open decisions are in `docs/FRONTIER-GO-MIGRATION.md`. Read it before proposing structural change.
 
@@ -59,8 +63,11 @@ decisions.
 | Rights and safety gates | `core/types/rights.ts`, `core/types/safety.ts`, `core/catalog/eligibility.ts` |
 | Shuffle engine | `core/shuffle/engine.ts`, `core/shuffle/constraint.ts` |
 | Catalog pipeline | `core/catalog/pipeline.ts`, `quality.ts`, `dedupe.ts`; runner `tools/ingest/run.ts` |
-| Providers | `providers/noaa/`, `providers/nasa/`, `providers/gazetteer.ts` |
-| Native player | `local-plugins/frontier-player/ios/Plugin/FrontierPlayer.swift` |
+| Providers | `providers/noaa/`, `providers/nasa/`, `providers/nps/` (National Park Service), `providers/loc/` (Library of Congress National Screening Room), `providers/gazetteer.ts` |
+| Place names to reference points (Natural Earth, public domain) | `providers/places.ts`, data `app/data/places/gazetteer.json`, built by `tools/places/build.ts` |
+| Subjects (what a clip is of) | `core/types/subjects.ts`, `core/catalog/subjects.ts`; re-derive without re-ingest: `tools/ingest/resubject.ts` |
+| Find by place (globe filters, here-and-nearby list) | `core/catalog/nearby.ts`, `ui/screens/GlobeScreen.tsx` |
+| Native player | `local-plugins/frontier-player/ios/Plugin/FrontierPlayer.swift`, registration `FrontierPlayer.m` (must list every method; `src/player/__tests__/plugin-registration.test.ts`) |
 | JS player wrapper + web implementation | `src/player/frontierPlayer.ts`, `src/player/webPlayer.ts` |
 | App state (the only place the pieces meet) | `src/state/useFrontier.ts` |
 | Design tokens | `src/ui/styles/tokens.css` |
@@ -82,6 +89,12 @@ decisions.
 | Site URLs (one place) | `core/platform/site.ts` — `https://hobogoblin45.github.io/frontier-go` |
 
 ## Verification status
+
+At v4.4.0: **329 vitest tests passing**, typecheck and lint clean. The
+catalog is 6,310 clips / 475 hours (NPS 4,275, NASA 1,184, NOAA 450, Library
+of Congress 401), 5,104 of them on the globe. In the browser harness the
+Animals filter, place search, the here-and-nearby list and Play all worked
+against the real catalog. **Not verified:** NPS or LoC playback on a device.
 
 At v4.3.0: **262 vitest tests passing**, typecheck and lint clean. The dive
 index covers 528 dives, 2,428 h of main-camera video and 22,866 sightings. In
@@ -157,6 +170,18 @@ decoder and its proxy will not pass large media.
    Apple TV app, featuring nomination, home-screen widget, more providers,
    NOAA dive coordinates.
 4. **More providers.** The adapter registry is `providers/index.ts`.
+   Built in 4.4.0: National Park Service and the Library of Congress National
+   Screening Room. Researched 2026-09-23 and not built:
+   - Internet Archive `usgovfilms` CC0 (6,983 items): no place metadata, so
+     nothing could go on the globe.
+   - Europeana open-reuse video (12,972): mostly Vimeo embeds.
+   - Wikimedia Commons: WebM only.
+   - USFWS digital library: moved; not found.
+   - USGS video pages: nothing parseable.
+   The NPS key is optional (`NPS_API_KEY` secret). DEMO_KEY allows about ten
+   requests an hour, and the adapter's large pages fit in that. One page of
+   the LoC listing (records 1,101-1,200) answered 404 on 2026-09-23; the
+   adapter skips it and a later run retries.
    `docs/decisions-evidence/PIVOT-OPTIONS-2026-09.md` surveyed the field and
    found roughly 28,000 rights-clean items across the Library of Congress,
    Prelinger, US government films and NASA. Library of Congress and Prelinger

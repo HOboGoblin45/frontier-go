@@ -9,6 +9,13 @@ import { CollectionsList } from '../components/CollectionsList';
 import { DivesList } from '../components/DivesList';
 import { thumbnailFor } from '../../core/catalog/artwork';
 import { Icon } from '../components/Icon';
+import { GLOBE_FILTERS, itemsNear, matchesGlobeFilter, placeMatches, type GlobeFilter } from '../../core/catalog/nearby';
+import { SUBJECT_LABELS } from '../../core/types/subjects';
+
+export type { GlobeFilter };
+
+/** How many clips the place panel lists before "Play all here" takes over. */
+const PLACE_LIST_LIMIT = 40;
 
 /**
  * The globe replaces the browse page.
@@ -16,29 +23,11 @@ import { Icon } from '../components/Icon';
  * It is not a catalog: there are no rows, no covers, no genres. It shows where
  * there is something to see, where this person has already been, and where
  * they are right now — and every marker has exactly one action, which is to go
- * there. The filter is four words wide because the viewer is exploring, not
- * running a query.
+ * there. The filter is a row of kinds of thing (animals, plants, landmarks,
+ * history) because the viewer is exploring, not running a query. Choosing a
+ * place lists what there is to see there and nearby - the location-first way
+ * to find footage - with one button to play all of it.
  */
-
-export type GlobeFilter = 'all' | 'ocean' | 'earth' | 'space' | 'archive';
-
-const FILTERS: Array<{ key: GlobeFilter; label: string }> = [
-  { key: 'all', label: 'All' },
-  { key: 'ocean', label: 'Ocean' },
-  { key: 'earth', label: 'Earth' },
-  { key: 'space', label: 'Space' },
-  { key: 'archive', label: 'Archive' },
-];
-
-function matchesFilter(item: FrontierMediaItem, filter: GlobeFilter): boolean {
-  switch (filter) {
-    case 'ocean': return item.channel === 'deep_sea' || item.environment === 'deep_ocean' || item.environment === 'shallow_ocean';
-    case 'earth': return item.channel === 'wild_earth' || ['polar', 'volcanic', 'wilderness', 'surface_vessel', 'laboratory'].includes(item.environment);
-    case 'space': return item.channel === 'space' || ['orbit', 'lunar', 'martian', 'deep_space'].includes(item.environment);
-    case 'archive': return item.channel === 'archives' || (item.channels?.includes('archives') ?? false);
-    default: return true;
-  }
-}
 
 type ExploreView = 'globe' | 'collections' | 'dives';
 
@@ -63,7 +52,7 @@ export function GlobeScreen({
   const [searching, setSearching] = useState(false);
   const [focus, setFocus] = useState<{ latitude: number; longitude: number; token: number } | null>(null);
 
-  const filtered = useMemo(() => pool.filter((i) => matchesFilter(i, filter)), [pool, filter]);
+  const filtered = useMemo(() => pool.filter((i) => matchesGlobeFilter(i, filter)), [pool, filter]);
   const points = useMemo(() => globePoints(filtered), [filtered]);
   const beyond = useMemo(() => offEarthGroups(filtered), [filtered]);
 
@@ -81,13 +70,27 @@ export function GlobeScreen({
   const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return points.filter((p) => p.displayName.toLowerCase().includes(q)).slice(0, 8);
-  }, [points, query]);
+    const byId = new Map(filtered.map((i) => [i.id, i]));
+    return points
+      .filter((p) => placeMatches(q, p, p.itemIds.map((id) => byId.get(id)).filter((i): i is FrontierMediaItem => !!i)))
+      .slice(0, 12);
+  }, [points, query, filtered]);
 
   const selectedPoint = points.find((p) => p.key === selected) || null;
-  const selectedItem = selectedPoint
-    ? filtered.find((i) => i.id === selectedPoint.itemIds[0]) || null
-    : null;
+  const here = useMemo(() => (selectedPoint
+    ? itemsNear(filtered, selectedPoint)
+    : []), [filtered, selectedPoint]);
+  const playHere = () => {
+    if (!selectedPoint || here.length === 0) return;
+    onOpenCollection({
+      id: `place:${selectedPoint.key}:${filter}`,
+      kind: 'site',
+      title: selectedPoint.displayName,
+      subtitle: `${here.length} ${here.length === 1 ? 'clip' : 'clips'} here and nearby`,
+      itemIds: here.map((h) => h.item.id),
+      totalSeconds: here.reduce((sum, h) => sum + (h.item.stream.durationSeconds || 0), 0),
+    });
+  };
 
   const goToPoint = (key: string) => {
     const point = points.find((p) => p.key === key);
@@ -168,7 +171,7 @@ export function GlobeScreen({
           />
         ) : (
           <div className="chips scroll-x" role="group" aria-label="Filter the globe">
-            {FILTERS.map((f) => (
+            {GLOBE_FILTERS.map((f) => (
               <button
                 key={f.key}
                 type="button"
@@ -216,26 +219,43 @@ export function GlobeScreen({
               </div>
             )}
           </div>
-        ) : selectedPoint && selectedItem ? (
-          <button
-            type="button"
-            className="globe__pick"
-            onClick={() => onGoTo(selectedItem.id)}
-          >
-            {thumbnailFor(selectedItem)
-              ? <img src={thumbnailFor(selectedItem)} alt="" loading="lazy" />
-              : <span className="row__thumb" aria-hidden="true" />}
-            <span>
-              <span className="row__title">{selectedPoint.displayName}</span>
-              <span className="row__sub" style={{ display: 'block' }}>
-                {selectedItem.source.organization} &middot; {selectedPoint.count} {selectedPoint.count === 1 ? 'discovery' : 'discoveries'}
+        ) : selectedPoint && here.length > 0 ? (
+          <div className="globe__list panel" style={{ padding: 'var(--space-2)', display: 'flex', flexDirection: 'column' }}>
+            <div className="globe__place-head">
+              <span>
+                <span className="row__title">{selectedPoint.displayName}</span>
+                <span className="row__sub" style={{ display: 'block' }}>
+                  {here.length} {here.length === 1 ? 'clip' : 'clips'} here and nearby
+                </span>
               </span>
-              <span className="row__sub" style={{ display: 'block', marginTop: 4, color: 'var(--accent-primary)' }}>
-                Go here
-              </span>
-            </span>
-            <Icon name="chevron-right" size={20} />
-          </button>
+              <button type="button" className="btn btn--primary btn--small" onClick={playHere}>
+                <Icon name="play" size={16} /> Play all
+              </button>
+              <button type="button" className="icon-btn" onClick={() => setSelected(null)} aria-label="Close this place">
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="row-list scroll-y" style={{ minHeight: 0 }}>
+              {here.slice(0, PLACE_LIST_LIMIT).map(({ item, distanceKm }) => (
+                <button key={item.id} type="button" className="row" onClick={() => onGoTo(item.id)}>
+                  {thumbnailFor(item)
+                    ? <img className="row__thumb" src={thumbnailFor(item)} alt="" loading="lazy" />
+                    : <span className="row__thumb" aria-hidden="true" />}
+                  <span>
+                    <span className="row__title">{item.title}</span>
+                    <span className="row__sub" style={{ display: 'block' }}>
+                      {[
+                        item.subjects?.[0] ? SUBJECT_LABELS[item.subjects[0]] : null,
+                        item.source.organization,
+                        distanceKm >= 1 ? `${Math.round(distanceKm)} km away` : null,
+                      ].filter(Boolean).join(' \u00b7 ')}
+                    </span>
+                  </span>
+                  <Icon name="chevron-right" size={18} />
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
           <p className="globe__hint">
             {markers.length} {markers.length === 1 ? 'place' : 'places'} on this globe

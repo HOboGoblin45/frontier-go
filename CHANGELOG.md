@@ -7,6 +7,113 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.4.0] — 2026-09-23
+
+Direction from Charlie the same day: expand to nature (animals by group,
+plants, landscapes), landmarks and human history, "National Geographic,
+Science Channel, History and Discovery all in one" from public-domain
+footage, with everything placed where it is on the globe, so footage can be
+found by place.
+
+### Added
+
+- **National Park Service** (`providers/nps/`). About 10,600 videos across
+  some 400 parks are read from the NPS API. After the rights, safety and
+  quality gates, **4,275 clips and 356 hours from 336 parks** ship. They are
+  direct MP4s on nps.gov, most with captions, and 557 are the NPS's own
+  B-roll (raw footage, no narration). Rights come from the NPS disclaimer
+  plus each video's credit line. The NPS, a park, an NPS staff credit or
+  another federal bureau passes; a person alone, a production company, a
+  partner or an ND/NC licence does not (2,021 rejected). Placement uses the
+  video's own point when the NPS gives one (about 1 in 5, `approximate`),
+  otherwise the park's reference point (`region`). A clip with neither is
+  not published. Posters missing from the API are recovered from the
+  video's nps.gov page (2,065 of 3,130).
+- **Library of Congress, National Screening Room** (`providers/loc/`). Early
+  film and U.S. Government films are streamed as adaptive HLS: **401 films,
+  14.8 hours, 1896-1944, placed at 73 named places**. Each item is
+  cleared by its own record, never by the collection statement: a U.S.
+  Government production, or U.S. publication in 1930 or earlier. Fiction,
+  performance and speeches are excluded. Catalog headings for caricature,
+  blackface, lynching or executions, and slurs in titles, are flagged and
+  kept out.
+- **Place-name gazetteer** (`providers/places.ts`, `tools/places/build.ts`,
+  `app/data/places/gazetteer.json`), built from public-domain Natural Earth
+  data. A record that gives only names ("san francisco, california") gets
+  the reference point of the most specific place the names agree on. It is
+  labelled `region`, and its basis names the gazetteer feature and says it
+  is not the filming position. Names that disagree get no point.
+- **Subjects** (`core/types/subjects.ts`, `core/catalog/subjects.ts`): mammals,
+  birds, reptiles and amphibians, fish, sea life, insects and spiders,
+  plants and fungi, landscapes, landmarks, human history, native heritage,
+  deep sea and space. They are derived from the provider's own words:
+  ambiguous words ("bear", "falls", "history") count only in a title, and
+  unambiguous species names count anywhere. The pipeline applies them to
+  every provider, including NOAA and NASA. `tools/ingest/resubject.ts`
+  re-derives them without a re-ingest.
+- **Find footage by place.** The globe filters by Animals, Plants,
+  Landscapes, Landmarks, History, Ocean and Space. Tap a place to list
+  everything filmed there and within 120 km, nearest first, with a
+  **Play all** button. Place search now matches states and park names as
+  well as pin names (`core/catalog/nearby.ts`).
+- **Collections:**
+  - "Browse by kind": one per subject.
+  - New topics: raw footage, bears, the first films, wildflowers, the Civil
+    War, the Revolution, geysers, lighthouses, canyons, caves, birds of prey,
+    turtles.
+  - "Parks and historic sites": one per park with 8 or more clips.
+- **Keep exploring a site**: a clip from a park narrows the shuffle to that
+  park.
+- **Kinds of place**: forest, desert, mountain, coast, freshwater, grassland,
+  cave and historic site. These give the shuffle's contrast scoring something
+  to work with beyond "wilderness".
+- `--keep-others` on the ingest refreshes some providers and keeps the rest
+  of the current catalog.
+
+### Changed
+
+- The Archives channel is now **History**, at full weight for historic-site
+  footage. Silent film is still weighted down in Everything.
+- The catalog has **6,310 clips (475 hours)**, up from 1,634, with 5,104 of
+  them on the globe at 1,061 distinct points. It is 17.9 MB,
+  or 2.2 MB gzipped, and parses in 75 ms in Node.
+- Store description, landing page and the in-app independence statement
+  name the new sources. Share pages play an HLS clip from its MP4 on the web,
+  and the web build does the same (AVPlayer keeps the HLS).
+- The ingest probe accepts HLS playlists, spaces HEADs to hosts that publish
+  a rate limit (loc.gov: 60 a minute) and times a HEAD out after 20 seconds.
+- The ingest workflow passes `NPS_API_KEY` (optional), defaults to 20,000
+  items per provider and has 120 minutes to run.
+
+### Verified
+
+- 329 tests, typecheck, lint, web build and site build (6,310 share pages).
+- Browser harness at 402x874, against the real catalog:
+  - The catalog was ready in 1.1 s.
+  - The Animals filter showed 303 places.
+  - Searching "Yellowstone" and choosing it listed 176 clips here and nearby.
+  - Play all started a Yellowstone collection ("Exploring Yellowstone
+    National Park").
+  - Collections showed "Browse by kind" and "Parks and historic sites".
+  - No console errors.
+- A Library of Congress HLS segment was fetched and probed: H.264 and AAC in
+  MPEG-TS.
+
+### Not verified
+
+- NPS and Library of Congress playback on a device.
+- Headless Chromium has no H.264 decoder, so no clip from either source was
+  played in the harness.
+
+### Known gaps
+
+- One page of the National Screening Room listing (records 1,101-1,200)
+  returned 404 at every page size on 2026-09-23. Those records are missing
+  until a later ingest reads them. The adapter now skips such a page and
+  carries on.
+- The NPS API gives videos no date, so NPS clips have no "captured" date.
+
+
 ## [4.3.2] — 2026-09-23
 
 ### Fixed

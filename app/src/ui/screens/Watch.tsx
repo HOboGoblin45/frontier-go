@@ -90,6 +90,14 @@ function eyebrowFor(item: FrontierMediaItem): string {
     case 'wilderness': return 'Wild earth';
     case 'laboratory': return 'Under test';
     case 'launch_site': return 'On the pad';
+    case 'forest': return 'In the forest';
+    case 'desert': return 'Desert country';
+    case 'mountain': return 'High country';
+    case 'coast': return 'On the coast';
+    case 'freshwater': return 'Rivers and lakes';
+    case 'grassland': return 'Open country';
+    case 'cave': return 'Underground';
+    case 'historic_site': return 'Where it happened';
     default: return 'Somewhere else';
   }
 }

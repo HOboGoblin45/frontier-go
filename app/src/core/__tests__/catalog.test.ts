@@ -99,8 +99,11 @@ describe('quality scoring', () => {
     expect(freshnessScore(old, now)).toBeGreaterThan(0);
   });
 
-  it('dials archives and unplaced items down without excluding them', () => {
-    expect(baseWeight(makeItem({ id: 'a', channel: 'archives' }))).toBeLessThan(1);
+  it('dials archive film and unplaced items down without excluding them', () => {
+    expect(baseWeight(makeItem({ id: 'a', channel: 'archives', provider: 'nasa' }))).toBeLessThan(1);
+    expect(baseWeight(makeItem({ id: 'l', channel: 'archives', provider: 'loc' }))).toBeLessThan(1);
+    // History from a historic site is a channel of its own, at full weight.
+    expect(baseWeight(makeItem({ id: 'h', channel: 'archives', provider: 'nps' }))).toBe(1);
     expect(baseWeight(makeItem({ id: 'b', location: { type: 'unknown', accuracy: 'unknown' } }))).toBeLessThan(1);
   });
 

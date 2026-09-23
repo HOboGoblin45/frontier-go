@@ -8,6 +8,7 @@ import { safetyIsClear } from '../types/safety';
 import { isPlottable } from '../types/location';
 import { globePoints } from '../catalog/catalog';
 import { buildDeck } from '../shuffle/engine';
+import { ANIMAL_SUBJECTS } from '../types/subjects';
 import { seededRandom } from './fixtures';
 
 /**
@@ -124,6 +125,25 @@ describe('shipped catalog', () => {
     expect(new Set(deck.map((i) => i.id)).size).toBe(8);
     // A deck drawn from a catalog this varied should not be eight of one thing.
     expect(new Set(deck.map((i) => i.environment)).size).toBeGreaterThan(1);
+  });
+
+  it('places every national-park and Library of Congress clip on the globe, with its basis', () => {
+    // 4.4.0: "all of these things will be placed where they are on the globe".
+    const placed = catalog.items.filter((i) => i.provider === 'nps' || i.provider === 'loc');
+    const unplaced = placed.filter((i) => !isPlottable(i.location) || !i.location?.coordinateSource);
+    expect(unplaced.map((i) => i.id)).toEqual([]);
+  });
+
+  it('covers every kind of subject the brief names, from more than a handful of clips', () => {
+    const count = (s: string) => catalog.items.filter((i) => i.subjects?.includes(s as never)).length;
+    for (const s of [...ANIMAL_SUBJECTS, 'plants', 'landscapes', 'landmarks', 'history', 'native_heritage', 'deep_sea', 'space']) {
+      expect(count(s), s).toBeGreaterThan(40);
+    }
+  });
+
+  it('files most of the catalog under at least one subject', () => {
+    const tagged = catalog.items.filter((i) => (i.subjects?.length ?? 0) > 0).length;
+    expect(tagged / catalog.items.length).toBeGreaterThan(0.75);
   });
 
   it('keeps every channel it advertises non-empty', () => {

@@ -8,7 +8,7 @@ import { haversineKm } from '../util/geo';
  * filter interface. One value, one label, one way out ("Go Anywhere").
  */
 
-export type ConstraintKind = 'expedition' | 'mission' | 'region' | 'nearby' | 'environment' | 'tag' | 'collection';
+export type ConstraintKind = 'expedition' | 'mission' | 'site' | 'region' | 'nearby' | 'environment' | 'tag' | 'collection';
 
 export interface ExplorationConstraint {
   kind: ConstraintKind;
@@ -41,6 +41,9 @@ export function constraintForItem(item: FrontierMediaItem): ExplorationConstrain
   if (source.mission) {
     return { kind: 'mission', label: source.mission, value: source.mission };
   }
+  if (source.site) {
+    return { kind: 'site', label: source.site, value: source.site };
+  }
   if (location && isPlottable(location) && location.accuracy !== 'region') {
     return {
       kind: 'nearby',
@@ -67,6 +70,7 @@ export function matchesConstraint(item: FrontierMediaItem, c: ExplorationConstra
   switch (c.kind) {
     case 'expedition': return item.source.expedition === c.value;
     case 'mission': return item.source.mission === c.value;
+    case 'site': return item.source.site === c.value;
     case 'region': return item.location?.regionName === c.value;
     case 'environment': return item.environment === c.value;
     case 'tag': return item.tags.includes(c.value);
@@ -95,6 +99,14 @@ export function environmentLabel(env: string): string {
     case 'deep_space': return 'deep space';
     case 'laboratory': return 'the lab';
     case 'launch_site': return 'the pad';
+    case 'forest': return 'the forests';
+    case 'desert': return 'the deserts';
+    case 'mountain': return 'the mountains';
+    case 'coast': return 'the coast';
+    case 'freshwater': return 'rivers and lakes';
+    case 'grassland': return 'open country';
+    case 'cave': return 'underground';
+    case 'historic_site': return 'historic sites';
     default: return 'here';
   }
 }

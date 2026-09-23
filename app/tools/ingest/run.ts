@@ -3,6 +3,7 @@
  *
  *   npm run ingest              # full run, writes public/catalog/
  *   npm run ingest -- --limit 40 --providers noaa
+ *   npm run ingest -- --providers nps,loc --keep-others   # refresh two, keep the rest
  *
  * Runs on a schedule in GitHub Actions and commits the result, so the app ships
  * with a catalog and never has to query a provider API to decide what to play.
@@ -13,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { runPipeline, stampAddedAt, type StreamProbe } from '../../src/core/catalog/pipeline';
 import type { FrontierCatalog, FrontierMediaItem } from '../../src/core/types/media';
 import { isAgencyTitleCard } from '../../src/core/catalog/artwork';
+import { subjectsFor } from '../../src/core/catalog/subjects';
 import jpeg from 'jpeg-js';
 import { ADAPTERS } from '../../src/providers/index';
 import type { DiveIndex } from '../../src/core/dives/types';
@@ -38,12 +40,32 @@ const logger = {
  * HEAD every chosen stream before publishing it. A catalog entry pointing at a
  * 404 is a black screen on someone's television, and it is cheap to find here.
  */
+/**
+ * Hosts that publish a rate limit get their HEADs spaced to it. The Library
+ * of Congress allows 60 requests a minute to its streaming service.
+ */
+const HOST_INTERVAL_MS: Record<string, number> = { 'tile.loc.gov': 1100 };
+const hostQueue = new Map<string, Promise<void>>();
+function spaced(url: string): Promise<void> {
+  let host = '';
+  try { host = new URL(url).host; } catch { return Promise.resolve(); }
+  const gap = HOST_INTERVAL_MS[host];
+  if (!gap) return Promise.resolve();
+  const prev = hostQueue.get(host) || Promise.resolve();
+  const next = prev.then(() => new Promise<void>((r) => setTimeout(r, gap)));
+  hostQueue.set(host, next);
+  return prev;
+}
+
 const probe: StreamProbe = async (url) => {
   try {
-    const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+    await spaced(url);
+    // A HEAD that hangs would hold one of the eight probe slots for minutes.
+    const res = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(20_000) });
     const len = Number(res.headers.get('content-length') || '0');
     return {
-      ok: res.ok && /^video\//.test(res.headers.get('content-type') || 'video/'),
+      // MP4 answers video/*; an HLS playlist answers one of the mpegurl types.
+      ok: res.ok && /^(video\/|application\/(vnd\.apple\.mpegurl|x-mpegurl))/i.test(res.headers.get('content-type') || 'video/'),
       status: res.status,
       bytes: Number.isFinite(len) ? len : undefined,
       contentType: res.headers.get('content-type') || undefined,
@@ -88,6 +110,8 @@ async function main() {
   const limit = Number(arg('limit', '400'));
   const only = arg('providers');
   const skipProbe = has('no-probe');
+  // Refresh some providers and keep the rest of the current catalog as it is.
+  const keepOthers = has('keep-others');
 
   let adapters: FrontierProviderAdapter[] = ADAPTERS;
   if (only) {
@@ -111,6 +135,26 @@ async function main() {
   try {
     previous = JSON.parse(await readFile(resolve(OUT_DIR, 'frontier-catalog.json'), 'utf8')) as FrontierCatalog;
   } catch { /* first ever run */ }
+  let keptNote = '';
+  if (keepOthers && previous) {
+    const refreshed = new Set(adapters.map((a) => a.provider));
+    const kept = previous.items
+      .filter((i) => !refreshed.has(i.provider))
+      .map((i) => ({ ...i, subjects: subjectsFor(i) }));
+    catalog.items = [...catalog.items, ...kept].sort((a, b) => a.id.localeCompare(b.id));
+    const s = catalog.stats;
+    s.published = catalog.items.length;
+    s.byProvider = {};
+    s.byChannel = {};
+    for (const i of catalog.items) {
+      s.byProvider[i.provider] = (s.byProvider[i.provider] || 0) + 1;
+      s.byChannel[i.channel] = (s.byChannel[i.channel] || 0) + 1;
+    }
+    console.log(`  kept from the previous catalog: ${kept.length} (${[...new Set(kept.map((i) => i.provider))].join(', ')})`);
+    keptNote = `This run refreshed ${adapters.map((a) => a.provider).join(', ')} only and kept ${kept.length} items `
+      + `from the previous catalog (${[...new Set(kept.map((i) => i.provider))].join(', ')}). The fetch, normalise and `
+      + 'rejection counts below are for the refreshed providers; "published" is the whole catalog.';
+  }
   catalog.items = stampAddedAt(catalog.items, previous, catalog.generatedAt);
   const arrived = catalog.items.filter((i) => i.addedAt === catalog.generatedAt).length;
   console.log(`  new since the previous catalog: ${arrived}`);
@@ -151,6 +195,7 @@ async function main() {
     `Generated ${catalog.generatedAt} by \`npm run ingest\`. Regenerated on every run;`,
     'do not hand-edit. Anything listed here is excluded from the production feed.',
     '',
+    ...(keptNote ? [keptNote, ''] : []),
     '## Counts by stage',
     '',
     '| stage | count |',

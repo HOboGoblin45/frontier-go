@@ -7,9 +7,9 @@ const CHANNEL_NOTES: Partial<Record<FrontierChannel, string>> = {
   everything: 'All of it, as far apart as possible',
   deep_sea: 'ROV dives, vents, seamounts, animals',
   space: 'Orbit, the Moon, Mars and further',
-  wild_earth: 'Ice, volcanoes, storms, wild places',
+  wild_earth: 'Wildlife, plants, landscapes, national parks',
   field_science: 'Engines, aircraft, labs and fieldwork',
-  archives: 'Apollo, the shuttle and the record',
+  archives: 'Historic sites, early film, Apollo',
 };
 
 /**

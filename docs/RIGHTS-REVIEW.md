@@ -20,6 +20,9 @@ excluded and why. This file lists what was *admitted* and still deserves eyes.
 | NOAA copyright marker | NOAA marks copyrighted media with the word "copyright" in the caption. Any marker in the caption, credit or description demotes the item to `unknown`. | `providers/noaa/rights.ts` |
 | NASA third-party marker | Copyright, courtesy, licence, agency-wire and music markers in the metadata, **and in the asset filename**, demote to `unknown`. | `providers/nasa/rights.ts` |
 | Identifiable persons | Interview, briefing, downlink, ceremony and similar formats are flagged and excluded from the default feed. | both adapters |
+| NPS credit line | The NPS disclaimer makes NPS-created material public domain "unless otherwise indicated"; the credit line is the indication. Admitted: no credit, the NPS, an NPS staff credit ("NPS/Neal Herbert"), a park unit, or another federal bureau; a Creative Commons BY or BY-SA credit. Rejected: every other credit (a person alone, a production company, a partner, "courtesy", ND or NC licences). | `providers/nps/rights.ts` |
+| Library of Congress, item by item | The Library's collection statement covers "the vast majority" of films, so it is not used as a clearance. Admitted only when the item's own record shows a U.S. Government production, or U.S. publication in 1930 or earlier (U.S. term expired). A record noting special permission or a restriction is rejected. | `providers/loc/rights.ts` |
+| Early-film content | Catalog subject headings for caricature, blackface, minstrelsy, lynching, executions and similar, and slurs in titles, flag an item as disturbing and keep it out. | `providers/loc/rights.ts` (`locSafety`) |
 | Media caching | `cachingAllowed` is false for every item. Source video is streamed, never stored. | both adapters |
 | Re-verification | Every gate runs again on the committed catalog in CI. | `shipped-catalog.test.ts` |
 
@@ -90,8 +93,49 @@ included; NASA asks to be acknowledged as the source.
 **Assessment:** compliant. **To review:** if a share card is ever rendered as an
 image, the credit must be burned into it.
 
+### 7. NPS credits that name a person with "NPS/"
+
+An NPS staff credit ("NPS/Neal Herbert") is admitted as a government work: it
+is the NPS's own convention for work by its staff. A volunteer or contractor
+credited the same way would be admitted too, and the metadata cannot tell them
+apart. Contract deliverables are normally government-owned, but a contractor
+can be permitted to assert copyright.
+
+**Assessment:** low risk; the NPS publishes these as its own. **To review:**
+before any commercial use, sample the "NPS/<name>" credits.
+
+### 8. Library of Congress films outside the United States
+
+A film published in the U.S. in 1930 or earlier is out of copyright in the
+U.S. The app is available in other countries, where terms run on different
+rules (often the author's life plus 70 years, with the rule of the shorter
+term applied to U.S. works in many of them). Only U.S. publications are
+admitted, which is the case the shorter-term rule covers, but it is not
+universal. [assumption, not checked country by country]
+
+**To review:** if a buyer wants worldwide commercial use, restrict LoC items
+to U.S. Government productions, or to storefronts where the analysis holds.
+
+### 9. People in early film and national-park footage
+
+Actualities of the 1890s-1920s show crowds and public figures; the NPS
+catalog includes rangers and visitors. Items *about* a person (interviews,
+oral histories, speeches, readings) are excluded. People appearing in the
+footage are not, as with NASA (item 2).
+
+### 10. Place names resolved to reference points
+
+Library of Congress films carry place names, not coordinates. They are placed
+at the Natural Earth reference point for the most specific place the names
+agree on, labelled `accuracy: 'region'` with the gazetteer feature named, or
+not placed at all when the names disagree. The NPS parks API reference point
+is used the same way for a video with no point of its own.
+
 ## Sources
 
 - NOAA Ocean Exploration image and video usage — https://oceanexplorer.noaa.gov/about/media-kit/
 - NASA media usage guidelines — https://www.nasa.gov/nasa-brand-center/images-and-media/
 - Natural Earth (globe coastlines, public domain) — https://www.naturalearthdata.com/about/terms-of-use/
+- National Park Service disclaimer (ownership and copyright) — https://www.nps.gov/aboutus/disclaimer.htm
+- Library of Congress, National Screening Room rights and access — https://www.loc.gov/collections/national-screening-room/about-this-collection/rights-and-access/
+- 17 U.S.C. §304 (duration of copyright in works published before 1978) — https://www.law.cornell.edu/uscode/text/17/304

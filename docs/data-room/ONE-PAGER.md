@@ -3,7 +3,9 @@
 **Every deep-sea dive NOAA's exploration ship has made, replayable to the
 second: the robot's camera, its depth and position, and every animal the
 scientists named as it appeared, on one clock. Plus a free, ad-free,
-always-on channel of real exploration footage.**
+always-on channel of public-domain footage (wildlife, landscapes, landmarks,
+history, the deep sea and space), every clip placed on a globe you can
+search by place.**
 
 | The dive index | |
 | --- | --- |
@@ -17,8 +19,8 @@ always-on channel of real exploration footage.**
 | Platform | iPhone and iPad; AirPlay and Picture in Picture for the TV |
 | Price | Free. No ads, no account, no in-app purchases |
 | Privacy | "Data Not Collected": no SDKs, no tracking, no server |
-| Catalog | 1,634 clips, 104 hours, 12 environments; refreshed weekly without an app update |
-| Rights | U.S. Government works (17 U.S.C. §105), gated twice, with a rejection log |
+| Catalog | 6,310 clips, 475 hours, from the National Park Service, the Library of Congress, NOAA and NASA; 5,104 placed on the globe; 13 subjects from mammals to human history; refreshed weekly without an app update |
+| Rights | U.S. Government works (17 U.S.C. §105) and U.S. publications of 1930 or earlier, decided clip by clip, gated twice, with a rejection log |
 | Running cost | About $99 a year |
 | App Store | Apple ID 6764209094 |
 

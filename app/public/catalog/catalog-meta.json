@@ -1,24 +1,26 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-22T19:04:26.306Z",
+  "generatedAt": "2026-09-23T02:52:45.586Z",
   "stats": {
-    "fetched": 2470,
-    "normalized": 2470,
-    "rightsRejected": 98,
-    "safetyRejected": 157,
-    "qualityRejected": 550,
-    "duplicatesCollapsed": 31,
-    "published": 1634,
+    "fetched": 1100,
+    "normalized": 459,
+    "rightsRejected": 49,
+    "safetyRejected": 0,
+    "qualityRejected": 9,
+    "duplicatesCollapsed": 0,
+    "published": 6310,
     "byProvider": {
+      "loc": 401,
+      "nasa": 1184,
       "noaa_ocean_exploration": 450,
-      "nasa": 1184
+      "nps": 4275
     },
     "byChannel": {
-      "deep_sea": 450,
+      "archives": 2532,
       "space": 650,
-      "archives": 54,
       "field_science": 308,
-      "wild_earth": 172
+      "wild_earth": 2370,
+      "deep_sea": 450
     }
   }
 }

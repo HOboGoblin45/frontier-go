@@ -24,7 +24,9 @@ export const isNativePlayback = Capacitor.getPlatform() === 'ios';
 export function toPlayable(item: FrontierMediaItem): PlayableItem {
   return {
     id: item.id,
-    url: item.stream.url,
+    // AVPlayer plays HLS natively. A browser <video> mostly does not, so the
+    // web build plays an HLS clip's progressive MP4 when it has one.
+    url: isNativePlayback || item.stream.type !== 'hls' ? item.stream.url : (item.stream.fallbackUrl || item.stream.url),
     title: item.title,
     place: locationHeadline(item.location),
     organization: item.source.organization,

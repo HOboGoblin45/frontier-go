@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { esc, renderNotFound, renderSharePage, sharePagePath } from '../../../tools/site/share-page';
+import { esc, playableInBrowser, renderNotFound, renderSharePage, sharePagePath } from '../../../tools/site/share-page';
 import { shareSlug, webLink } from '../history/saved';
 import { makeItem } from './fixtures';
 
@@ -28,7 +28,14 @@ describe('share pages', () => {
     expect(html).toContain(`<video src="${esc(item.stream.url)}"`);
     expect(html).toContain('apps.apple.com/app/id6764209094');
     expect(html).toContain('frontiergo://discovery/');
-    expect(html).toContain('not affiliated with or endorsed by NASA');
+    expect(html).toContain('not affiliated with or endorsed by the National Park Service, the Library of Congress, NASA');
+  });
+
+  it('plays an HLS clip on the web from its MP4', () => {
+    const hls = makeItem({ id: 'loc:1', stream: { url: 'https://tile.loc.gov/x/default.m3u8', type: 'hls', fallbackUrl: 'https://tile.loc.gov/x.mp4', durationSeconds: 60 } });
+    expect(playableInBrowser(hls)).toBe('https://tile.loc.gov/x.mp4');
+    expect(renderSharePage(hls)).toContain('<video src="https://tile.loc.gov/x.mp4"');
+    expect(playableInBrowser(item)).toBe(item.stream.url);
   });
 
   it('never uses an agency title card as the preview', () => {

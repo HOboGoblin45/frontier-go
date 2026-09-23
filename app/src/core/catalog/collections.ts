@@ -2,6 +2,8 @@ import type { FrontierMediaItem } from '../types/media';
 import type { FrontierEnvironment } from '../types/location';
 import { recentlyAdded } from './catalog';
 import { thumbnailFor } from './artwork';
+import type { FrontierSubject } from '../types/subjects';
+import { ALL_SUBJECTS, SUBJECT_LABELS } from '../types/subjects';
 
 /**
  * Collections: the lean-in half of a lean-back app.
@@ -18,7 +20,7 @@ import { thumbnailFor } from './artwork';
  * leaving Keep Exploring Here.
  */
 
-export type CollectionKind = 'new' | 'subject' | 'expedition';
+export type CollectionKind = 'new' | 'group' | 'subject' | 'site' | 'expedition';
 
 export interface Collection {
   id: string;
@@ -41,6 +43,8 @@ interface SubjectRule {
   tags?: string[];
   environments?: FrontierEnvironment[];
   titlePattern?: RegExp;
+  subjects?: FrontierSubject[];
+  providers?: FrontierMediaItem['provider'][];
 }
 
 /**
@@ -70,9 +74,47 @@ const SUBJECTS: SubjectRule[] = [
   { id: 'volcanoes', title: 'Volcanoes', blurb: 'Where the earth opens', tags: ['Volcano'], environments: ['volcanic'] },
   { id: 'asteroids', title: 'Asteroids', blurb: 'Bennu, Psyche, DART', tags: ['Asteroid'] },
   { id: 'flight', title: 'Flight research', blurb: 'Aircraft built to learn something', tags: ['Aeronautics'] },
+  // National parks, wildlife and the historic record (4.4.0).
+  { id: 'broll', title: 'Raw footage', blurb: 'No narration, just the place', tags: ['B-roll'] },
+  { id: 'bears', title: 'Bears', blurb: 'Grizzly, black and polar', titlePattern: /\b(bears?|grizzl(y|ies))\b/i },
+  { id: 'early-film', title: 'The first films', blurb: 'The world on film, 1890s to 1920s', providers: ['loc'] },
+  { id: 'wildflowers', title: 'Wildflowers', blurb: 'Blooms, meadows, pollinators', titlePattern: /wildflower|bloom|blossom|meadow|pollinat/i },
+  { id: 'civil-war', title: 'The Civil War', blurb: 'Battlefields, forts and the people', titlePattern: /civil war|gettysburg|antietam|vicksburg|shiloh|appomattox|chickamauga|manassas|fredericksburg/i },
+  { id: 'geysers', title: 'Geysers and hot springs', blurb: 'Where the ground boils', titlePattern: /geyser|hot spring|thermal|mud ?pot|fumarole/i },
+  { id: 'lighthouses', title: 'Lighthouses', blurb: 'Lights on the edge of the land', titlePattern: /lighthouse|light ?station/i },
+  { id: 'canyons', title: 'Canyons', blurb: 'Rock, time and a river', titlePattern: /canyon|gorge/i },
+  { id: 'caves', title: 'Caves', blurb: 'The world underneath', environments: ['cave'] },
+  { id: 'birds-of-prey', title: 'Birds of prey', blurb: 'Eagles, hawks, owls, condors', titlePattern: /eagle|hawk|falcon|owl|condor|osprey|raptor|kestrel|vulture/i },
+  { id: 'turtles', title: 'Turtles and tortoises', blurb: 'Nests, hatchlings, the long walk', titlePattern: /turtle|tortoise|hatchling/i },
+  { id: 'revolution', title: 'The American Revolution', blurb: 'Where a country started', titlePattern: /revolution(ary)? war|american revolution|yorktown|lexington|concord|valley forge|saratoga|bunker hill|minute ?m[ae]n/i },
 ];
 
+/**
+ * One collection per subject, in the taxonomy's own order: "Birds" is every
+ * bird in the catalog, from any provider, wherever it was filmed.
+ */
+const GROUPS: Array<{ subject: FrontierSubject; blurb: string }> = [
+  { subject: 'mammals', blurb: 'On land and at sea' },
+  { subject: 'birds', blurb: 'Every bird in the catalog' },
+  { subject: 'reptiles_amphibians', blurb: 'Snakes, lizards, turtles, frogs' },
+  { subject: 'fish', blurb: 'Rivers, reefs and the deep' },
+  { subject: 'sea_life', blurb: 'Coral, jellies, octopus, whales' },
+  { subject: 'insects', blurb: 'Bees, butterflies, spiders' },
+  { subject: 'plants', blurb: 'Trees, flowers, fungi, kelp' },
+  { subject: 'landscapes', blurb: 'Canyons, glaciers, coasts, skies' },
+  { subject: 'landmarks', blurb: 'Monuments, forts, lighthouses' },
+  { subject: 'history', blurb: 'Where it happened' },
+  { subject: 'native_heritage', blurb: 'Nations, homelands, living traditions' },
+  { subject: 'deep_sea', blurb: 'Below the sunlight' },
+  { subject: 'space', blurb: 'Orbit, the Moon and beyond' },
+];
+
+/** Parks and sites with fewer clips than this are not listed as a collection. */
+export const MIN_SITE_COLLECTION = 8;
+
 function matchesSubject(item: FrontierMediaItem, rule: SubjectRule): boolean {
+  if (rule.subjects && item.subjects?.some((x) => rule.subjects!.includes(x))) return true;
+  if (rule.providers && rule.providers.includes(item.provider)) return true;
   if (rule.tags && item.tags.some((t) => rule.tags!.includes(t))) return true;
   if (rule.environments && rule.environments.includes(item.environment)) return true;
   if (rule.titlePattern && rule.titlePattern.test(item.title)) return true;
@@ -127,7 +169,8 @@ function build(id: string, kind: CollectionKind, title: string, lead: string | u
 
 /**
  * Every collection the given pool can honestly support, in display order:
- * what is new, then subjects, then whole expeditions.
+ * what is new, then one per subject group, then editorial subjects, then
+ * parks and sites, then whole expeditions.
  */
 export function buildCollections(pool: readonly FrontierMediaItem[], now = Date.now()): Collection[] {
   const out: Collection[] = [];
@@ -135,9 +178,28 @@ export function buildCollections(pool: readonly FrontierMediaItem[], now = Date.
   const fresh = recentlyAdded([...pool], now);
   if (fresh.length >= 3) out.push(build('new', 'new', 'New this week', 'Just arrived', fresh));
 
+  for (const g of GROUPS) {
+    if (!ALL_SUBJECTS.includes(g.subject)) continue;
+    const members = pool.filter((i) => i.subjects?.includes(g.subject));
+    if (members.length >= MIN_COLLECTION) out.push(build(`group:${g.subject}`, 'group', SUBJECT_LABELS[g.subject], g.blurb, members));
+  }
+
   for (const rule of SUBJECTS) {
     const members = pool.filter((i) => matchesSubject(i, rule));
     if (members.length >= MIN_COLLECTION) out.push(build(`subject:${rule.id}`, 'subject', rule.title, rule.blurb, members));
+  }
+
+  // Parks and historic sites, largest first.
+  const bySite = new Map<string, FrontierMediaItem[]>();
+  for (const item of pool) {
+    const site = item.source.site;
+    if (!site) continue;
+    const list = bySite.get(site) || [];
+    list.push(item);
+    bySite.set(site, list);
+  }
+  for (const [site, items] of [...bySite.entries()].filter(([, items]) => items.length >= MIN_SITE_COLLECTION).sort((a, b) => b[1].length - a[1].length)) {
+    out.push(build(`site:${site}`, 'site', site, items[0].location?.regionName || undefined, items));
   }
 
   const byExpedition = new Map<string, FrontierMediaItem[]>();

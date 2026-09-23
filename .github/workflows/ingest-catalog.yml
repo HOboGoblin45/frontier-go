@@ -16,7 +16,7 @@ on:
       limit:
         description: 'Maximum items per provider'
         required: false
-        default: '4000'
+        default: '20000'
       providers:
         description: 'Comma-separated provider filter (blank = all)'
         required: false
@@ -28,7 +28,10 @@ permissions:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # NPS (about 10,600 records, poster recovery for a third of them) and the
+    # Library of Congress (HEADs spaced to its published rate limit) add most
+    # of the time.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
@@ -44,8 +47,13 @@ jobs:
 
       - name: Run ingestion
         working-directory: app
+        env:
+          # Free key from https://www.nps.gov/subjects/developer/get-started.htm (optional: without it
+          # the adapter uses DEMO_KEY, about ten requests an hour, which the
+          # adapter's large pages fit inside).
+          NPS_API_KEY: ${{ secrets.NPS_API_KEY }}
         run: |
-          ARGS="--limit ${{ github.event.inputs.limit || '4000' }}"
+          ARGS="--limit ${{ github.event.inputs.limit || '20000' }}"
           if [ -n "${{ github.event.inputs.providers }}" ]; then
             ARGS="$ARGS --providers ${{ github.event.inputs.providers }}"
           fi

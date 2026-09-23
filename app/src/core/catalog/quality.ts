@@ -73,7 +73,11 @@ export function freshnessScore(item: FrontierMediaItem, now = Date.now()): numbe
  */
 export function baseWeight(item: FrontierMediaItem): number {
   let w = 1;
-  if (item.channel === 'archives') w *= 0.75;
+  // History is a channel of its own now, not an aside. Silent black-and-white
+  // film is still nudged down in the mixed channel, so a shuffle of
+  // Everything does not become a newsreel marathon.
+  if (item.provider === 'loc') w *= 0.8;
+  else if (item.channel === 'archives' && item.provider === 'nasa') w *= 0.75;
   if (item.location?.accuracy === 'mission') w *= 0.9;
   if (item.location?.type === 'unknown') w *= 0.7;
   if (item.environment === 'laboratory') w *= 0.8;

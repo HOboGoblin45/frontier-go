@@ -40,6 +40,31 @@ something a larger company can use.
 All inputs are U.S. Government works published by NOAA (17 U.S.C. §105).
 Nothing about a viewer is collected.
 
+## 2b. The second asset: a map of public-domain footage (4.4.0)
+
+Direction from Charlie, 2026-09-23: nature, landmarks and human history as well
+as the deep sea and space, "National Geographic, Science Channel, History and
+Discovery all in one", every clip placed on the globe, so footage can be found
+by location.
+
+| | |
+| --- | --- |
+| Clips in the catalog | **6,310**, 475 hours, from four public sources **[V]** |
+| On the globe | **5,104** at 1,061 distinct points, each with a stated basis and accuracy **[V]** |
+| National Park Service | 4,275 clips from 336 parks; 557 are the NPS's own B-roll (raw footage, no narration) **[V]** |
+| Library of Congress | 401 films, 1896-1944, at 73 named places **[V]** |
+| Subjects | 13, from mammals to native heritage, on every clip where the source's own words support one **[V]** |
+
+What is new is the index, not the footage: public-domain video **by place and
+by subject**, with the rights decided clip by clip and the location basis
+stated. The agencies' own sites search by keyword, one agency at a time, with
+no map and no rights decision. [I, checked against the NPS, LoC, NOAA and NASA
+search pages]
+
+Honest limits: most points (3,988) are reference points for a park or a named
+place, not filming positions; about 1,000 NPS clips carry a point of their
+own. [V]
+
 ## 3. Why this is novel [I, checked against what exists]
 
 | What exists | What it lacks |
@@ -58,9 +83,9 @@ Ordered by fit. The pitch changes by buyer; the asset is the same.
 
 | Buyer type | Examples | What they would be buying | Evidence they buy this kind of thing |
 | --- | --- | --- | --- |
-| Stock and archival footage | Shutterstock/Getty | A species-, depth- and place-indexed deep-sea footage library, searchable to the second | Shutterstock bought Pond5 for $210M **[V]** |
+| Stock and archival footage | Shutterstock/Getty | A species-, depth- and place-indexed deep-sea footage library, searchable to the second, and a rights-decided, place-indexed public-domain library (parks, early film) | Shutterstock bought Pond5 for $210M **[V]** |
 | Factual media and streaming | Blue Ant/MagellanTV, National Geographic/Disney, Warner Bros. Discovery, CuriosityStream | A distinctive ambient/FAST channel and a science brand with a data moat | Blue Ant bought MagellanTV, $12M ($6M upfront) **[V]** |
-| Platforms with maps, TV and immersive video | Apple (tvOS, Vision Pro, Maps), Google (Earth, Arts & Culture) | Geolocated, time-synced exploration video. A privacy-clean app. | Apple acquires small technology teams routinely, e.g. Q.ai in 2026 **[R]** |
+| Platforms with maps, TV and immersive video | Apple (tvOS, Vision Pro, Maps), Google (Earth, Arts & Culture) | Geolocated, time-synced exploration video; a footage layer for a map. A privacy-clean app. | Apple acquires small technology teams routinely, e.g. Q.ai in 2026 **[R]** |
 | AI and data | Model builders; data marketplaces | Expert-labelled, time-coded, geolocated underwater video: video, telemetry and taxonomy aligned | Cloudflare acquired Human Native, Jan 2026 **[R]**; FathomNet and Meta **[R]** |
 | Ocean technology and science philanthropy | Schmidt Ocean Institute, OceanX, Ocean Infinity | A public telepresence product for their own dives, ready-made | [I] Partnership first; acquisition possible |
 

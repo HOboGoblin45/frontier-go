@@ -97,7 +97,7 @@ ${opts.jsonLd ? `<script type="application/ld+json">${JSON.stringify(opts.jsonLd
   <a class="wordmark" href="${SITE_URL}/">frontier <span>go</span></a>
   ${opts.body}
   <footer>
-    frontier go is an independent app, not affiliated with or endorsed by NASA, NOAA or any government agency.
+    frontier go is an independent app, not affiliated with or endorsed by the National Park Service, the Library of Congress, NASA, NOAA or any government agency.
     Footage is public-domain material credited to the agency that published it.<br>
     <a href="${SITE_URL}/">About</a> &middot; <a href="${SITE_URL}/support">Support</a> &middot;
     <a href="${SITE_URL}/privacy">Privacy</a> &middot; <a href="${TERMS_URL}" rel="noopener">Terms</a>
@@ -126,6 +126,15 @@ export function sharePagePath(item: FrontierMediaItem): string {
   return `d/${shareSlug(item.id)}/index.html`;
 }
 
+/**
+ * Desktop Chrome and Firefox do not play HLS in a <video> element. A clip
+ * whose stream is a playlist (the Library of Congress) is shown on the web
+ * from its progressive MP4 when it has one.
+ */
+export function playableInBrowser(item: FrontierMediaItem): string {
+  return item.stream.type === 'hls' && item.stream.fallbackUrl ? item.stream.fallbackUrl : item.stream.url;
+}
+
 export function renderSharePage(item: FrontierMediaItem): string {
   const place = placeLine(item);
   const credit = item.rights?.attributionText || item.source?.organization || '';
@@ -134,7 +143,7 @@ export function renderSharePage(item: FrontierMediaItem): string {
   const description = clip([place, item.description].filter(Boolean).join(' — '), 200);
   const body = `
   <div class="stage">
-    <video src="${esc(item.stream.url)}" ${poster ? `poster="${esc(poster)}"` : ''} controls playsinline preload="metadata"></video>
+    <video src="${esc(playableInBrowser(item))}" ${poster ? `poster="${esc(poster)}"` : ''} controls playsinline preload="metadata"></video>
   </div>
   <div class="eyebrow">Shared from frontier go</div>
   <h1>${esc(item.title)}</h1>

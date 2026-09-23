@@ -4,3 +4,4 @@ export * from './safety';
 export * from './media';
 export * from './playback';
 export * from './history';
+export * from './subjects';

@@ -118,4 +118,12 @@ export type FrontierEnvironment =
   | 'deep_space'
   | 'laboratory'
   | 'launch_site'
+  | 'forest'
+  | 'desert'
+  | 'mountain'
+  | 'coast'
+  | 'freshwater'
+  | 'grassland'
+  | 'cave'
+  | 'historic_site'
   | 'unknown';

@@ -1,6 +1,7 @@
 import type { FrontierLocation, FrontierEnvironment } from './location';
 import type { FrontierRightsMetadata } from './rights';
 import type { FrontierSafetyMetadata } from './safety';
+import type { FrontierSubject } from './subjects';
 
 /**
  * The canonical content model. Every provider normalises into this shape and
@@ -55,6 +56,12 @@ export interface FrontierSource {
    * has it. Opens Dive Replay from the clip.
    */
   diveId?: string;
+  /**
+   * The named site the provider files the clip under - a national park,
+   * historic site or monument - when it has one. Drives "Keep exploring"
+   * and the per-site collections.
+   */
+  site?: string;
 }
 
 export interface FrontierHealthMetadata {
@@ -99,6 +106,12 @@ export interface FrontierMediaItem {
   /** Secondary channels this item also belongs to. `channel` is its primary. */
   channels?: FrontierChannel[];
   tags: string[];
+  /**
+   * What the clip is of: animals by group, plants, landscapes, landmarks,
+   * human history. Derived at ingest from the provider's own words; see
+   * core/catalog/subjects.ts. Absent on catalogs built before 4.4.0.
+   */
+  subjects?: FrontierSubject[];
   environment: FrontierEnvironment;
   availability: Availability;
   location?: FrontierLocation;
@@ -145,7 +158,7 @@ export const CHANNEL_LABELS: Readonly<Record<FrontierChannel, string>> = Object.
   space: 'Space',
   wild_earth: 'Wild Earth',
   field_science: 'Field Science',
-  archives: 'Archives',
+  archives: 'History',
   live: 'Live',
 });
 

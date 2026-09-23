@@ -22,7 +22,9 @@ export function CollectionsList({
 
   const sections: Array<{ key: string; label: string; items: Collection[] }> = [
     { key: 'new', label: 'Just arrived', items: collections.filter((c) => c.kind === 'new') },
+    { key: 'group', label: 'Browse by kind', items: collections.filter((c) => c.kind === 'group') },
     { key: 'subject', label: 'Subjects', items: collections.filter((c) => c.kind === 'subject') },
+    { key: 'site', label: 'Parks and historic sites', items: collections.filter((c) => c.kind === 'site') },
     { key: 'expedition', label: 'Whole expeditions', items: collections.filter((c) => c.kind === 'expedition') },
   ].filter((s) => s.items.length > 0);
 

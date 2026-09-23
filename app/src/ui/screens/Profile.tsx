@@ -75,7 +75,7 @@ export function Profile({
             ) : null}
             <p className="meta muted" style={{ marginTop: 'var(--space-3)' }}>
               frontier go is an independent app. It is not affiliated with, sponsored by or endorsed by
-              NASA, NOAA or any government agency.
+              the National Park Service, the Library of Congress, NASA, NOAA or any government agency.
             </p>
           </div>
         </section>

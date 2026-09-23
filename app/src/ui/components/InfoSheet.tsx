@@ -1,6 +1,7 @@
 import type { FrontierMediaItem } from '../../core/types/media';
 import { accuracyNote, locationHeadline } from '../../core/types/location';
 import { rightsLabel } from '../../core/types/rights';
+import { SUBJECT_LABELS } from '../../core/types/subjects';
 import { Icon } from './Icon';
 
 function Row({ label, value }: { label: string; value?: string | null }) {
@@ -75,6 +76,8 @@ export function InfoSheet({
             <Row label="Depth" value={l?.depthMeters ? `${Math.round(l.depthMeters).toLocaleString('en-US')} m below sea level` : undefined} />
             <Row label="Altitude" value={l?.altitudeMeters ? `${Math.round(l.altitudeMeters / 1000).toLocaleString('en-US')} km` : undefined} />
             <Row label="Captured" value={formatDate(item.temporal.capturedAt)} />
+            <Row label="Site" value={item.source.site} />
+            <Row label="Shows" value={item.subjects?.length ? item.subjects.map((x) => SUBJECT_LABELS[x]).join(', ') : undefined} />
             <Row label="Expedition" value={item.source.expedition} />
             <Row label="Mission" value={item.source.mission} />
             <Row label="Vessel" value={item.source.vessel} />

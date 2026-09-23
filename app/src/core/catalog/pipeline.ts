@@ -1,5 +1,6 @@
 import type { FrontierCatalog, FrontierMediaItem } from '../types/media';
 import { cleanDescription, cleanTitle } from './text';
+import { subjectsFor } from './subjects';
 import type { FrontierProviderAdapter, IngestLogger } from '../../providers/types';
 import { evaluateEligibility } from './eligibility';
 import { withRanking } from './quality';
@@ -93,11 +94,13 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
       if (!item) continue;
       // Titles are for a screen, not a filing system. See core/catalog/text.ts
       // for the inventory of what this was putting in front of people.
-      const tidy: FrontierMediaItem = {
+      const cleaned: FrontierMediaItem = {
         ...item,
         title: cleanTitle(item.title),
         description: cleanDescription(item.description),
       };
+      // What the clip is of, for every provider alike. See core/catalog/subjects.ts.
+      const tidy: FrontierMediaItem = { ...cleaned, subjects: subjectsFor(cleaned) };
       const ranked = withRanking(tidy, now);
       normalized.push(ranked);
     }
@@ -168,7 +171,7 @@ export async function runPipeline(opts: PipelineOptions): Promise<PipelineResult
         });
         return;
       }
-      if (typeof res.bytes === 'number' && res.bytes > 0) {
+      if (item.stream.type === 'mp4' && typeof res.bytes === 'number' && res.bytes > 0) {
         // Recompute bitrate from what the CDN actually serves, which is more
         // reliable than the provider's stated figure for a transcoded file.
         const d = item.stream.durationSeconds;
