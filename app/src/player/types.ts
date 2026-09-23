@@ -35,7 +35,38 @@ export interface PlayerDiagnostics {
   surfaceDetached?: boolean;
   pipSupported?: boolean;
   audioSessionCategory?: string;
+  /**
+   * The picture's inset from the top and bottom of the screen as the native
+   * player has actually applied it. Both zero while the interface is showing
+   * means the layout hint never arrived and the text is over the picture.
+   */
+  videoInsetTop?: number;
+  videoInsetBottom?: number;
   implementation: 'native-avfoundation' | 'web-video-element';
+}
+
+/** What happened to the last layout hint sent to the player, for Diagnostics. */
+export interface VideoInsetStatus {
+  state: 'unreported' | 'applied' | 'failed';
+  top?: number;
+  bottom?: number;
+  message?: string;
+}
+
+/**
+ * One line for Profile -> Diagnostics saying whether the picture is being
+ * moved clear of the interface. `bad` colours the line as a fault.
+ */
+export function describeVideoInset(
+  status: VideoInsetStatus,
+  diag: Pick<PlayerDiagnostics, 'native' | 'videoInsetTop' | 'videoInsetBottom'> | null,
+): { text: string; bad: boolean } {
+  if (status.state === 'failed') return { text: `NOT APPLIED \u00b7 ${status.message || 'rejected'}`, bad: true };
+  if (status.state === 'unreported') return { text: 'no report yet', bad: false };
+  const native = diag?.native
+    ? ` \u00b7 native ${Math.round(diag.videoInsetTop ?? 0)}/${Math.round(diag.videoInsetBottom ?? 0)}`
+    : '';
+  return { text: `top ${status.top ?? 0} \u00b7 bottom ${status.bottom ?? 0}${native}`, bad: false };
 }
 
 export type PlayerEvent =

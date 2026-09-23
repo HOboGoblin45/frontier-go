@@ -2,7 +2,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { FrontierMediaItem } from '../core/types/media';
 import { locationHeadline } from '../core/types/location';
 import { artworkFor } from '../core/catalog/artwork';
-import type { FrontierPlayerPlugin, PlayableItem, PlayerDiagnostics } from './types';
+import type { FrontierPlayerPlugin, PlayableItem, PlayerDiagnostics, VideoInsetStatus } from './types';
 import { WebFrontierPlayer } from './webPlayer';
 
 /**
@@ -34,18 +34,32 @@ export function toPlayable(item: FrontierMediaItem): PlayableItem {
   };
 }
 
+let insetStatus: VideoInsetStatus = { state: 'unreported' };
+
+export function videoInsetStatus(): VideoInsetStatus {
+  return insetStatus;
+}
+
 /**
  * Report how much of the picture plane the interface is covering.
  *
- * Fire-and-forget: a player that has not attached yet rejects, and the next
- * measurement will land. Never let a layout hint break playback.
+ * Never lets a layout hint break playback, but no longer hides a failure
+ * either: from 4.0.3 to 4.3.1 every call was rejected because the method was
+ * missing from the Objective-C registration, and a `.catch(() => undefined)`
+ * here made that invisible. The outcome is now kept for Diagnostics and a
+ * rejection is logged once.
  */
 export function setVideoInsets(top: number, bottom: number, animated = true): void {
-  void FrontierPlayer.setVideoInsets({
-    top: Math.max(0, Math.round(top)),
-    bottom: Math.max(0, Math.round(bottom)),
-    animated,
-  }).catch(() => undefined);
+  const t = Math.max(0, Math.round(top));
+  const b = Math.max(0, Math.round(bottom));
+  FrontierPlayer.setVideoInsets({ top: t, bottom: b, animated }).then(
+    () => { insetStatus = { state: 'applied', top: t, bottom: b }; },
+    (e: unknown) => {
+      const message = e instanceof Error ? e.message : String(e);
+      if (insetStatus.state !== 'failed') console.error(`[FrontierPlayer] setVideoInsets failed: ${message}`);
+      insetStatus = { state: 'failed', top: t, bottom: b, message };
+    },
+  );
 }
 
 export async function diagnostics(): Promise<PlayerDiagnostics> {
@@ -59,6 +73,8 @@ export async function diagnostics(): Promise<PlayerDiagnostics> {
     surfaceDetached: raw.surfaceDetached as boolean | undefined,
     pipSupported: raw.pipSupported as boolean | undefined,
     audioSessionCategory: raw.audioSessionCategory as string | undefined,
+    videoInsetTop: raw.videoInsetTop as number | undefined,
+    videoInsetBottom: raw.videoInsetBottom as number | undefined,
     implementation: native ? 'native-avfoundation' : 'web-video-element',
   };
 }

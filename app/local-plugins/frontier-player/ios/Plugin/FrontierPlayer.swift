@@ -363,6 +363,11 @@ final class FrontierPlaybackEngine: NSObject {
     ///
     /// The web layer measures its own chrome and reports it here. Nothing is
     /// assumed about how tall the interface is or which way the phone is held.
+    /// The insets currently applied, for Diagnostics.
+    var videoInsets: (top: CGFloat, bottom: CGFloat) {
+        (videoTopInset.constant, videoBottomInset.constant)
+    }
+
     func setVideoInsets(top: CGFloat, bottom: CGFloat, animated: Bool) {
         let top = max(0, top)
         let bottom = max(0, bottom)
@@ -1082,6 +1087,8 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
                 "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,
+                "videoInsetTop": Double(self.engine?.videoInsets.top ?? 0),
+                "videoInsetBottom": Double(self.engine?.videoInsets.bottom ?? 0),
                 "state": self.engine?.stateDictionary() ?? [:],
             ])
         }

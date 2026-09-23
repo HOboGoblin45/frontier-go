@@ -7,6 +7,28 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.3.2] — 2026-09-23
+
+### Fixed
+
+- **The picture was still under the title and description on device (4.3.1,
+  TestFlight).** Root cause, found in the code rather than guessed: the
+  native method that moves the picture, `setVideoInsets`, was listed in the
+  Swift plugin's `pluginMethods` but not in the Objective-C `CAP_PLUGIN`
+  macro in `FrontierPlayer.m`. The macro defines `pluginMethods` in a
+  category, which replaces the Swift getter at runtime (confirmed in
+  Capacitor's `CAPBridgedPlugin.h`), so every call was rejected as not
+  implemented, and the JS wrapper discarded the rejection. The picture never
+  moved on any device from 4.0.3, when the method was added, to 4.3.1. The
+  4.3.1 fixed frame made it worse: the picture stayed centred in the whole
+  window while the text panel below it became opaque.
+- Registered the method. A rejected layout hint is now logged and shown in
+  Profile -> Diagnostics -> Picture inset (`NOT APPLIED` in the accent
+  colour), alongside the inset the native player reports it has applied.
+- New test `src/player/__tests__/plugin-registration.test.ts` fails CI if the
+  Objective-C list, the Swift list, the Swift implementations and the JS
+  interface ever disagree. It fails against the 4.3.1 file.
+
 ## [4.3.1] — 2026-09-22
 
 ### Fixed

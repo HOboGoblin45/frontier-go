@@ -37,6 +37,10 @@ decisions.
   a single item. The whole reorientation exists because embedded playback cost
   this product AirPlay, PiP, preloading, buffering control and an ad-free
   shuffle. There is no `youtube.com` string left in the repo; keep it that way.
+- **Every native method is registered twice.** `FrontierPlayer.m`'s
+  `CAP_PLUGIN_METHOD` list overrides the Swift `pluginMethods` at runtime, so a
+  method missing from the `.m` is unreachable from JS even though Swift lists
+  it. `plugin-registration.test.ts` enforces parity; add new methods to both.
 - **The native plugin must stay bound.** `FrontierPlayer` conforms to
   `CAPBridgedPlugin` *and* ships the `CAP_PLUGIN` macro. This project already
   lost a release cycle (v3.4.1) to a plugin that compiled, shipped, and was
@@ -101,9 +105,11 @@ and its item parser is **compiled and run** under Linux Swift 5.10 via
 `ios/Tests/extract-and-run.sh`, which diffs its extracted copy against the
 source so a stale harness fails rather than passes.
 
-**Device-verified** as of 4.0.3 (build 78): native AVFoundation playback, the
-transparent web view over the player layer, and the Watch layout with the
-picture inset clear of the interface.
+**Device-verified** as of 4.0.3 (build 78): native AVFoundation playback and
+the transparent web view over the player layer. The picture inset was NOT
+working on device from 4.0.3 to 4.3.1 (the method was missing from the
+Objective-C registration; fixed in 4.3.2, not yet device-verified). Check
+Profile -> Diagnostics -> Picture inset after any change to the player.
 
 **Not verified:** AirPlay routing, Picture in Picture round-trip, the
 lock-screen controls, the native letterbox backdrop, background audio, haptics,

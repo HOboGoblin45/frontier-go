@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { APP_STORE_URL, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../../core/platform/site';
 import { Icon } from '../components/Icon';
 import type { LoadedCatalog } from '../../core/catalog/catalog';
-import { diagnostics } from '../../player/frontierPlayer';
+import { diagnostics, videoInsetStatus } from '../../player/frontierPlayer';
+import { describeVideoInset } from '../../player/types';
 import type { PlayerDiagnostics } from '../../player/types';
 import { sessionSummary } from '../../core/analytics/analytics';
 import { getErrorLog } from '../../core/platform/errorLog';
@@ -27,6 +28,7 @@ export function Profile({
   const [diag, setDiag] = useState<PlayerDiagnostics | null>(null);
   const [errors, setErrors] = useState<Array<{ t: string; kind: string; message: string }>>([]);
   const summary = sessionSummary();
+  const inset = describeVideoInset(videoInsetStatus(), diag);
 
   useEffect(() => {
     void diagnostics().then(setDiag);
@@ -146,6 +148,8 @@ export function Profile({
                 : diag.surfaceDetached ? 'sibling of the web view'
                   : 'INSIDE the web view'}
             </dd>
+            <dt>Picture inset</dt>
+            <dd style={{ color: inset.bad ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>{inset.text}</dd>
             <dt>Picture in Picture</dt><dd>{diag?.pipSupported ? 'supported' : 'unavailable'}</dd>
             <dt>Audio session</dt><dd>{diag?.audioSessionCategory || 'n/a'}</dd>
           </dl>

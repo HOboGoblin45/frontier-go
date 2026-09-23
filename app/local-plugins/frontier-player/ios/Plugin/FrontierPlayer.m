@@ -8,6 +8,13 @@
 //  deliberately — this project has already lost a release cycle to a plugin
 //  that compiled, shipped, and was never reachable from JS.
 //
+//  The two method lists MUST match. The macro below defines `pluginMethods` in
+//  an Objective-C category, and a category method replaces the Swift class's
+//  own getter at runtime: whatever is missing here is unreachable from JS even
+//  though the Swift list names it. setVideoInsets was missing from 4.0.3 to
+//  4.3.1, so the picture never moved clear of the interface on a device.
+//  `src/player/__tests__/plugin-registration.test.ts` now fails CI on drift.
+//
 
 #import <Foundation/Foundation.h>
 #import <Capacitor/Capacitor.h>
@@ -26,5 +33,6 @@ CAP_PLUGIN(FrontierPlayer, "FrontierPlayer",
     CAP_PLUGIN_METHOD(presentRoutePicker, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getState, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(setNowPlayingMetadata, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(setVideoInsets, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getDiagnostics, CAPPluginReturnPromise);
 )
