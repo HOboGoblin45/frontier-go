@@ -7,6 +7,38 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.4.2] — 2026-09-24
+
+### Fixed
+
+- **AirPlay showed no picture on the TV (reported on device, 4.4.1).** The
+  audio session used the default route-sharing policy. Apple's AirPlay
+  guidance asks media apps to declare a long-form policy, and this is a video
+  app, so the session is now `.playback` / `.moviePlayback` /
+  `.longFormVideo`. If iOS refuses that combination, it falls back to the
+  4.4.1 session and says so in Diagnostics. The player also fits the picture
+  to the TV (`externalPlaybackVideoGravity`).
+- If the sound reaches the TV but the player has not switched to external
+  playback 1.5 s after the route change, the player is asked once to
+  re-evaluate (external playback off and on). Whether that was needed, and
+  whether it worked, is recorded.
+
+### Added
+
+- Profile > Diagnostics > AirPlay, refreshed every 2 seconds, shows one of:
+  - "video to TV": working;
+  - "SOUND ONLY - picture stayed on the phone": the player did not switch;
+  - "video to TV - stream error": the TV could not play the file;
+  - "not casting".
+
+  It also shows the audio route and any audio-session error, so the next
+  report says which failure it is.
+
+### Not verified
+
+- Any of this on a device with an AirPlay receiver.
+
+
 ## [4.4.1] — 2026-09-24
 
 ### Fixed

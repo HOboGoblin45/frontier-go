@@ -3,7 +3,7 @@ import { APP_STORE_URL, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '../../core/p
 import { Icon } from '../components/Icon';
 import type { LoadedCatalog } from '../../core/catalog/catalog';
 import { diagnostics, videoInsetStatus } from '../../player/frontierPlayer';
-import { describeVideoInset } from '../../player/types';
+import { describeAirPlay, describeVideoInset } from '../../player/types';
 import type { PlayerDiagnostics } from '../../player/types';
 import { sessionSummary } from '../../core/analytics/analytics';
 import { getErrorLog } from '../../core/platform/errorLog';
@@ -29,10 +29,15 @@ export function Profile({
   const [errors, setErrors] = useState<Array<{ t: string; kind: string; message: string }>>([]);
   const summary = sessionSummary();
   const inset = describeVideoInset(videoInsetStatus(), diag);
+  const airPlay = describeAirPlay(diag?.airPlay);
 
   useEffect(() => {
     void diagnostics().then(setDiag);
     void getErrorLog().then((log) => setErrors(log.slice(0, 5)));
+    // Live while this screen is open, so the AirPlay line can be read while
+    // something is casting.
+    const t = window.setInterval(() => { void diagnostics().then(setDiag); }, 2000);
+    return () => window.clearInterval(t);
   }, []);
 
   const attributions = catalog
@@ -148,6 +153,8 @@ export function Profile({
                 : diag.surfaceDetached ? 'sibling of the web view'
                   : 'INSIDE the web view'}
             </dd>
+            <dt>AirPlay</dt>
+            <dd style={{ color: airPlay.bad ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>{diag?.native ? airPlay.text : 'n/a'}</dd>
             <dt>AirPlay control</dt>
             <dd style={{ color: diag?.native && diag.routePicker !== 'over the button' && diag.routePicker !== 'hidden' ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
               {!diag || !diag.native ? 'n/a'

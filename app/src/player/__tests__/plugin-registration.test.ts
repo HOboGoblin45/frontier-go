@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { describeVideoInset } from '../types';
+import { describeAirPlay, describeVideoInset } from '../types';
 
 /**
  * The bug this guards: setVideoInsets was named in the Swift `pluginMethods`
@@ -84,5 +84,19 @@ describe('describeVideoInset', () => {
 
   it('says nothing has been reported before Watch has measured', () => {
     expect(describeVideoInset({ state: 'unreported' }, null)).toEqual({ text: 'no report yet', bad: false });
+  });
+});
+
+describe('describeAirPlay', () => {
+  it('tells sound-only casting apart from video on the TV', () => {
+    expect(describeAirPlay({ externalVideo: false, audioOutputs: 'Living Room (AirPlay)' })).toMatchObject({ bad: true, text: expect.stringMatching(/^SOUND ONLY/) });
+    expect(describeAirPlay({ externalVideo: true, audioOutputs: 'Living Room (AirPlay)' })).toEqual({ text: 'video to TV', bad: false });
+    expect(describeAirPlay({ externalVideo: false, audioOutputs: 'Speaker (Speaker)' })).toEqual({ text: 'not casting \u00b7 Speaker (Speaker)', bad: false });
+  });
+
+  it('surfaces a stream the TV could not play, and an audio session that failed', () => {
+    expect(describeAirPlay({ externalVideo: true, lastStreamError: '-12938 CoreMediaErrorDomain HTTP 404' }).text).toMatch(/stream error: -12938/);
+    expect(describeAirPlay({ audioSessionError: 'longFormVideo: x' }).bad).toBe(true);
+    expect(describeAirPlay(undefined)).toEqual({ text: 'n/a', bad: false });
   });
 });

@@ -171,6 +171,7 @@ final class FrontierPlaybackEngine: NSObject {
         player.automaticallyWaitsToMinimizeStalling = true
         player.allowsExternalPlayback = true
         player.usesExternalPlaybackWhileExternalScreenIsActive = true
+        player.externalPlaybackVideoGravity = .resizeAspect
         player.appliesMediaSelectionCriteriaAutomatically = true
 
         playerLayer.videoGravity = .resizeAspect
@@ -426,7 +427,18 @@ final class FrontierPlaybackEngine: NSObject {
             let session = AVAudioSession.sharedInstance()
             // .playback keeps sound going with the ringer switch silenced and
             // when the screen locks, which is what an ambient channel needs.
-            try session.setCategory(.playback, mode: .moviePlayback, options: [])
+            // `.longFormVideo` tells the routing system this is a video app,
+            // so an AirPlay TV chosen in the picker carries the picture and
+            // not only the sound. Apple's AirPlay guidance asks apps to set a
+            // long-form route-sharing policy; the default policy is for
+            // short sounds. (4.4.2: casting showed no picture.)
+            do {
+                try session.setCategory(.playback, mode: .moviePlayback, policy: .longFormVideo, options: [])
+            } catch {
+                // Never trade sound for the policy: fall back to what 4.4.1 had.
+                diagnostics["audioSessionError"] = "longFormVideo: \(error)"
+                try session.setCategory(.playback, mode: .moviePlayback, options: [])
+            }
             try session.setActive(true, options: [])
         } catch {
             diagnostics["audioSessionError"] = String(describing: error)
@@ -765,6 +777,50 @@ final class FrontierPlaybackEngine: NSObject {
         let names = outputs.map { $0.portName }
         emit?("onRouteChanged", ["airPlay": airplay, "outputs": names])
         emit?("onAirPlayChanged", ["active": airplay || player.isExternalPlaybackActive])
+        if airplay { DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.ensureExternalVideo() } }
+    }
+
+    /// Sound on the TV and the picture still on the phone means the player
+    /// did not switch to external playback when the route changed. Asking it
+    /// to re-evaluate (external playback off and on again) is a no-op when it
+    /// already has, and is tried once per route change. Diagnostics records
+    /// whether it was needed and whether it worked.
+    private func ensureExternalVideo() {
+        let airplay = AVAudioSession.sharedInstance().currentRoute.outputs.contains { $0.portType == .airPlay }
+        guard airplay, player.currentItem != nil, !player.isExternalPlaybackActive else { return }
+        player.allowsExternalPlayback = false
+        player.allowsExternalPlayback = true
+        diagnostics["externalNudges"] = ((diagnostics["externalNudges"] as? Int) ?? 0) + 1
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self else { return }
+            self.diagnostics["externalAfterNudge"] = self.player.isExternalPlaybackActive
+            self.emitState(event: "onStateChanged")
+        }
+    }
+
+    /// What AirPlay is actually doing, for Profile -> Diagnostics.
+    func airPlayDiagnostics() -> [String: Any] {
+        let session = AVAudioSession.sharedInstance()
+        let outputs = session.currentRoute.outputs.map { "\($0.portName) (\($0.portType.rawValue))" }
+        var out: [String: Any] = [
+            "externalVideo": player.isExternalPlaybackActive,
+            "audioOutputs": outputs.joined(separator: ", "),
+            "routeSharingPolicy": session.routeSharingPolicy == .longFormVideo ? "longFormVideo"
+                : session.routeSharingPolicy == .longFormAudio ? "longFormAudio"
+                : session.routeSharingPolicy == .independent ? "independent" : "default",
+            "externalNudges": diagnostics["externalNudges"] ?? 0,
+        ]
+        if let err = diagnostics["audioSessionError"] { out["audioSessionError"] = err }
+        if let after = diagnostics["externalAfterNudge"] { out["externalAfterNudge"] = after }
+        if let item = player.currentItem {
+            out["itemStatus"] = item.status == .readyToPlay ? "ready" : item.status == .failed ? "failed" : "unknown"
+            if let err = item.error { out["itemError"] = err.localizedDescription }
+            if let ev = item.errorLog()?.events.last {
+                out["lastStreamError"] = "\(ev.errorStatusCode) \(ev.errorDomain) \(ev.errorComment ?? "")"
+                    .trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return out
     }
 
     @objc private func audioInterrupted(_ note: Notification) {
@@ -1175,6 +1231,7 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
                 "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,
+                "airPlay": self.engine?.airPlayDiagnostics() ?? [:],
                 "routePicker": self.engine?.routePickerOverlayState ?? "none",
                 "routePickerPresentations": self.engine?.routePickerPresentations ?? 0,
                 "videoInsetTop": Double(self.engine?.videoInsets.top ?? 0),

@@ -40,6 +40,8 @@ export interface PlayerDiagnostics {
    * player has actually applied it. Both zero while the interface is showing
    * means the layout hint never arrived and the text is over the picture.
    */
+  /** What AirPlay is doing right now. See describeAirPlay(). */
+  airPlay?: AirPlayDiagnostics;
   /** Where the native AirPlay picker is: "over the button", "hidden", "not mounted" or "none". */
   routePicker?: string;
   /** How many times iOS has opened the AirPlay list this session. */
@@ -47,6 +49,41 @@ export interface PlayerDiagnostics {
   videoInsetTop?: number;
   videoInsetBottom?: number;
   implementation: 'native-avfoundation' | 'web-video-element';
+}
+
+export interface AirPlayDiagnostics {
+  /** The player is sending the picture to the TV (AVPlayer external playback). */
+  externalVideo?: boolean;
+  /** "Living Room (AirPlay)", "Speaker (Speaker)". */
+  audioOutputs?: string;
+  routeSharingPolicy?: string;
+  externalNudges?: number;
+  externalAfterNudge?: boolean;
+  itemStatus?: string;
+  itemError?: string;
+  lastStreamError?: string;
+  audioSessionError?: string;
+}
+
+/**
+ * One line that says which of the AirPlay failures this is. The two that look
+ * alike on the sofa have different causes: sound on the TV with the picture
+ * still on the phone (the player never switched to external playback), and
+ * nothing on the TV at all (the TV could not play the stream).
+ */
+export function describeAirPlay(a: AirPlayDiagnostics | undefined): { text: string; bad: boolean } {
+  if (!a) return { text: 'n/a', bad: false };
+  const toTv = /airplay/i.test(a.audioOutputs || '');
+  if (a.audioSessionError) return { text: `audio session: ${a.audioSessionError}`, bad: true };
+  if (a.externalVideo) {
+    return a.lastStreamError || a.itemError
+      ? { text: `video to TV \u00b7 stream error: ${a.lastStreamError || a.itemError}`, bad: true }
+      : { text: 'video to TV', bad: false };
+  }
+  if (toTv) {
+    return { text: `SOUND ONLY \u00b7 picture stayed on the phone${a.externalNudges ? ` \u00b7 retried ${a.externalNudges}` : ''}`, bad: true };
+  }
+  return { text: `not casting \u00b7 ${a.audioOutputs || 'no output'}`, bad: false };
 }
 
 /** What happened to the last layout hint sent to the player, for Diagnostics. */

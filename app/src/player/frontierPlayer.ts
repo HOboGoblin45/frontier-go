@@ -97,6 +97,7 @@ export async function diagnostics(): Promise<PlayerDiagnostics> {
     surfaceDetached: raw.surfaceDetached as boolean | undefined,
     pipSupported: raw.pipSupported as boolean | undefined,
     audioSessionCategory: raw.audioSessionCategory as string | undefined,
+    airPlay: raw.airPlay as PlayerDiagnostics['airPlay'],
     routePicker: raw.routePicker as string | undefined,
     routePickerPresentations: raw.routePickerPresentations as number | undefined,
     videoInsetTop: raw.videoInsetTop as number | undefined,
