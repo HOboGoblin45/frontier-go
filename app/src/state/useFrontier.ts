@@ -504,7 +504,20 @@ export function useFrontier() {
     void primeNext();
   }, [primeNext, replenishDeck, takeNext]);
 
-  const presentAirPlay = useCallback(async () => { await FrontierPlayer.presentRoutePicker(); }, []);
+  /**
+   * Normally the tap never reaches here: Apple's picker sits over the button
+   * and takes it. This is the path for VoiceOver and for a tap in the moment
+   * before the picker was placed. False means iOS did not open the list.
+   */
+  const presentAirPlay = useCallback(async (): Promise<boolean> => {
+    try {
+      const { presented } = await FrontierPlayer.presentRoutePicker();
+      track('airplay_opened', { presented });
+      return presented;
+    } catch {
+      return false;
+    }
+  }, []);
   const enterPiP = useCallback(async () => { await FrontierPlayer.enterPiP(); }, []);
 
   const state: FrontierState = {

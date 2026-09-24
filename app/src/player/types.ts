@@ -40,6 +40,10 @@ export interface PlayerDiagnostics {
    * player has actually applied it. Both zero while the interface is showing
    * means the layout hint never arrived and the text is over the picture.
    */
+  /** Where the native AirPlay picker is: "over the button", "hidden", "not mounted" or "none". */
+  routePicker?: string;
+  /** How many times iOS has opened the AirPlay list this session. */
+  routePickerPresentations?: number;
   videoInsetTop?: number;
   videoInsetBottom?: number;
   implementation: 'native-avfoundation' | 'web-video-element';
@@ -87,6 +91,12 @@ export interface FrontierPlayerPlugin {
   enterPiP(): Promise<{ entered: boolean }>;
   exitPiP(): Promise<{ exited: boolean }>;
   presentRoutePicker(): Promise<{ presented: boolean }>;
+  /**
+   * Where the interface's AirPlay button is, in CSS pixels from the top left
+   * of the web view, and whether it is the visible, tappable thing there.
+   * The native layer lays Apple's own route picker over it.
+   */
+  setRoutePickerFrame(options: { x: number; y: number; width: number; height: number; visible: boolean }): Promise<{ state: string }>;
   getState(): Promise<Partial<PlaybackState> & { status: string; queueDepth?: number; failedIds?: string[] }>;
   setNowPlayingMetadata(options: { title: string; place: string; organization: string; artworkUrl?: string }): Promise<{ applied: boolean }>;
   /**

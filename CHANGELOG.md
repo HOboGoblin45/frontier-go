@@ -7,6 +7,40 @@ before v4.0.0. Their entries are kept below for the history.
 
 ## [Unreleased]
 
+## [4.4.1] — 2026-09-24
+
+### Fixed
+
+- **AirPlay did nothing (reported on device).** The AirPlay button asked the
+  native player to "tap" a hidden, zero-size AVRoutePickerView by poking its
+  private button from code. A picker with no size and no place on screen has
+  nowhere to present the route list from, and the JS side ignored the
+  "not presented" answer, so the tap vanished.
+  - Apple's own AVRoutePickerView now sits exactly over the interface's
+    AirPlay button, above the web view, drawn clear. The person's tap lands on
+    Apple's control and iOS opens the list itself.
+  - The web layer reports the button's frame every 250 ms (only changes cross
+    to native). It hides the picker whenever the button is not what a finger
+    would hit: faded out in landscape, under a sheet, or on another tab.
+  - The old programmatic path remains for VoiceOver and for a tap in the
+    moment before the picker is placed. If it fails, a toast points to
+    Control Center > Screen Mirroring.
+  - Profile > Diagnostics > AirPlay control shows where the picker is and how
+    many times iOS has opened the list this session.
+
+### Verified
+
+- 332 tests, typecheck and lint.
+- Browser harness: the reported frame follows the button, and is hidden under
+  the channel sheet, on the Explore tab and when the chrome idles out in
+  landscape.
+
+### Not verified
+
+- AirPlay on a device. It needs an AirPlay receiver (Apple TV or an AirPlay
+  television) on the same network.
+
+
 ## [4.4.0] — 2026-09-23
 
 Direction from Charlie the same day: expand to nature (animals by group,

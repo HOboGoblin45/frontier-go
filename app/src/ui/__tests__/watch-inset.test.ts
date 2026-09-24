@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chromeInset, pictureInsets } from '../screens/Watch';
+import { chromeInset, pictureInsets, routePickerFrameFor } from '../screens/Watch';
 
 /**
  * The bug this guards: the picture was drawn under the text, so the title sat
@@ -67,5 +67,25 @@ describe('pictureInsets', () => {
 
   it('ignores a collapsed frame', () => {
     expect(pictureInsets({ stage: { top: 200, bottom: 200 }, chrome: { top: 500 }, viewportHeight: VIEWPORT, idle: false })).toEqual({ top: 0, bottom: 432 });
+  });
+});
+
+describe('routePickerFrameFor', () => {
+  const rect = { left: 340, top: 52, width: 44, height: 44 };
+
+  it('puts the picker over the AirPlay button when the button is what a tap would hit', () => {
+    expect(routePickerFrameFor({ rect, onTop: true, opacity: 1, pageVisible: true }))
+      .toEqual({ x: 340, y: 52, width: 44, height: 44, visible: true });
+  });
+
+  it('hides it when the chrome has faded, a sheet covers the button, or the page is hidden', () => {
+    expect(routePickerFrameFor({ rect, onTop: true, opacity: 0, pageVisible: true }).visible).toBe(false);
+    expect(routePickerFrameFor({ rect, onTop: false, opacity: 1, pageVisible: true }).visible).toBe(false);
+    expect(routePickerFrameFor({ rect, onTop: true, opacity: 1, pageVisible: false }).visible).toBe(false);
+  });
+
+  it('hides it when there is no button to cover', () => {
+    expect(routePickerFrameFor({ rect: null, onTop: false, opacity: 1, pageVisible: true }).visible).toBe(false);
+    expect(routePickerFrameFor({ rect: { ...rect, width: 0 }, onTop: true, opacity: 1, pageVisible: true }).visible).toBe(false);
   });
 });

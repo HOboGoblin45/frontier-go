@@ -233,6 +233,11 @@ export class WebFrontierPlayer extends WebPlugin implements FrontierPlayerPlugin
   }
 
   async presentRoutePicker() { return { presented: false }; }
+  /** No AirPlay picker on the web. The last frame is kept for the browser harness. */
+  async setRoutePickerFrame(frame: { x: number; y: number; width: number; height: number; visible: boolean }) {
+    (window as unknown as { __routePickerFrame?: unknown }).__routePickerFrame = frame;
+    return { state: 'none' };
+  }
 
   /**
    * The web half of the same contract. The native player insets its layer;

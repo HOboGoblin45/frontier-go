@@ -31,6 +31,7 @@ CAP_PLUGIN(FrontierPlayer, "FrontierPlayer",
     CAP_PLUGIN_METHOD(enterPiP, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(exitPiP, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(presentRoutePicker, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(setRoutePickerFrame, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(getState, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(setNowPlayingMetadata, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(setVideoInsets, CAPPluginReturnPromise);

@@ -18,7 +18,7 @@ export type AnalyticsEvent =
   | 'info_opened' | 'airplay_started' | 'pip_started' | 'playback_failure'
   | 'buffer_event' | 'channel_changed' | 'session_end' | 'catalog_refreshed'
   | 'collection_opened' | 'sleep_timer_set' | 'sleep_timer_fired'
-  | 'dive_opened' | 'dive_sighting_jump' | 'dives_opened';
+  | 'dive_opened' | 'dive_sighting_jump' | 'dives_opened' | 'airplay_opened';
 
 export interface AnalyticsRecord {
   event: AnalyticsEvent;

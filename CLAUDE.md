@@ -45,6 +45,10 @@ No account.
   `CAP_PLUGIN_METHOD` list overrides the Swift `pluginMethods` at runtime, so a
   method missing from the `.m` is unreachable from JS even though Swift lists
   it. `plugin-registration.test.ts` enforces parity; add new methods to both.
+- **AirPlay is Apple's picker laid over our button** (4.4.1). Never go back to
+  triggering a hidden AVRoutePickerView from code; it did nothing on device.
+  The web layer reports the button's frame (`setRoutePickerFrame`) and hides
+  the picker whenever the button is not what a tap would hit.
 - **The native plugin must stay bound.** `FrontierPlayer` conforms to
   `CAPBridgedPlugin` *and* ships the `CAP_PLUGIN` macro. This project already
   lost a release cycle (v3.4.1) to a plugin that compiled, shipped, and was

@@ -148,6 +148,11 @@ export function Profile({
                 : diag.surfaceDetached ? 'sibling of the web view'
                   : 'INSIDE the web view'}
             </dd>
+            <dt>AirPlay control</dt>
+            <dd style={{ color: diag?.native && diag.routePicker !== 'over the button' && diag.routePicker !== 'hidden' ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>
+              {!diag || !diag.native ? 'n/a'
+                : `${diag.routePicker || 'unknown'} \u00b7 opened ${diag.routePickerPresentations ?? 0} ${diag.routePickerPresentations === 1 ? 'time' : 'times'}`}
+            </dd>
             <dt>Picture inset</dt>
             <dd style={{ color: inset.bad ? 'var(--accent-secondary)' : 'var(--text-secondary)' }}>{inset.text}</dd>
             <dt>Picture in Picture</dt><dd>{diag?.pipSupported ? 'supported' : 'unavailable'}</dd>

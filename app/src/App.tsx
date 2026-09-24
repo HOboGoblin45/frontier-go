@@ -10,6 +10,7 @@ import { constraintForItem } from './core/shuffle/constraint';
 import { isSaved as isSavedIn, shareable, parseDeepLink, resolveDiscovery } from './core/history/saved';
 import { get, set, KEYS } from './core/platform/storage';
 import { track } from './core/analytics/analytics';
+import { isNativePlayback } from './player/frontierPlayer';
 import { TabBar, type TabKey } from './ui/components/TabBar';
 import { TravelTransition, TravelAnnouncement } from './ui/components/TravelTransition';
 import { InfoSheet } from './ui/components/InfoSheet';
@@ -247,7 +248,11 @@ export default function App() {
           onSeek={frontier.seekTo}
           onSave={() => { frontier.toggleSave(); showToast(saved ? 'Removed' : 'Saved'); }}
           onInfo={() => { setInfoOpen(true); track('info_opened'); }}
-          onAirPlay={frontier.presentAirPlay}
+          onAirPlay={() => {
+            void frontier.presentAirPlay().then((presented) => {
+              if (!presented && isNativePlayback) showToast('Choose your TV in Control Center, under Screen Mirroring');
+            });
+          }}
           onPiP={frontier.enterPiP}
           onExplore={() => setExploreOpen(true)}
           onToggleAmbient={toggleAmbient}

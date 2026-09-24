@@ -64,6 +64,28 @@ export function setVideoInsets(top: number, bottom: number, animated = true): vo
   );
 }
 
+export interface RoutePickerFrame { x: number; y: number; width: number; height: number; visible: boolean }
+
+let lastRouteFrame = '';
+
+/**
+ * Tell the native layer where the AirPlay button is. Sent only when it
+ * changes; a failure is logged once, never thrown (see setVideoInsets).
+ */
+export function setRoutePickerFrame(frame: RoutePickerFrame): void {
+  const f = {
+    x: Math.round(frame.x), y: Math.round(frame.y),
+    width: Math.round(frame.width), height: Math.round(frame.height),
+    visible: frame.visible,
+  };
+  const key = JSON.stringify(f);
+  if (key === lastRouteFrame) return;
+  lastRouteFrame = key;
+  FrontierPlayer.setRoutePickerFrame(f).catch((e: unknown) => {
+    console.error(`[FrontierPlayer] setRoutePickerFrame failed: ${e instanceof Error ? e.message : String(e)}`);
+  });
+}
+
 export async function diagnostics(): Promise<PlayerDiagnostics> {
   const raw = await FrontierPlayer.getDiagnostics();
   const native = raw.native === true;
@@ -75,6 +97,8 @@ export async function diagnostics(): Promise<PlayerDiagnostics> {
     surfaceDetached: raw.surfaceDetached as boolean | undefined,
     pipSupported: raw.pipSupported as boolean | undefined,
     audioSessionCategory: raw.audioSessionCategory as string | undefined,
+    routePicker: raw.routePicker as string | undefined,
+    routePickerPresentations: raw.routePickerPresentations as number | undefined,
     videoInsetTop: raw.videoInsetTop as number | undefined,
     videoInsetBottom: raw.videoInsetBottom as number | undefined,
     implementation: native ? 'native-avfoundation' : 'web-video-element',

@@ -5,7 +5,7 @@ import { accuracyNote, locationHeadline } from '../../core/types/location';
 import type { ExplorationConstraint } from '../../core/shuffle/constraint';
 import { Icon } from '../components/Icon';
 import { Scrubber } from '../components/Scrubber';
-import { setVideoInsets } from '../../player/frontierPlayer';
+import { setRoutePickerFrame, setVideoInsets, type RoutePickerFrame } from '../../player/frontierPlayer';
 
 /**
  * Watch is the television.
@@ -76,6 +76,45 @@ export function pictureInsets(opts: {
   return { top: 0, bottom: chromeInset(chrome, viewportHeight, idle) };
 }
 
+/**
+ * Where Apple's AirPlay picker should sit: exactly over the AirPlay button,
+ * and only while that button is really what a finger would hit there - on
+ * screen, not faded out with the rest of the chrome, and not under a sheet
+ * or another tab. Anything less and the invisible native control would
+ * swallow a tap meant for something else.
+ */
+export function routePickerFrameFor(facts: {
+  rect: { left: number; top: number; width: number; height: number } | null;
+  /** The element at the button's centre is the button or inside it. */
+  onTop: boolean;
+  /** Product of the button's and its ancestors' opacity. */
+  opacity: number;
+  pageVisible: boolean;
+}): RoutePickerFrame {
+  const { rect, onTop, opacity, pageVisible } = facts;
+  if (!rect || rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0, width: 0, height: 0, visible: false };
+  return {
+    x: rect.left, y: rect.top, width: rect.width, height: rect.height,
+    visible: pageVisible && onTop && opacity > 0.5,
+  };
+}
+
+function measureAirPlayButton(button: HTMLElement | null): RoutePickerFrame {
+  if (!button || !button.isConnected) return routePickerFrameFor({ rect: null, onTop: false, opacity: 0, pageVisible: false });
+  const rect = button.getBoundingClientRect();
+  const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  let opacity = 1;
+  for (let el: Element | null = button; el; el = el.parentElement) {
+    opacity *= Number(window.getComputedStyle(el).opacity || '1');
+  }
+  return routePickerFrameFor({
+    rect,
+    onTop: !!hit && button.contains(hit),
+    opacity,
+    pageVisible: document.visibilityState !== 'hidden',
+  });
+}
+
 function eyebrowFor(item: FrontierMediaItem): string {
   switch (item.environment) {
     case 'deep_ocean': return 'Into the deep';
@@ -133,6 +172,21 @@ export function Watch({
   const timer = useRef<number | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const airPlayRef = useRef<HTMLButtonElement | null>(null);
+
+  // Keep Apple's AirPlay picker over our button. A quick poll rather than a
+  // pile of observers: sheets, tabs, the idle fade and rotation all move or
+  // cover the button, and one cheap hit-test catches every one of them. Only
+  // changes cross to native (see setRoutePickerFrame).
+  useEffect(() => {
+    const tick = () => setRoutePickerFrame(measureAirPlayButton(airPlayRef.current));
+    tick();
+    const t = window.setInterval(tick, 250);
+    return () => {
+      window.clearInterval(t);
+      setRoutePickerFrame({ x: 0, y: 0, width: 0, height: 0, visible: false });
+    };
+  }, []);
 
   const wake = () => {
     setIdle(false);
@@ -280,6 +334,7 @@ export function Watch({
             {sleepLabel ? <span className="watch__sleep-label">{sleepLabel}</span> : null}
           </button>
           <button
+            ref={airPlayRef}
             type="button"
             className={`icon-btn${playback.airPlayActive ? ' icon-btn--on' : ''}`}
             onClick={onAirPlay}

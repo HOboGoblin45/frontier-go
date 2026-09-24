@@ -291,6 +291,9 @@ final class FrontierPlaybackEngine: NSObject {
             parent.bringSubviewToFront(web)
         }
         surfaceIsSiblingOfWebView = parent !== hostWebView
+        // The route picker lives above the web view; bringing the web view
+        // forward above must not bury it.
+        placeRoutePicker()
         layoutLayer()
     }
 
@@ -430,13 +433,68 @@ final class FrontierPlaybackEngine: NSObject {
         }
     }
 
+    /// A real AVRoutePickerView, laid exactly over the interface's AirPlay
+    /// button.
+    ///
+    /// The first version kept a hidden, zero-size picker inside the web view
+    /// and "tapped" its internal button from code when the web button was
+    /// pressed. On device nothing happened (reported 2026-09-24): a picker
+    /// that is hidden and has no size has nowhere to present the route list
+    /// from, and poking a private subview is not a supported way to open it.
+    ///
+    /// Now the picker is visible, sized to the web button, and sits above the
+    /// web view, so the person's own tap lands on Apple's control and iOS
+    /// presents the list itself. It draws nothing (clear tint): the web
+    /// button underneath still shows the icon and the active state. The web
+    /// layer reports the button's frame, and hides the picker whenever the
+    /// button is not the thing on top at that point (idle, another tab, a
+    /// sheet), so it never steals a tap meant for something else.
     private func setupRoutePicker(in host: UIView) {
         guard routePicker == nil else { return }
         let picker = AVRoutePickerView(frame: .zero)
         picker.prioritizesVideoDevices = true
+        picker.tintColor = .clear
+        picker.activeTintColor = .clear
+        picker.backgroundColor = .clear
+        picker.delegate = self
+        // VoiceOver reaches AirPlay through the web button, which labels it.
+        picker.accessibilityElementsHidden = true
         picker.isHidden = true
-        host.addSubview(picker)
         routePicker = picker
+        placeRoutePicker()
+    }
+
+    /// The web button's frame in web-view points, and whether it is showing.
+    private var routePickerFrame: CGRect = .zero
+    private var routePickerWanted = false
+    private(set) var routePickerPresentations = 0
+
+    func setRoutePickerFrame(_ frame: CGRect, visible: Bool) {
+        routePickerFrame = frame
+        routePickerWanted = visible && frame.width > 0 && frame.height > 0
+        placeRoutePicker()
+    }
+
+    /// Above the web view, in the web view's parent, at the button's frame.
+    private func placeRoutePicker() {
+        guard let picker = routePicker else { return }
+        guard let web = hostWebView, let parent = web.superview else {
+            picker.isHidden = true
+            return
+        }
+        if picker.superview !== parent {
+            picker.removeFromSuperview()
+            parent.addSubview(picker)
+        }
+        parent.bringSubviewToFront(picker)
+        picker.frame = web.convert(routePickerFrame, to: parent)
+        picker.isHidden = !routePickerWanted
+    }
+
+    var routePickerOverlayState: String {
+        guard let picker = routePicker else { return "none" }
+        if picker.superview == nil { return "not mounted" }
+        return picker.isHidden ? "hidden" : "over the button"
     }
 
     private func setupPiP() {
@@ -547,15 +605,26 @@ final class FrontierPlaybackEngine: NSObject {
         emitState(event: "onStateChanged")
     }
 
+    /// For a press that did not land on the picker itself (VoiceOver, a
+    /// keyboard, a tap in the moment before the frame arrived). Best effort:
+    /// it sends the action to the picker's own button, which only works when
+    /// the picker is on screen with a size, so it is placed first.
     func presentRoutePicker() -> Bool {
         guard let picker = routePicker else { return false }
-        for sub in picker.subviews {
-            if let button = sub as? UIButton {
-                button.sendActions(for: .touchUpInside)
-                return true
-            }
+        placeRoutePicker()
+        if picker.isHidden || picker.bounds.isEmpty { return false }
+        picker.layoutIfNeeded()
+        guard let button = findButton(in: picker) else { return false }
+        button.sendActions(for: .touchUpInside)
+        return true
+    }
+
+    private func findButton(in view: UIView) -> UIButton? {
+        for sub in view.subviews {
+            if let button = sub as? UIButton { return button }
+            if let nested = findButton(in: sub) { return nested }
         }
-        return false
+        return nil
     }
 
     func enterPiP() -> Bool {
@@ -865,6 +934,12 @@ final class FrontierPlaybackEngine: NSObject {
 
 // MARK: - PiP
 
+extension FrontierPlaybackEngine: AVRoutePickerViewDelegate {
+    func routePickerViewWillBeginPresentingRoutes(_ routePickerView: AVRoutePickerView) {
+        routePickerPresentations += 1
+    }
+}
+
 extension FrontierPlaybackEngine: AVPictureInPictureControllerDelegate {
     func pictureInPictureControllerDidStartPictureInPicture(_ c: AVPictureInPictureController) {
         emit?("onPiPChanged", ["active": true])
@@ -910,6 +985,7 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "enterPiP", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "exitPiP", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "presentRoutePicker", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setRoutePickerFrame", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getState", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setNowPlayingMetadata", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setVideoInsets", returnType: CAPPluginReturnPromise),
@@ -1043,6 +1119,18 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    @objc func setRoutePickerFrame(_ call: CAPPluginCall) {
+        let frame = CGRect(
+            x: call.getDouble("x") ?? 0, y: call.getDouble("y") ?? 0,
+            width: call.getDouble("width") ?? 0, height: call.getDouble("height") ?? 0)
+        let visible = call.getBool("visible") ?? false
+        DispatchQueue.main.async {
+            self.attachIfNeeded()
+            self.engine?.setRoutePickerFrame(frame, visible: visible)
+            call.resolve(["state": self.engine?.routePickerOverlayState ?? "none"])
+        }
+    }
+
     @objc func getState(_ call: CAPPluginCall) {
         DispatchQueue.main.async { call.resolve(self.engine?.stateDictionary() ?? ["status": "idle"]) }
     }
@@ -1087,6 +1175,8 @@ public class FrontierPlayer: CAPPlugin, CAPBridgedPlugin {
                 "webViewTransparent": self.engine?.webViewIsTransparent ?? false,
                 "pipSupported": AVPictureInPictureController.isPictureInPictureSupported(),
                 "audioSessionCategory": AVAudioSession.sharedInstance().category.rawValue,
+                "routePicker": self.engine?.routePickerOverlayState ?? "none",
+                "routePickerPresentations": self.engine?.routePickerPresentations ?? 0,
                 "videoInsetTop": Double(self.engine?.videoInsets.top ?? 0),
                 "videoInsetBottom": Double(self.engine?.videoInsets.bottom ?? 0),
                 "state": self.engine?.stateDictionary() ?? [:],
