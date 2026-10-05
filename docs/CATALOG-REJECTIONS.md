@@ -1,29 +1,29 @@
 # Catalog rejection log
 
-Generated 2026-09-28T13:54:18.723Z by `npm run ingest`. Regenerated on every run;
+Generated 2026-10-05T14:37:36.299Z by `npm run ingest`. Regenerated on every run;
 do not hand-edit. Anything listed here is excluded from the production feed.
 
 ## Counts by stage
 
 | stage | count |
 | --- | --- |
-| fetched | 15997 |
-| normalized | 12415 |
-| rightsRejected | 2177 |
-| safetyRejected | 598 |
-| qualityRejected | 1993 |
+| fetched | 16013 |
+| normalized | 12431 |
+| rightsRejected | 2174 |
+| safetyRejected | 603 |
+| qualityRejected | 1988 |
 | duplicatesCollapsed | 138 |
-| published | 7509 |
+| published | 7528 |
 
 ## Counts by reason
 
 | reason | count |
 | --- | --- |
-| `rights:unknown` | 2177 |
-| `nps:third-party-credit` | 1975 |
-| `quality:too-long` | 910 |
-| `quality:no-artwork` | 562 |
-| `safety:identifiablePersons` | 548 |
+| `rights:unknown` | 2174 |
+| `nps:third-party-credit` | 1972 |
+| `quality:too-long` | 911 |
+| `quality:no-artwork` | 560 |
+| `safety:identifiablePersons` | 553 |
 | `quality:no-duration` | 496 |
 | `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 90 |
 | `safety:disturbingContent` | 45 |
@@ -32,7 +32,7 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | `nps:credit-cc-nd-or-nc` | 22 |
 | `loc:not-published-in-us` | 22 |
 | `Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this way.` | 18 |
-| `health:unreachable` | 15 |
+| `health:unreachable` | 11 |
 | `safety:sensitiveMilitaryContent` | 9 |
 | `loc:1945-not-cleared-by-record` | 8 |
 | `loc:2023-not-cleared-by-record` | 4 |
@@ -465,4 +465,4 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nps | Branching Out: Youth Exploring Landscape Stewardship | rights:unknown; nps:third-party-credit |
 | nps | National Parks of Southern West Virginia | rights:unknown; nps:third-party-credit |
 
-_4368 further rejections omitted._
+_4365 further rejections omitted._
