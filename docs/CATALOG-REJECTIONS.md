@@ -1,27 +1,27 @@
 # Catalog rejection log
 
-Generated 2026-10-05T14:37:36.299Z by `npm run ingest`. Regenerated on every run;
+Generated 2026-10-12T15:24:16.587Z by `npm run ingest`. Regenerated on every run;
 do not hand-edit. Anything listed here is excluded from the production feed.
 
 ## Counts by stage
 
 | stage | count |
 | --- | --- |
-| fetched | 16013 |
-| normalized | 12431 |
-| rightsRejected | 2174 |
+| fetched | 15243 |
+| normalized | 12229 |
+| rightsRejected | 2116 |
 | safetyRejected | 603 |
 | qualityRejected | 1988 |
 | duplicatesCollapsed | 138 |
-| published | 7528 |
+| published | 7384 |
 
 ## Counts by reason
 
 | reason | count |
 | --- | --- |
-| `rights:unknown` | 2174 |
-| `nps:third-party-credit` | 1972 |
-| `quality:too-long` | 911 |
+| `rights:unknown` | 2116 |
+| `nps:third-party-credit` | 1975 |
+| `quality:too-long` | 909 |
 | `quality:no-artwork` | 560 |
 | `safety:identifiablePersons` | 553 |
 | `quality:no-duration` | 496 |
@@ -30,34 +30,13 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | `quality:resolution` | 30 |
 | `quality:too-short` | 26 |
 | `nps:credit-cc-nd-or-nc` | 22 |
-| `loc:not-published-in-us` | 22 |
 | `Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this way.` | 18 |
-| `health:unreachable` | 11 |
+| `health:unreachable` | 13 |
 | `safety:sensitiveMilitaryContent` | 9 |
-| `loc:1945-not-cleared-by-record` | 8 |
-| `loc:2023-not-cleared-by-record` | 4 |
-| `loc:record-notes-a-restriction` | 3 |
-| `loc:no-date` | 3 |
-| `loc:1942-not-cleared-by-record` | 3 |
-| `loc:1940-not-cleared-by-record` | 3 |
-| `loc:1953-not-cleared-by-record` | 3 |
-| `loc:1936-not-cleared-by-record` | 3 |
-| `loc:1951-not-cleared-by-record` | 2 |
-| `loc:1948-not-cleared-by-record` | 2 |
-| `loc:1937-not-cleared-by-record` | 2 |
-| `loc:1938-not-cleared-by-record` | 2 |
-| `loc:1992-not-cleared-by-record` | 1 |
-| `loc:1950-not-cleared-by-record` | 1 |
-| `loc:1969-not-cleared-by-record` | 1 |
-| `loc:1935-not-cleared-by-record` | 1 |
-| `loc:1946-not-cleared-by-record` | 1 |
-| `loc:1956-not-cleared-by-record` | 1 |
-| `loc:1944-not-cleared-by-record` | 1 |
-| `loc:1960-not-cleared-by-record` | 1 |
-| `loc:1941-not-cleared-by-record` | 1 |
-| `loc:1968-not-cleared-by-record` | 1 |
-| `loc:1970-not-cleared-by-record` | 1 |
-| `loc:1939-not-cleared-by-record` | 1 |
+| `loc:not-published-in-us` | 6 |
+| `loc:record-notes-a-restriction` | 2 |
+| `loc:no-date` | 2 |
+| `loc:1945-not-cleared-by-record` | 1 |
 | `quality:no-title` | 1 |
 
 ## Rejected items
@@ -465,4 +444,4 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nps | Branching Out: Youth Exploring Landscape Stewardship | rights:unknown; nps:third-party-credit |
 | nps | National Parks of Southern West Virginia | rights:unknown; nps:third-party-credit |
 
-_4365 further rejections omitted._
+_4307 further rejections omitted._
