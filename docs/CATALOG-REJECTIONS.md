@@ -1,38 +1,38 @@
 # Catalog rejection log
 
-Generated 2026-10-19T13:14:04.818Z by `npm run ingest`. Regenerated on every run;
+Generated 2026-10-26T13:01:23.087Z by `npm run ingest`. Regenerated on every run;
 do not hand-edit. Anything listed here is excluded from the production feed.
 
 ## Counts by stage
 
 | stage | count |
 | --- | --- |
-| fetched | 16040 |
-| normalized | 12457 |
-| rightsRejected | 2176 |
-| safetyRejected | 605 |
-| qualityRejected | 1990 |
+| fetched | 16058 |
+| normalized | 12473 |
+| rightsRejected | 2173 |
+| safetyRejected | 606 |
+| qualityRejected | 1997 |
 | duplicatesCollapsed | 140 |
-| published | 7546 |
+| published | 7557 |
 
 ## Counts by reason
 
 | reason | count |
 | --- | --- |
-| `rights:unknown` | 2176 |
-| `nps:third-party-credit` | 1975 |
-| `quality:too-long` | 913 |
-| `quality:no-artwork` | 560 |
-| `safety:identifiablePersons` | 555 |
+| `rights:unknown` | 2173 |
+| `nps:third-party-credit` | 1976 |
+| `quality:too-long` | 914 |
+| `quality:no-artwork` | 565 |
+| `safety:identifiablePersons` | 556 |
 | `quality:no-duration` | 496 |
-| `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 90 |
+| `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 86 |
 | `safety:disturbingContent` | 45 |
 | `quality:resolution` | 30 |
 | `quality:too-short` | 26 |
 | `nps:credit-cc-nd-or-nc` | 22 |
 | `loc:not-published-in-us` | 22 |
 | `Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this way.` | 18 |
-| `health:unreachable` | 11 |
+| `health:unreachable` | 12 |
 | `safety:sensitiveMilitaryContent` | 9 |
 | `loc:1945-not-cleared-by-record` | 8 |
 | `loc:record-notes-a-restriction` | 4 |
@@ -85,7 +85,6 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | noaa_ocean_exploration | Technology Demonstrations: May 2021 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Morro Bay Humpback Whale Sounds Recording | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Disruptive Camouflage | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Halibut Canyon: September 2, 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Suction Sampler Success | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Starfish Have to Eat Too | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Sponge Collection | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
@@ -106,10 +105,7 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | noaa_ocean_exploration | Octopod Video | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | The Elusive Bobtail Squid | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Dumbo Octopod | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Tug-O-War: September 3, 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Pacific Rewind | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Funnel to the Deep | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Life in the Gully: August 29, 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Loading the ROVs | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | One of My Favorites | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Technology Demo Video | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
@@ -463,5 +459,9 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nps | An Artist's Perspective | rights:unknown; nps:third-party-credit |
 | nps | Branching Out: Youth Exploring Landscape Stewardship | rights:unknown; nps:third-party-credit |
 | nps | National Parks of Southern West Virginia | rights:unknown; nps:third-party-credit |
+| nps | Swimming Long Into The Future | rights:unknown; nps:third-party-credit |
+| nps | Time-Lapse Video | rights:unknown; nps:third-party-credit |
+| nps | Ask a Ranger! May 22, 2020 | rights:unknown; nps:third-party-credit |
+| nps | Death Valley Explorer Episode 1 - Death Valley | rights:unknown; nps:third-party-credit |
 
-_4371 further rejections omitted._
+_4376 further rejections omitted._
