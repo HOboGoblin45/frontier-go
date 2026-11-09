@@ -1,62 +1,41 @@
 # Catalog rejection log
 
-Generated 2026-10-26T13:01:23.087Z by `npm run ingest`. Regenerated on every run;
+Generated 2026-11-09T16:17:57.920Z by `npm run ingest`. Regenerated on every run;
 do not hand-edit. Anything listed here is excluded from the production feed.
 
 ## Counts by stage
 
 | stage | count |
 | --- | --- |
-| fetched | 16058 |
-| normalized | 12473 |
-| rightsRejected | 2173 |
-| safetyRejected | 606 |
-| qualityRejected | 1997 |
+| fetched | 14876 |
+| normalized | 12047 |
+| rightsRejected | 2107 |
+| safetyRejected | 609 |
+| qualityRejected | 2030 |
 | duplicatesCollapsed | 140 |
-| published | 7557 |
+| published | 7161 |
 
 ## Counts by reason
 
 | reason | count |
 | --- | --- |
-| `rights:unknown` | 2173 |
+| `rights:unknown` | 2107 |
 | `nps:third-party-credit` | 1976 |
-| `quality:too-long` | 914 |
-| `quality:no-artwork` | 565 |
-| `safety:identifiablePersons` | 556 |
+| `quality:too-long` | 908 |
+| `quality:no-artwork` | 566 |
+| `safety:identifiablePersons` | 559 |
 | `quality:no-duration` | 496 |
-| `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 86 |
+| `Copyright marker present in caption or credit; NOAA marks copyrighted items this way.` | 85 |
+| `health:unreachable` | 51 |
 | `safety:disturbingContent` | 45 |
-| `quality:resolution` | 30 |
+| `quality:resolution` | 29 |
 | `quality:too-short` | 26 |
 | `nps:credit-cc-nd-or-nc` | 22 |
-| `loc:not-published-in-us` | 22 |
 | `Third-party credit, licence, music or branding marker present in the metadata or the asset filename; NASA marks non-public-domain material this way.` | 18 |
-| `health:unreachable` | 12 |
 | `safety:sensitiveMilitaryContent` | 9 |
-| `loc:1945-not-cleared-by-record` | 8 |
-| `loc:record-notes-a-restriction` | 4 |
-| `loc:no-date` | 3 |
-| `loc:1942-not-cleared-by-record` | 3 |
-| `loc:1940-not-cleared-by-record` | 3 |
-| `loc:1953-not-cleared-by-record` | 3 |
-| `loc:1936-not-cleared-by-record` | 3 |
-| `loc:2023-not-cleared-by-record` | 3 |
-| `loc:1951-not-cleared-by-record` | 2 |
-| `loc:1948-not-cleared-by-record` | 2 |
-| `loc:1937-not-cleared-by-record` | 2 |
-| `loc:1938-not-cleared-by-record` | 2 |
-| `loc:1950-not-cleared-by-record` | 1 |
-| `loc:1969-not-cleared-by-record` | 1 |
-| `loc:1935-not-cleared-by-record` | 1 |
-| `loc:1946-not-cleared-by-record` | 1 |
-| `loc:1956-not-cleared-by-record` | 1 |
-| `loc:1944-not-cleared-by-record` | 1 |
-| `loc:1960-not-cleared-by-record` | 1 |
-| `loc:1941-not-cleared-by-record` | 1 |
-| `loc:1968-not-cleared-by-record` | 1 |
-| `loc:1970-not-cleared-by-record` | 1 |
-| `loc:1939-not-cleared-by-record` | 1 |
+| `loc:not-published-in-us` | 3 |
+| `loc:record-notes-a-restriction` | 2 |
+| `loc:1945-not-cleared-by-record` | 1 |
 | `quality:no-title` | 1 |
 
 ## Rejected items
@@ -102,7 +81,6 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | noaa_ocean_exploration | We Are All Explorers | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Dumbo Octopus: July 5, 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Feeding Frenzy | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Octopod Video | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | The Elusive Bobtail Squid | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Dumbo Octopod | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Pacific Rewind | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
@@ -137,7 +115,7 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | noaa_ocean_exploration | Marine Biology and Outreach | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Photogrammetry | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Hawaiian Lunar Calendar | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
-| noaa_ocean_exploration | Tubeworm On the Seafloor: May 2019 | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
+| noaa_ocean_exploration | Tubeworm On the Seafloor | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | CTD recovery | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Proposed Chumash Heritage National Marine Sanctuary | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
 | noaa_ocean_exploration | Crab Defending Bait | rights:unknown; Copyright marker present in caption or credit; NOAA marks copyrighted items this way. |
@@ -463,5 +441,6 @@ do not hand-edit. Anything listed here is excluded from the production feed.
 | nps | Time-Lapse Video | rights:unknown; nps:third-party-credit |
 | nps | Ask a Ranger! May 22, 2020 | rights:unknown; nps:third-party-credit |
 | nps | Death Valley Explorer Episode 1 - Death Valley | rights:unknown; nps:third-party-credit |
+| nps | Building a Post-Slavery Community | rights:unknown; nps:third-party-credit |
 
-_4376 further rejections omitted._
+_4346 further rejections omitted._
